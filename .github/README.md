@@ -6,7 +6,13 @@ Forked from https://github.com/lukis101/VRCUnityStuffs/tree/master/Scripts/Edito
 
 Some [Harmony](https://github.com/pardeike/Harmony)-based patches to Unity's Animator window. This tool packages a re-namespaced version of Harmony to avoid causing issues if you already have a Harmony dll in the project.  
 
-Installation: Clone Repo, add `Razgriz` folder to Assets folder of project. Configure at `Tools -> AnimatorExtensions`.
+## Usage: 
+
+Clone Repo, add `Razgriz` folder to Assets folder of project. Configure at `Tools -> AnimatorExtensions`.
+
+Settings are saved in EditorPrefs, so they persist across any projects that have AnimatorExtensions installed.
+
+## Images
 
 ![Animator Extensions Settings](.img/img-AnimatorExtensions-Settings.png)
 ![Animator Extensions Layer Copy/Paste](.img/img-AnimationLayerCopyPaste.png)
@@ -46,8 +52,8 @@ Installation: Clone Repo, add `Razgriz` folder to Assets folder of project. Conf
 
 - Option to rename property names
 - Recolor States
-- Clean up option to show actual property name (not "Nice Name")
 - Project Window: show multiple columns of data about assets? asset type, filetype
+- Drag to 
 
 Maybe:
 
