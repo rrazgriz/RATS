@@ -15,7 +15,7 @@ Settings are saved in EditorPrefs, so they persist across any projects that have
 ## Images
 
 ![Animator Extensions Settings](.img/img-AnimatorExtensions-Settings.png)
-![Animator Extensions Layer Copy/Paste](.img/img-AnimationLayerCopyPaste.png)
+![Animator Extensions Layer Copy/Paste](.img/img-AnimatorExtensions-Preview.png)
 ![Animator Real Names](.img/img-AnimationWindowRealNames.png)
 
 ## Changes
