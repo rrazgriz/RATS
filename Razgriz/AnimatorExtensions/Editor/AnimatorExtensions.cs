@@ -1,108 +1,288 @@
 // Some Harmony based Unity animator window patches to help workflow
 // Original by Dj Lukis.LT, under MIT License
-// Copyright (c) 2021 Razgriz, Dj Lukis.LT
+
+// Copyright (c) 2021 Razgriz
 // SPDX-License-Identifier: MIT
-
-// Known issues:
-// Unsupported.PasteToStateMachineFromPasteboard copies some parameters, but does not copy their default values
-//	 It also does not have proper undo handling causing dangling sub-assets left in the controller
-//	 TODO: add undo callback handler to delete sub-state machines properly
-// State node motion label overlaps progress bar in "Live Link" mode
-
-// Raz
-// TODO:
-// 	General:
-// 	Add Editor window for options instead of dropdown
-// Animation Window:
-// 	Option to rename property names
-// 	Option to show actual property name (not "Nice Name")
-// 	Implement needle tools drag-to-retarget
-// Project Window:
-// 	show multiple columns of data about assets? asset type, filetype
 
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using ReorderableList = UnityEditorInternal.ReorderableList;
-using Razgriz.AnimatorExtensions.HarmonyLib; // Dedicated harmony dll to make package imports clean; replace with HarmonyLib if using release 0Harmony.dll
+using Razgriz.AnimatorExtensions.HarmonyLib; // using HarmonyLib; // if using release 0Harmony.dll
 
 namespace Razgriz.AnimatorExtensions
 {
-	public class AnimatorExtensionsInterface : EditorWindow
+	public class AnimatorExtensionsGUI : EditorWindow
 	{
-		public static bool prefs_StateMotionLabels = true;
-		public static bool prefs_StateExtraLabels = true;
-		public static bool prefs_NewStateWriteDefaults = false;
-		public static bool prefs_NewLayersWeight1 = true;
-		public static bool prefs_NewTransitionsCleanDefaults = true;
-		public static bool prefs_AnimationWindowShowActualPropertyNames = false;
+		public const string version = "2022.09.01";
+
+		public static bool prefs_DisableAnimatorGraphFixes;
+
+		public static bool prefs_StateMotionLabels;
+		public static bool prefs_StateBlendtreeLabels;
+		public static bool prefs_StateAnimIsEmptyLabel;
+		public static bool prefs_StateLoopedLabels;
+		public static bool prefs_HideOffLabels;
+
+		public static bool prefs_StateExtraLabelsWD;
+		public static bool prefs_StateExtraLabelsBehavior;
+		public static bool prefs_StateExtraLabelsMotionTime;
+		public static bool prefs_StateExtraLabelsSpeed;
+
+		public static bool prefs_NewStateWriteDefaults;
+		public static bool prefs_NewLayersWeight1;
+		public static bool prefs_NewTransitionsZeroTime;
+		public static bool prefs_NewTransitionsExitTime;
+
+		public static bool prefs_AnimationWindowShowActualPropertyNames;
+		public static float prefs_AnimationWindowIndentScale;
+		
+		public static bool prefs_AnimationWindowShowFullPath;
+		public static bool prefs_AnimationWindowTrimActualNames;
+
+		public static bool hasInitializedPreferences = false;
+
+		private static Texture2D githubIcon;
+		static GUIStyle ToggleButtonStyle;
 
 		[MenuItem("Tools/AnimatorExtensions")]
 		public static void ShowWindow()
 		{
-			EditorWindow.GetWindow<AnimatorExtensionsInterface>("Animator Extensions");
+			EditorWindow.GetWindow<AnimatorExtensionsGUI>("Animator Extensions");
 		}
 
 		void OnGUI()
 		{
-			using(new GUILayout.HorizontalScope())
-			{
-				EditorGUILayout.LabelField("Animator Extensions", new GUIStyle("LargeLabel"));
-				EditorGUILayout.LabelField("Razgriz");
-			}
-			DrawUILine(Color.grey, 2, 15);
-			EditorGUILayout.LabelField("Animator Graph Labels", new GUIStyle("BoldLabel"));
-			using(new GUILayout.HorizontalScope())
-			{
-				ToggleButton(ref prefs_StateMotionLabels, "Motion Labels");
-				ToggleButton(ref prefs_StateExtraLabels, "WD/Behavior Labels");
-			}
-			DrawUILine(Color.grey);
-			EditorGUILayout.LabelField("Animator Graph Defaults", new GUIStyle("BoldLabel"));
-			using(new GUILayout.HorizontalScope())
-			{
-				ToggleButton(ref prefs_NewStateWriteDefaults, "Default WD On");
-				ToggleButton(ref prefs_NewLayersWeight1, "Default Layers To 1 Weight");
-			}
-			using(new GUILayout.HorizontalScope())
-			{
-				ToggleButton(ref prefs_NewTransitionsCleanDefaults, "Transitions default to 0 Exit/Transition Time");
-			}
-			DrawUILine(Color.grey);
-			EditorGUILayout.LabelField("Animation Window", new GUIStyle("BoldLabel"));
-			ToggleButton(ref prefs_AnimationWindowShowActualPropertyNames, "Show Actual Property Names");
+			if(!hasInitializedPreferences) HandlePreferences();
 
-			if (GUI.changed)
+			// Graph Labels
+			using(new GUILayout.VerticalScope())
 			{
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateMotionLabels", prefs_StateMotionLabels);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabels", prefs_StateExtraLabels);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewStateWriteDefaults", prefs_NewStateWriteDefaults);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewLayersWeight1", prefs_NewLayersWeight1);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewTransitionsCleanDefaults", prefs_NewTransitionsCleanDefaults);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_AnimationWindowShowActualPropertyNames", prefs_AnimationWindowShowActualPropertyNames);
+				SectionLabel(new GUIContent("  Animator Graph Labels", EditorGUIUtility.IconContent("d_AnimatorController Icon").image));
+
+				using(new GUILayout.HorizontalScope())
+				{
+					ToggleButton(ref prefs_StateLoopedLabels, new GUIContent("   Loop Time", EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Show an icon when a state's animation is set to Loop Time"));
+					ToggleButton(ref prefs_StateBlendtreeLabels, new GUIContent("   Blendtrees", EditorGUIUtility.IconContent("d_BlendTree Icon").image, "Show an icon when a state's motion is a Blendtree"));
+				}
+				using(new GUILayout.HorizontalScope())
+				{
+					ToggleButton(ref prefs_StateMotionLabels, "<b>Tt</b>    Motion Names", "Show the name of the state's clip/blendtree");
+					ToggleButton(ref prefs_StateAnimIsEmptyLabel, new GUIContent("   Empty Anims/States", EditorGUIUtility.IconContent("Warning").image, "Display a warning if a state's animation is empty or if a state has no motion"));
+				}
+				DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
+				using(new GUILayout.HorizontalScope())
+				{
+					ToggleButton(ref prefs_StateExtraLabelsWD, "<b>WD</b>  Write Defaults", "Indicate whether a state has Write Defaults enabled");
+					ToggleButton(ref prefs_StateExtraLabelsBehavior, "<b>B</b>      Behavior", "Indicate whether a state has a State Behavior");
+				}
+				using(new GUILayout.HorizontalScope())
+				{
+					ToggleButton(ref prefs_StateExtraLabelsSpeed, "<b>S</b>      Speed Param", "Indicate whether a state has a Speed parameter");
+					ToggleButton(ref prefs_StateExtraLabelsMotionTime, "<b>M</b>     Motion Time", "Indicate whether a state has a Motion Time parameter");
+				}
+
+				ToggleButton(ref prefs_HideOffLabels, "Hide Labels Completely", "Hide Labels when condition is false, instead of dimming");
+				// ToggleButton(ref prefs_StateMotionLabels, new GUIContent("  Motion Names", EditorGUIUtility.IconContent("d_Font Icon").image));
+
+				using(new GUILayout.HorizontalScope())
+				{
+					EditorGUILayout.LabelField("Tip: Hold ALT to see all labels at any time", new GUIStyle("miniLabel"));
+				}
 			}
+
+			// Graph/State Defaults
+			using(new GUILayout.VerticalScope())
+			{
+				DrawUILine();
+				SectionLabel(new GUIContent("  Animator Graph Defaults", EditorGUIUtility.IconContent("d_CreateAddNew").image));
+				using(new GUILayout.HorizontalScope())
+				{
+					ToggleButton(ref prefs_NewStateWriteDefaults, "New States: WD Setting", "Enable or disable Write Defaults on new states");
+					ToggleButton(ref prefs_NewLayersWeight1, "New Layers: 1 Weight", "Set new layers to have 1 weight automatically");
+				}
+				using(new GUILayout.HorizontalScope())
+				{
+					ToggleButton(ref prefs_NewTransitionsExitTime, "New Transition: Has Exit Time", "Enable or Disable Has Exit Time on new transitions");
+					ToggleButton(ref prefs_NewTransitionsZeroTime, "New Transition: 0 Time", "Set new transitions to have 0 exit/transition time");
+				}
+			}
+
+			// Animation Window
+			using(new GUILayout.VerticalScope())
+			{
+				DrawUILine();
+				SectionLabel(new GUIContent("  Animation Window", EditorGUIUtility.IconContent("d_UnityEditor.AnimationWindow").image));
+				
+				using(new GUILayout.HorizontalScope())
+				{
+					ToggleButton(ref prefs_AnimationWindowShowActualPropertyNames, "Show Actual Property Names", "Show the actual name of properties instead of Unity's display names");
+					ToggleButton(ref prefs_AnimationWindowShowFullPath, "Show Full Path", "Show the full path of properties being animated");
+				}
+				using(new GUILayout.HorizontalScope())
+				{
+					ToggleButton(ref prefs_AnimationWindowTrimActualNames, "Trim m_ From Actual Names", "Trim the leading m_ from actual property names");
+				}
+
+				prefs_AnimationWindowIndentScale = EditorGUILayout.Slider("Hierarchy Indent Scale", prefs_AnimationWindowIndentScale, 0.0f, 1.0f);
+				prefs_AnimationWindowIndentScale = Mathf.Floor(prefs_AnimationWindowIndentScale * 10f)/10f;
+
+				EditorGUILayout.LabelField("When disabling these options, click on a different animation to refresh", new GUIStyle("miniLabel"));
+			}
+
+			// Disable Patch Categories
+			using(new GUILayout.VerticalScope())
+			{
+				DrawUILine();
+				EditorGUI.BeginChangeCheck();
+				ToggleButton(ref prefs_DisableAnimatorGraphFixes, "Disable Animator Graph Fixes (Requires tab out/in)", "Allows other utilities to patch Controller editor window");
+				if(EditorGUI.EndChangeCheck())
+				{
+					if(prefs_DisableAnimatorGraphFixes)
+					{
+						prefs_StateMotionLabels = false;
+						prefs_StateExtraLabelsWD = false;
+						prefs_StateExtraLabelsBehavior = false;
+						prefs_StateExtraLabelsSpeed = false;
+						prefs_StateExtraLabelsMotionTime = false;
+
+						prefs_NewStateWriteDefaults = false;
+						prefs_NewLayersWeight1 = false;
+						prefs_NewTransitionsExitTime = false;
+						prefs_NewTransitionsZeroTime = false;
+
+						HandlePreferences();
+					}
+
+					// Try to force recompilation
+					UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
+					AssetDatabase.Refresh();
+				}
+			}
+
+			// Footer
+			using(new GUILayout.VerticalScope())
+			{
+				DrawUILine();
+				using(new GUILayout.HorizontalScope())
+				{
+					// Github link button
+					using(new GUILayout.HorizontalScope())
+					{
+						if(githubIcon == null)
+						{
+							// Decode from base64 encoded 16x16 github icon png
+							Byte[] githubicon_b64_bytes = System.Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAM/aVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8P3hwYWNrZXQgYmVnaW49Iu+7vyIgaWQ9Ilc1TTBNcENlaGlIenJlU3pOVGN6a2M5ZCI/Pg0KPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS41LWMwMjEgNzkuMTU0OTExLCAyMDEzLzEwLzI5LTExOjQ3OjE2ICAgICAgICAiPg0KICA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPg0KICAgIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PSIiIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkREQjFCMDlGODZDRTExRTNBQTUyRUUzMzUyRDFCQzQ2IiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkREQjFCMDlFODZDRTExRTNBQTUyRUUzMzUyRDFCQzQ2IiB4bXA6Q3JlYXRvclRvb2w9IkFkb2JlIFBob3Rvc2hvcCBDUzYgKE1hY2ludG9zaCkiPg0KICAgICAgPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6RTUxNzhBMkE5OUEwMTFFMjlBMTVCQzEwNDZBODkwNEQiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6RTUxNzhBMkI5OUEwMTFFMjlBMTVCQzEwNDZBODkwNEQiIC8+DQogICAgPC9yZGY6RGVzY3JpcHRpb24+DQogIDwvcmRmOlJERj4NCjwveDp4bXBtZXRhPg0KPD94cGFja2V0IGVuZD0iciI/Piwf/8sAAAEGSURBVDhPnZKxSgNBFEUnErAKSkCxkjR+gAnpUvsVdgp+gP9jLwGxtxJs0tqkCSlSRWyUIBZR1nNn5oWXMcbogbNz9+3OY2d2QlVVpde4ijke49L7/kYPN2GM3xp08C+84lID4xS3cYozvMdHFGfo373C2OAm3ia6aE1/0hMbeJpYTiidoHFR0zUkPrGe4lp28CXFMPQNRniU4q/YnOAbiFoe17GPTymG2VYOxiZLuMuj6GtT3vQVjgMsN87so6eh4mHK1SUOUoxoeTbxVoWCd1wcpAdVQFkH5iRncw9L6hhsD3qov6ANbWIbPfM8Gi38iEldnOdo+PquCvCMfmnxN8ZG/yOEL3WYSWaiIjkIAAAAAElFTkSuQmCC");
+							githubIcon = new Texture2D(1,1);		
+							githubIcon.LoadImage(githubicon_b64_bytes);
+						}
+
+						bool githubLinkClicked = GUILayout.Button(new GUIContent("  View Repo on Github", githubIcon), new GUIStyle("Button"));
+						EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link); // Lights up button with link cursor
+						if (githubLinkClicked) Application.OpenURL(@"https://github.com/rrazgriz/AnimatorExtensions");
+					}
+					
+					// Version & Name
+					using(new GUILayout.HorizontalScope())
+					{
+						EditorGUILayout.LabelField("   v" + version + "   •   Razgriz", new GUIStyle("Label"));
+					}
+				}
+			}
+
+			if (GUI.changed) HandlePreferences();
 		}
 
 		public static void OnEnable()
 		{
-			prefs_StateMotionLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateMotionLabels", true);
-			prefs_StateExtraLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabels", true);
-			prefs_NewStateWriteDefaults = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewStateWriteDefaults", false);
-			prefs_NewLayersWeight1 = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewLayersWeight1", true);
-			prefs_NewTransitionsCleanDefaults = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewTransitionsCleanDefaults", true);
-			prefs_AnimationWindowShowActualPropertyNames = EditorPrefs.GetBool("AnimatorExtensions.prefs_AnimationWindowShowActualPropertyNames", false);
+			HandlePreferences();
 		}
 
-		public static void ToggleButton(ref bool param, string label)
+		public static void HandlePreferences()
 		{
-			param = EditorGUILayout.ToggleLeft(label, param, "BoldLabel");
+			if(!hasInitializedPreferences) // Need to grab from registry
+			{
+				prefs_DisableAnimatorGraphFixes = EditorPrefs.GetBool("AnimatorExtensions.prefs_DisableAnimatorGraphFixes", false);
+
+				prefs_StateMotionLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateMotionLabels", true);
+				prefs_StateBlendtreeLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateBlendtreeLabels", true);
+				prefs_StateAnimIsEmptyLabel = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateAnimIsEmptyLabel", true);
+				prefs_StateLoopedLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateLoopedLabels", true);
+				prefs_HideOffLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_HideOffLabels", false);
+
+				prefs_StateExtraLabelsWD = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabelsWD", true);
+				prefs_StateExtraLabelsBehavior = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabelsBehavior", true);
+				prefs_StateExtraLabelsMotionTime = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabelsMotionTime", false);
+				prefs_StateExtraLabelsSpeed = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabelsSpeed", false);
+
+				prefs_NewStateWriteDefaults = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewStateWriteDefaults", false);
+				prefs_NewLayersWeight1 = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewLayersWeight1", true);
+				prefs_NewTransitionsZeroTime = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewTransitionsZeroTime", true);
+				prefs_NewTransitionsExitTime = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewTransitionsExitTime", false);
+
+				prefs_AnimationWindowShowActualPropertyNames = EditorPrefs.GetBool("AnimatorExtensions.prefs_AnimationWindowShowActualPropertyNames", false);
+				prefs_AnimationWindowShowFullPath = EditorPrefs.GetBool("AnimatorExtensions.prefs_AnimationWindowShowFullPath", false);
+				prefs_AnimationWindowTrimActualNames = EditorPrefs.GetBool("AnimatorExtensions.prefs_AnimationWindowTrimActualNames", false);
+				prefs_AnimationWindowIndentScale = EditorPrefs.GetFloat("AnimatorExtensions.prefs_AnimationWindowIndentScale", 1.0f);
+
+				hasInitializedPreferences = true;
+			}
+			else // Already grabbed, set them instead
+			{
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_DisableAnimatorGraphFixes", prefs_DisableAnimatorGraphFixes);
+
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateMotionLabels", prefs_StateMotionLabels);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateBlendtreeLabels", prefs_StateBlendtreeLabels);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateAnimIsEmptyLabel", prefs_StateAnimIsEmptyLabel);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateLoopedLabels", prefs_StateLoopedLabels);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_HideOffLabels", prefs_HideOffLabels);
+
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabelsWD", prefs_StateExtraLabelsWD);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabelsBehavior", prefs_StateExtraLabelsBehavior);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabelsMotionTime", prefs_StateExtraLabelsMotionTime);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabelsSpeed", prefs_StateExtraLabelsSpeed);
+
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewStateWriteDefaults", prefs_NewStateWriteDefaults);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewLayersWeight1", prefs_NewLayersWeight1);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewTransitionsZeroTime", prefs_NewTransitionsZeroTime);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewTransitionsExitTime", prefs_NewTransitionsExitTime);
+
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_AnimationWindowShowActualPropertyNames", prefs_AnimationWindowShowActualPropertyNames);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_AnimationWindowShowFullPath", prefs_AnimationWindowShowFullPath);
+				EditorPrefs.SetBool("AnimatorExtensions.prefs_AnimationWindowTrimActualNames", prefs_AnimationWindowTrimActualNames);
+				EditorPrefs.SetFloat("AnimatorExtensions.prefs_AnimationWindowIndentScale", prefs_AnimationWindowIndentScale);
+			}
 		}
 
-		public static void DrawUILine(Color color, int thickness = 2, int padding = 10)
+		// Helper Functions
+		public static void SectionLabel(string label) { SectionLabel(new GUIContent(label)); }
+		public static void SectionLabel(GUIContent label)
+		{
+			EditorGUILayout.LabelField(label, new GUIStyle("BoldLabel"));
+		}
+
+
+		public static void ToggleButton(ref bool param, string label, string tooltip="") { ToggleButton(ref param, new GUIContent(label, tooltip)); }
+		public static void ToggleButton(ref bool param, GUIContent label)
+		{
+			if(ToggleButtonStyle == null)
+			{
+				ToggleButtonStyle = new GUIStyle("Label");
+				ToggleButtonStyle.richText = true;
+			}
+
+			param = EditorGUILayout.ToggleLeft(label, param, ToggleButtonStyle);
+		}
+
+		public static void DrawUILine() { DrawUILine(new Color(0.5f, 0.5f, 0.5f, 1.0f)); }
+		public static void DrawUILine(int thickness) { DrawUILine(new Color(0.5f, 0.5f, 0.5f, 1.0f), thickness); }
+		public static void DrawUILine(Color color, int thickness = 1, int padding = 10)
 		{
 			Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(padding+thickness));
 			EditorGUI.DrawRect(new Rect(r.x - 2, r.y + padding/2, r.width + 6, thickness), color);
@@ -112,20 +292,24 @@ namespace Razgriz.AnimatorExtensions
 	[InitializeOnLoad]
 	public class AnimatorExtensions
 	{
+		public static Harmony harmonyInstance = new Harmony("Razgriz.AnimatorExtensions");
+
 		static AnimatorExtensions()
 		{
-			var harmonyInstance = new Harmony("Razgriz.AnimatorExtensions");
+			AnimatorExtensionsGUI.HandlePreferences();			
 			harmonyInstance.PatchAll();
 		}
 
 	#region Patches
 
-		#region ExtraStuff
+		#region BugFixes
 			// Prevent scroll position reset when rearranging or editing layers
 			private static Vector2 _layerScrollCache;
 			[HarmonyPatch]
 			class PatchLayerScrollReset
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => AccessTools.Method(LayerControllerViewType,	"ResetUI");
 
@@ -149,6 +333,8 @@ namespace Razgriz.AnimatorExtensions
 			[HarmonyPatch]
 			class PatchNewParameterScroll
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => AccessTools.Method(ParameterControllerViewType, "AddParameterMenu");
 
@@ -163,6 +349,8 @@ namespace Razgriz.AnimatorExtensions
 			[HarmonyPatch]
 			class PatchBreakUndoSubStateMachinePaste
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => typeof(Unsupported).GetMethod("PasteToStateMachineFromPasteboard", BindingFlags.Static | BindingFlags.Public);//AccessTools.Method(typeof(Unsupported), "PasteToStateMachineFromPasteboard");
 
@@ -186,6 +374,8 @@ namespace Razgriz.AnimatorExtensions
 			[HarmonyPatch]
 			class PatchTransitionConditionChangeBreakingCondition
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => AccessTools.Method(AnimatorTransitionInspectorBaseType, "DrawConditionsElement");
 
@@ -262,22 +452,26 @@ namespace Razgriz.AnimatorExtensions
 
 		#endregion ExtraStuff
 
-		#region GraphStuff
+		#region GraphFeatures
 			// Set Default Transition Duration/Exit Time
 			[HarmonyPatch]
 			class PatchAnimatorNewTransitionDefaults
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
-				static MethodBase TargetMethod() => AccessTools.Method(AnimatorStateType, 		"CreateTransition");
+				static MethodBase TargetMethod() => AccessTools.Method(AnimatorStateType, "CreateTransition");
 
 				[HarmonyPostfix]
 				static void Postfix(ref AnimatorStateTransition __result)
 				{
-					if(AnimatorExtensionsInterface.prefs_NewTransitionsCleanDefaults)
+					if(AnimatorExtensionsGUI.prefs_NewTransitionsZeroTime)
 					{
 						__result.duration = 0.0f;
 						__result.exitTime = 0.0f;
 					}
+		
+					__result.hasExitTime = AnimatorExtensionsGUI.prefs_NewTransitionsExitTime;
 				}
 			}
 
@@ -285,13 +479,15 @@ namespace Razgriz.AnimatorExtensions
 			[HarmonyPatch]
 			class PatchAnimatorNewStateDefaults
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
-				static MethodBase TargetMethod() => AccessTools.Method(AnimatorStateMachineType, 	"AddState", new Type[] {typeof(AnimatorState), typeof(Vector3)});
+				static MethodBase TargetMethod() => AccessTools.Method(AnimatorStateMachineType, "AddState", new Type[] {typeof(AnimatorState), typeof(Vector3)});
 
 				[HarmonyPrefix]
 				static void Prefix(ref AnimatorState state, Vector3 position)
 				{
-					state.writeDefaultValues = AnimatorExtensionsInterface.prefs_NewStateWriteDefaults;
+					if(!AnimatorExtensionsGUI.prefs_NewStateWriteDefaults) state.writeDefaultValues = false;
 				}
 			}
 
@@ -299,6 +495,8 @@ namespace Razgriz.AnimatorExtensions
 			[HarmonyPatch]
 			class PatchAnimatorBottomBarPingAsset
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => AccessTools.Method(AnimatorWindowType, "DoGraphBottomBar");
 
@@ -323,8 +521,9 @@ namespace Razgriz.AnimatorExtensions
 			}
 
 			// Show motion name and extra details on state graph nodes
+			static bool prefs_DimOffLabels_last = false;
 			[HarmonyPatch]
-			class PatchAnimatorStateNameAndDetails
+			class PatchAnimatorLabels
 			{
 				[HarmonyTargetMethods]
 				static IEnumerable<MethodBase> TargetMethods()
@@ -337,53 +536,140 @@ namespace Razgriz.AnimatorExtensions
 				public static void Postfix(object __instance, UnityEditor.Graphs.GraphGUI host)
 				{
 					// Figure out which node type
-					AnimatorState astate = Traverse.Create(__instance).Field("state").GetValue<AnimatorState>();
-					bool hasmotion = astate != null;
-					AnimatorStateMachine asm = Traverse.Create(__instance).Field("stateMachine").GetValue<AnimatorStateMachine>();
-					bool hassm = asm != null;
+					AnimatorState aState = Traverse.Create(__instance).Field("state").GetValue<AnimatorState>();
+					bool hasMotion = aState != null;
+					AnimatorStateMachine aStateMachine = Traverse.Create(__instance).Field("stateMachine").GetValue<AnimatorStateMachine>();
+					bool hasStateMachine = aStateMachine != null;
 
 					// Lazy-init styles because built-in ones not available during static init
-					if (StateMotionStyle == null)
+					if (StateMotionStyle == null || (prefs_DimOffLabels_last != AnimatorExtensionsGUI.prefs_HideOffLabels))
 					{
 						StateExtrasStyle = new GUIStyle(EditorStyles.label);
 						StateExtrasStyle.alignment = TextAnchor.UpperRight;
 						StateExtrasStyle.fontStyle = FontStyle.Bold;
-						StateMotionStyle = new GUIStyle(EditorStyles.label);
+
+						StateExtrasStyleActive = new GUIStyle(EditorStyles.label);
+						StateExtrasStyleActive.alignment = TextAnchor.UpperRight;
+						StateExtrasStyleActive.fontStyle = FontStyle.Bold;
+						StateExtrasStyleActive.normal.textColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+
+						StateExtrasStyleInactive = new GUIStyle(EditorStyles.label);
+						StateExtrasStyleInactive.alignment = TextAnchor.UpperRight;
+						StateExtrasStyleInactive.fontStyle = FontStyle.Bold;
+						float inactiveExtrasTextAlpha = AnimatorExtensionsGUI.prefs_HideOffLabels ? 0.0f : 0.5f;
+						StateExtrasStyleInactive.normal.textColor = new Color(0.5f, 0.5f, 0.5f, inactiveExtrasTextAlpha);
+
+						StateMotionStyle = new GUIStyle(EditorStyles.miniBoldLabel);
+						StateMotionStyle.fontSize = 10;
 						StateMotionStyle.alignment = TextAnchor.LowerCenter;
 						StateMotionStyle.margin = new RectOffset(0,0,0,50);
+
+						StateBlendtreeStyle = new GUIStyle(EditorStyles.label);
+						StateBlendtreeStyle.alignment = TextAnchor.UpperLeft;
+						StateBlendtreeStyle.fontStyle = FontStyle.Bold;
 					}
-					Rect rect = GUILayoutUtility.GetLastRect();
+
+					prefs_DimOffLabels_last = AnimatorExtensionsGUI.prefs_HideOffLabels;
+					Rect stateRect = GUILayoutUtility.GetLastRect();
+					bool debugShowLabels = Event.current.alt;
 
 					// Tags in corner, similar to what layer editor does
-					if ((hasmotion || hassm) && AnimatorExtensionsInterface.prefs_StateExtraLabels)
+					if ((hasMotion || hasStateMachine))
 					{
-						string extralabel = "";
-						if (hasmotion)
+						bool isWD = false;
+						bool hasblendtree = false;
+						bool hasBehavior = false;
+						bool hasMotionTime = false;
+						bool hasSpeedParam = false;
+						bool isLoopTime = false;
+						bool isEmptyAnim = false;
+						bool isEmptyState = false;
+
+						int off1 = (debugShowLabels || (AnimatorExtensionsGUI.prefs_StateExtraLabelsWD && AnimatorExtensionsGUI.prefs_StateExtraLabelsBehavior)) ? 15 : 0;
+						int off2 = (debugShowLabels || (AnimatorExtensionsGUI.prefs_StateExtraLabelsMotionTime && AnimatorExtensionsGUI.prefs_StateExtraLabelsSpeed)) ? 15 : 0;
+
+						Rect wdLabelRect 			= new Rect(stateRect.x - off1, stateRect.y - 30, stateRect.width, 15);
+						Rect behaviorLabelRect 		= new Rect(stateRect.x, 	   stateRect.y - 30, stateRect.width, 15);
+
+						Rect motionTimeLabelRect 	= new Rect(stateRect.x, 	   stateRect.y - 15, stateRect.width, 15);
+						Rect speedLabelRect 		= new Rect(stateRect.x - off2, stateRect.y - 15, stateRect.width, 15);
+
+						if (hasMotion) // Animation/Blendtree
 						{
-							if (astate.behaviours != null)
-								if (astate.behaviours.Length > 0)
-									extralabel += "  B";
-							if (astate.writeDefaultValues)
-								extralabel += "  WD";
+							isWD = aState.writeDefaultValues;
+							hasMotionTime = aState.timeParameterActive;
+							hasSpeedParam = aState.speedParameterActive;
+							
+
+							if(aState.motion != null) 
+							{
+								hasblendtree = aState.motion.GetType() == typeof(BlendTree);
+								if(!hasblendtree)
+								{
+									isLoopTime = ((AnimationClip)aState.motion).isLooping;
+									isEmptyAnim = ((AnimationClip)aState.motion).empty;
+								}
+							}
+							else
+							{
+								isEmptyState = true;
+							}
+
+							if(aState.behaviours != null) hasBehavior = aState.behaviours.Length > 0;
 						}
-						else
+						else if(hasStateMachine) // SubStateMachine
 						{
-							if (asm.behaviours != null)
-								if (asm.behaviours.Length > 0)
-									extralabel += "  B";
+							// Move behavior label to fit SSM
+							behaviorLabelRect = new Rect(stateRect.x, stateRect.y - 20, stateRect.width, 15);
+							if (aStateMachine.behaviours != null) hasBehavior = aStateMachine.behaviours.Length > 0;
 						}
-						Rect extralabelrect = new Rect(rect.x, rect.y - 30, rect.width, 20);
-						EditorGUI.LabelField(extralabelrect, extralabel, StateExtrasStyle);
+
+
+						int iconOffset = 0;
+
+						// Loop time label
+						if(isLoopTime && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateLoopedLabels))
+						{
+							Rect loopingLabelRect = new Rect(stateRect.x + 1, stateRect.y - 29, 16, 16);
+							EditorGUI.LabelField(loopingLabelRect, new GUIContent(EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Animation Clip is Looping"));
+							iconOffset += 14;
+						}
+
+						// Blendtree label
+						if(hasblendtree && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateBlendtreeLabels))
+						{
+							Rect blendtreeLabelRect = new Rect(stateRect.x + 1 + iconOffset, stateRect.y - 29, 14, 14);
+							EditorGUI.LabelField(blendtreeLabelRect, new GUIContent(EditorGUIUtility.IconContent("d_BlendTree Icon").image, "State Contains a Blendtree"));
+							iconOffset += 14;
+						}
+
+						// Empty Animation/State Warning
+						Rect emptyWarningRect = new Rect(stateRect.x + iconOffset + 1, stateRect.y - 28, 14, 14);
+						if((debugShowLabels || AnimatorExtensionsGUI.prefs_StateAnimIsEmptyLabel))
+						{
+							if(isEmptyAnim) EditorGUI.LabelField(emptyWarningRect, new GUIContent(EditorGUIUtility.IconContent("Warning@2x").image, "Animation Clip has no Keyframes"));
+							else if(isEmptyState) EditorGUI.LabelField(emptyWarningRect, new GUIContent(EditorGUIUtility.IconContent("Error@2x").image, "State has no Motion assigned"));
+						}
+
+						if(hasMotion && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
+						if(				(debugShowLabels || AnimatorExtensionsGUI.prefs_StateExtraLabelsBehavior)) EditorGUI.LabelField(behaviorLabelRect, "B", (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive));
+						if(hasMotion && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateExtraLabelsMotionTime)) EditorGUI.LabelField(motionTimeLabelRect, "M", (hasMotionTime ? StateExtrasStyleActive : StateExtrasStyleInactive));
+						if(hasMotion && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateExtraLabelsSpeed)) EditorGUI.LabelField(speedLabelRect, "S", (hasSpeedParam ? StateExtrasStyleActive : StateExtrasStyleInactive));
+					}
+
+					if(hasMotion)
+					{
+
 					}
 
 					// Name of Motion (btree or animation clip) at bottom
 					// TODO? overlaps progress bar in play mode
-					if (hasmotion && AnimatorExtensionsInterface.prefs_StateMotionLabels)
+					if (hasMotion && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateMotionLabels))
 					{
 						string motionname = "[None]";
-						if (astate.motion)
-							motionname = "[" + astate.motion.name + "]";
-						Rect motionlabelrect = new Rect(rect.x, rect.y - 10, rect.width, 20);
+						if (aState.motion) motionname = "[" + aState.motion.name + "]";
+						// if (astate.motion) motionname = "<" + astate.motion.name + ">";
+						Rect motionlabelrect = new Rect(stateRect.x, stateRect.y - 10, stateRect.width, 20);
 						EditorGUI.LabelField(motionlabelrect, motionname, StateMotionStyle);
 					}
 
@@ -397,18 +683,20 @@ namespace Razgriz.AnimatorExtensions
 
 		#endregion Graphstuff
 
-		#region LayerStuff
+		#region LayerFeatures
 			// Default Layer Weight = 1
 			[HarmonyPatch]
 			class PatchLayerWeightDefault
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => AccessTools.Method(AnimatorControllerType, "AddLayer", new Type[] {typeof(AnimatorControllerLayer)});
 
 				[HarmonyPrefix]
 				static void Prefix(ref AnimatorControllerLayer layer)
 				{
-						layer.defaultWeight = AnimatorExtensionsInterface.prefs_NewLayersWeight1 ? 1.0f : 0.0f;
+						layer.defaultWeight = AnimatorExtensionsGUI.prefs_NewLayersWeight1 ? 1.0f : 0.0f;
 				}
 			}
 
@@ -418,6 +706,8 @@ namespace Razgriz.AnimatorExtensions
 			[HarmonyPatch]
 			class PatchLayerCopyPaste
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => AccessTools.Method(LayerControllerViewType,	"OnDrawLayer");
 
@@ -455,6 +745,8 @@ namespace Razgriz.AnimatorExtensions
 			[HarmonyPatch]
 			class PatchLayerCopyPasteKeyboardHooks
 			{
+				[HarmonyPrepare] static bool Prepare(MethodBase original) { return (!AnimatorExtensionsGUI.prefs_DisableAnimatorGraphFixes); } 
+
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => AccessTools.Method(LayerControllerViewType, "OnGUI");
 
@@ -521,9 +813,9 @@ namespace Razgriz.AnimatorExtensions
 
 		#endregion Layerstuff
 
-		#region AnimationWindowStuff
+		#region AnimationWindowFeatures
 			[HarmonyPatch]
-			class PatchAnimationWindowNames
+			class PatchAnimationWindowHierarchy
 			{
 				[HarmonyTargetMethod]
 				static MethodBase TargetMethod() => AccessTools.Method(AnimationWindowHierarchyGUIType, "DoNodeGUI");
@@ -531,9 +823,49 @@ namespace Razgriz.AnimatorExtensions
 				[HarmonyPrefix]
 				static void Prefix(object __instance, Rect rect, object node, bool selected, bool focused, int row)
 				{
-					if(AnimatorExtensionsInterface.prefs_AnimationWindowShowActualPropertyNames)
+
+					var theNode = node;
+
+					string propertyPath = (string)NodeTypePath.GetValue(node);
+					if (string.IsNullOrEmpty(propertyPath)) propertyPath = "";
+					string displayName = (string)NodeDisplayNameProp.GetValue(node);
+					string propertyName = (string)NodeTypePropertyName.GetValue(node);
+					Type animatableObjectType = (Type)NodeTypeAnimatableObjectType.GetValue(node);
+					string componentPrefix = "";
+
+					if(!string.IsNullOrEmpty(propertyName) && AnimatorExtensionsGUI.prefs_AnimationWindowTrimActualNames) propertyName = propertyName.Replace("m_", "");
+
+					if(animatableObjectType != null)
 					{
-						NodeDisplayNameProp.SetValue(node, NodeTypePropertyName.GetValue(node));
+						componentPrefix = (animatableObjectType).ToString().Split('.').Last() + ".";
+					}
+
+					string displayNameString = AnimatorExtensionsGUI.prefs_AnimationWindowShowActualPropertyNames ? componentPrefix + propertyName : displayName;//GetUnityDisplayName(propertyName);
+
+					NodeTypeIndent.SetValue(node, (int)(AnimatorExtensionsGUI.prefs_AnimationWindowIndentScale * ((float)propertyPath.Split('/').Length)) );
+					
+					NodeDisplayNameProp.SetValue(node, displayNameString);
+				}
+			}
+
+			[HarmonyPatch]
+			class PatchAnimationWindowPaths
+			{
+				[HarmonyTargetMethod]
+				static MethodBase TargetMethod() => AccessTools.Method(AnimationWindowHierarchyGUIType, "GetGameObjectName");
+
+				[HarmonyPostfix]
+				static string Postfix(string __result, GameObject rootGameObject, string path)
+				{
+					if(AnimatorExtensionsGUI.prefs_AnimationWindowShowFullPath)
+					{
+						if (string.IsNullOrEmpty(path)) return rootGameObject != null ? rootGameObject.name : "";
+
+						return path;
+					}
+					else
+					{
+						return __result;
 					}
 				}
 			}
@@ -544,7 +876,8 @@ namespace Razgriz.AnimatorExtensions
 
 	#region Utility
 
-		#region UtilityFunctions
+		#region HelperFunctions
+
 			// Recursive helper functions to gather deeply-nested parameter references
 			private static void GatherBtParams(BlendTree bt, ref Dictionary<string, AnimatorControllerParameter> srcparams, ref Dictionary<string, AnimatorControllerParameter> queuedparams)
 			{
@@ -711,10 +1044,9 @@ namespace Razgriz.AnimatorExtensions
 				dest.syncedLayerIndex = src.syncedLayerIndex;
 			}
 
-
 		#endregion
 
-		#region Cache
+		#region ReflectionCache
 			// Animator Window
 			private static readonly Type AnimatorWindowType = AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool");
 			private static readonly MethodInfo AnimatorControllerGetter = AccessTools.PropertyGetter(AnimatorWindowType, "animatorController");
@@ -737,14 +1069,24 @@ namespace Razgriz.AnimatorExtensions
 			
 			private static GUIStyle StateMotionStyle = null;
 			private static GUIStyle StateExtrasStyle = null;
+			private static GUIStyle StateExtrasStyleActive = null;
+			private static GUIStyle StateExtrasStyleInactive = null;
+			private static GUIStyle StateBlendtreeStyle = null;
 			private static bool _refocusSelectedLayer = false;
 
 			// Animation Window
 			static readonly Assembly EditorAssembly = typeof(Editor).Assembly;
 			static readonly Type AnimationWindowHierarchyGUIType = EditorAssembly.GetType("UnityEditorInternal.AnimationWindowHierarchyGUI");
 			static readonly Type AnimationWindowHierarchyNodeType = EditorAssembly.GetType("UnityEditorInternal.AnimationWindowHierarchyNode");
+			static readonly Type AnimationWindowUtilityType = EditorAssembly.GetType("UnityEditorInternal.AnimationWindowUtility");
+
+			static readonly Type AnimEditorType = AccessTools.TypeByName("UnityEditor.AnimEditor");
 
 			static readonly FieldInfo NodeTypePropertyName = AnimationWindowHierarchyNodeType.GetField("propertyName", BindingFlags.Instance | BindingFlags.Public);
+			static readonly FieldInfo NodeTypePath = AnimationWindowHierarchyNodeType.GetField("path", BindingFlags.Instance | BindingFlags.Public);
+			static readonly FieldInfo NodeTypeAnimatableObjectType = AnimationWindowHierarchyNodeType.GetField("animatableObjectType", BindingFlags.Instance | BindingFlags.Public);
+			static readonly FieldInfo NodeTypeIndent = AnimationWindowHierarchyNodeType.GetField("indent", BindingFlags.Instance | BindingFlags.Public);
+
 			static readonly PropertyInfo NodeDisplayNameProp = AnimationWindowHierarchyNodeType.GetProperty("displayName", BindingFlags.Instance | BindingFlags.Public);
 
 		#endregion
