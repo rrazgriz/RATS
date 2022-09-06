@@ -8,8 +8,6 @@ Forked from https://github.com/lukis101/VRCUnityStuffs/tree/master/Scripts/Edito
 
 Some [Harmony](https://github.com/pardeike/Harmony)-based patches to Unity's Animator window.
 
-This tool packages a re-namespaced version of Harmony (compiled for .NET 4.7.1) to avoid causing issues if you already have a Harmony dll in the project. [1]
-
 Tested on Unity versions:
 
 - `2019.4.31f1`
@@ -29,11 +27,15 @@ Configure at `Tools -> AnimatorExtensions`. Settings are saved in EditorPrefs, s
 
 ## Features
 
+Compatibility: Disable all Animator window patches
+
 ### New Options
 
-- Change default state Write Defaults setting
-- Change default Layer Weight to 1
-- Change default Transition Exit/Transition time to 0
+- Customize Animator graph grid background
+- Hold Ctrl to disable state snapping (or disable snapping by default)
+- Change Write Defaults setting for new states
+- Change Layer Weight to 1 on new layers
+- Change Transition Exit/Transition time to 0 on new transitions
 - Show extra labels on animation states
   - Animation clip/BlendTree name
   - `B` if a state has State Behaviors
@@ -64,21 +66,26 @@ Configure at `Tools -> AnimatorExtensions`. Settings are saved in EditorPrefs, s
 - `Unsupported.PasteToStateMachineFromPasteboard` copies some parameters, but does not copy their default values
   - It also does not have proper undo handling causing dangling sub-assets left in the controller
 - State node motion label overlaps progress bar in "Live Link" mode
-- Animation Window "Show Actual Names" requires redraw (select something different) to disable
+- Animation Window "Show Actual Names" requires selecting a different animation/object with animator to disable
 
 ## TODO
 
 - Animation: Option to rename property names
-- Animator: Recolor States
+- Animation: Property name search (with "Add Property")
 - Animator: Drag animation onto State to change
-- Animator: Option to disable loop time
-- Project Window: show multiple columns of data about assets? asset type, filetype
+- Animator: Option to quickly disable loop time on states (right click?)
+- Animator: Add F2-to-rename on states
+- Right click: enable/disable loop time on selected animation clips
 
 Maybe:
 
+- Utility window: Retarget animation paths for selected animation clips
+- Utility window: Multi-editing of states/transitions/state behaviors
+- Utility window: show list of all animations categorized by folder
 - Animation: Implement needle tools drag-to-retarget on Animation paths
 - Animator: Add undo callback handler to delete sub-state machines properly
 - Animator: Clean up layer copy/paste (don't take up clipboard)
+- Project Window: show multiple columns of data about assets? asset type, filetype
 
 ## Credits
 
