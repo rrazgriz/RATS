@@ -1,5 +1,5 @@
-// Some Harmony based Unity animator window patches to help workflow
-// Original by Dj Lukis.LT, under MIT License
+// RATS - Raz's Animator Tweaks'n Stuff
+// Original AnimatorExtensions by Dj Lukis.LT, under MIT License
 
 // Copyright (c) 2022 Razgriz
 // SPDX-License-Identifier: MIT
@@ -17,20 +17,22 @@ using UnityEngine;
 using ReorderableList = UnityEditorInternal.ReorderableList;
 using HarmonyLib;
 
-namespace Razgriz.AnimatorExtensions
+namespace Razgriz.RATS
 {
 	[InitializeOnLoad]
-	public class AnimatorExtensions
+	public class RATS
 	{
-		public static Harmony harmonyInstance = new Harmony("Razgriz.AnimatorExtensions");
+		public static Harmony harmonyInstance = new Harmony("Razgriz.RATS");
 		private static int wait = 0;
 
-		static AnimatorExtensions()
+		static RATS()
 		{
-			AnimatorExtensionsGUI.HandlePreferences();
+			Debug.Log("RATS v" + RATSGUI.version);
+			RATSGUI.HandlePreferences();
 			// Register our patch delegate
 			EditorApplication.update += DoPatches;
 			InitTextures();
+			EditorApplication.playModeStateChanged += PlayModeChanged;
 		}
 
 		static void DoPatches()
@@ -42,7 +44,7 @@ namespace Razgriz.AnimatorExtensions
 				harmonyInstance.PatchAll();
 				// Unregister our delegate so it doesn't run again
 				EditorApplication.update -= DoPatches;
-				Debug.Log("AnimatorExtensions: Patching");
+				Debug.Log("[Rats] Running Patches");
 			}
 		}
 
@@ -168,7 +170,7 @@ namespace Razgriz.AnimatorExtensions
 												|| ((ConditionParamType_pre == AnimatorControllerParameterType.Float) && (param.type == AnimatorControllerParameterType.Int)))
 											{
 												m_ConditionMode.intValue = ConditionMode_pre;
-												Debug.Log("AnimatorExtensions: Restored transition condition mode");
+												Debug.Log("RATS: Restored transition condition mode");
 											}
 											// int->float has restrictions
 											else if ((ConditionParamType_pre == AnimatorControllerParameterType.Int) && (param.type == AnimatorControllerParameterType.Float))
@@ -177,7 +179,7 @@ namespace Razgriz.AnimatorExtensions
 												if ((premode != AnimatorConditionMode.Equals) && (premode != AnimatorConditionMode.NotEqual))
 												{
 													m_ConditionMode.intValue = ConditionMode_pre;
-													Debug.Log("AnimatorExtensions: Restored transition condition mode 2");
+													Debug.Log("RATS: Restored transition condition mode 2");
 												}
 											}
 											break;
@@ -203,7 +205,7 @@ namespace Razgriz.AnimatorExtensions
 					[HarmonyPrefix]
 					static void Prefix(ref AnimatorControllerLayer layer)
 					{
-						layer.defaultWeight = AnimatorExtensionsGUI.prefs_NewLayersWeight1 ? 1.0f : 0.0f;
+						layer.defaultWeight = RATSGUI.prefs_NewLayersWeight1 ? 1.0f : 0.0f;
 					}
 				}
 
@@ -223,13 +225,13 @@ namespace Razgriz.AnimatorExtensions
 							current.Use();
 							GenericMenu menu = new GenericMenu();
 							menu.AddItem(EditorGUIUtility.TrTextContent("Copy layer", null, (Texture) null), false,
-								new GenericMenu.MenuFunction2(AnimatorExtensions.CopyLayer), __instance);
+								new GenericMenu.MenuFunction2(RATS.CopyLayer), __instance);
 							if (_layerClipboard != null)
 							{
 								menu.AddItem(EditorGUIUtility.TrTextContent("Paste layer", null, (Texture) null), false,
-									new GenericMenu.MenuFunction2(AnimatorExtensions.PasteLayer), __instance);
+									new GenericMenu.MenuFunction2(RATS.PasteLayer), __instance);
 								menu.AddItem(EditorGUIUtility.TrTextContent("Paste layer settings", null, (Texture) null), false,
-									new GenericMenu.MenuFunction2(AnimatorExtensions.PasteLayerSettings), __instance);
+									new GenericMenu.MenuFunction2(RATS.PasteLayerSettings), __instance);
 							}
 							else
 							{
@@ -325,13 +327,13 @@ namespace Razgriz.AnimatorExtensions
 					[HarmonyPostfix]
 					static void Postfix(ref AnimatorStateTransition __result)
 					{
-						if(AnimatorExtensionsGUI.prefs_NewTransitionsZeroTime)
+						if(RATSGUI.prefs_NewTransitionsZeroTime)
 						{
 							__result.duration = 0.0f;
 							__result.exitTime = 0.0f;
 						}
 			
-						__result.hasExitTime = AnimatorExtensionsGUI.prefs_NewTransitionsExitTime;
+						__result.hasExitTime = RATSGUI.prefs_NewTransitionsExitTime;
 					}
 				}
 
@@ -345,7 +347,7 @@ namespace Razgriz.AnimatorExtensions
 					[HarmonyPrefix]
 					static void Prefix(ref AnimatorState state, Vector3 position)
 					{
-						if(!AnimatorExtensionsGUI.prefs_NewStateWriteDefaults) state.writeDefaultValues = false;
+						if(!RATSGUI.prefs_NewStateWriteDefaults) state.writeDefaultValues = false;
 					}
 				}
 
@@ -394,13 +396,13 @@ namespace Razgriz.AnimatorExtensions
 					static void Postfix(object __instance, Rect gridRect, float zoomLevel)
 					{
 						// Overwrite the whole grid drawing lol
-						if(AnimatorExtensionsGUI.prefs_GraphGridOverride)
+						if(RATSGUI.prefs_GraphGridOverride)
 						{
 							GL.PushMatrix();
 
 							// Draw Background
 							GL.Begin(GL.QUADS);
-							Color backgroundColor = AnimatorExtensionsGUI.prefs_GraphGridBackgroundColor;
+							Color backgroundColor = RATSGUI.prefs_GraphGridBackgroundColor;
 							backgroundColor.a = 1;
 							GL.Color(backgroundColor);
 							GL.Vertex(new Vector3(gridRect.xMin, gridRect.yMin, 0f));
@@ -416,8 +418,8 @@ namespace Razgriz.AnimatorExtensions
 							
 							float gridSize;
 							// Major
-							GL.Color(Color.Lerp(Color.clear, AnimatorExtensionsGUI.prefs_GraphGridColorMajor, tMajor));
-							gridSize = AnimatorExtensionsGUI.prefs_GraphGridScalingMajor * 100f;
+							GL.Color(Color.Lerp(Color.clear, RATSGUI.prefs_GraphGridColorMajor, tMajor));
+							gridSize = RATSGUI.prefs_GraphGridScalingMajor * 100f;
 							for (float x = gridRect.xMin - gridRect.xMin % gridSize; x < gridRect.xMax; x += gridSize)
 							{
 								GL.Vertex(new Vector3(x, gridRect.yMin)); GL.Vertex(new Vector3(x, gridRect.yMax));
@@ -428,8 +430,8 @@ namespace Razgriz.AnimatorExtensions
 							}
 
 							// Minor
-							GL.Color(Color.Lerp(Color.clear, AnimatorExtensionsGUI.prefs_GraphGridColorMinor, tMinor));
-							gridSize = AnimatorExtensionsGUI.prefs_GraphGridScalingMajor * (100f / AnimatorExtensionsGUI.prefs_GraphGridDivisorMinor);
+							GL.Color(Color.Lerp(Color.clear, RATSGUI.prefs_GraphGridColorMinor, tMinor));
+							gridSize = RATSGUI.prefs_GraphGridScalingMajor * (100f / RATSGUI.prefs_GraphGridDivisorMinor);
 							for (float x = gridRect.xMin - gridRect.xMin % gridSize; x < gridRect.xMax; x += gridSize)
 							{
 								GL.Vertex(new Vector3(x, gridRect.yMin)); GL.Vertex(new Vector3(x, gridRect.yMax));
@@ -457,15 +459,15 @@ namespace Razgriz.AnimatorExtensions
 					static bool Prefix(ref Rect __result, Rect position)
 					{
 						// Logical XOR
-						bool doDesnap = Event.current.control ^ AnimatorExtensionsGUI.prefs_GraphDragNoSnap;
+						bool doDesnap = Event.current.control ^ RATSGUI.prefs_GraphDragNoSnap;
 						if(doDesnap)
 						{
 							__result = position;
 							return false;
 						}
-						else if(AnimatorExtensionsGUI.prefs_GraphDragSnapToModifiedGrid && AnimatorExtensionsGUI.prefs_GraphGridOverride) // Enforce Minor Grid Spacing Snapping
+						else if(RATSGUI.prefs_GraphDragSnapToModifiedGrid && RATSGUI.prefs_GraphGridOverride) // Enforce Minor Grid Spacing Snapping
 						{
-							float minorGridSpacing = AnimatorExtensionsGUI.prefs_GraphGridScalingMajor * (100f / AnimatorExtensionsGUI.prefs_GraphGridDivisorMinor);
+							float minorGridSpacing = RATSGUI.prefs_GraphGridScalingMajor * (100f / RATSGUI.prefs_GraphGridDivisorMinor);
 							__result = new Rect(Mathf.Round(position.x / minorGridSpacing) * minorGridSpacing, Mathf.Round(position.y / minorGridSpacing) * minorGridSpacing, position.width, position.height);
 							return false;
 						}
@@ -473,7 +475,9 @@ namespace Razgriz.AnimatorExtensions
 						return !doDesnap;
 					}
 				}
-				
+
+				static Color defaultTextColor = new Color(0.922f, 0.922f, 0.922f, 1.0f);
+
 				// Node Icons
 				[HarmonyPatch]
 				[HarmonyPriority(Priority.LowerThanNormal)]
@@ -488,48 +492,83 @@ namespace Razgriz.AnimatorExtensions
 					[HarmonyPostfix]
 					public static void Postfix(object __instance, ref GUIStyle __result, string styleName, int color, bool on)
 					{
-						if(styleName == "node") // Regular state node
-						{
-							__result.normal.textColor = AnimatorExtensionsGUI.prefs_StateTextColor;
-							__result.fontSize = AnimatorExtensionsGUI.prefs_StateLabelFontSize;
+						string styleHash = GetStyleCacheKey(styleName, color, on);
 
-							switch(color)
+						// if(!defaultNodeBackgroundCache.ContainsKey(styleHash))
+						// {
+						// 	Debug.Log(__result.normal.background.name);
+						// 	Debug.Log(styleHash);
+						// 	defaultNodeBackgroundCache[styleHash] = new InternalTextureInfo(__result.normal.background, false);
+						// }
+
+						if(RATSGUI.prefs_NodeStyleOverride)
+						{
+							bool isPatched = false;
+							bool wasPatchedAtSomePoint = nodeBackgroundPatched.TryGetValue(styleHash, out isPatched);
+							
+							if(true || RATSGUI.updateNodeStyle || !wasPatchedAtSomePoint || !isPatched)
 							{
-								case 6: // Red
-									__result.normal.background = on ? nodeBackgroundImageRedActive : nodeBackgroundImageRed;
-									break;
-								case 5: // Orange
-									__result.normal.background = on ? nodeBackgroundImageOrangeActive : nodeBackgroundImageOrange;
-									break;
-								case 4: // Yellow
-									__result.normal.background = on ? nodeBackgroundImageYellowActive : nodeBackgroundImageYellow;
-									break;
-								case 3: // Green
-									__result.normal.background = on ? nodeBackgroundImageGreenActive : nodeBackgroundImageGreen;
-									break;
-								case 2: // Aqua
-									__result.normal.background = on ? nodeBackgroundImageAquaActive : nodeBackgroundImageAqua;
-									break;
-								case 1: // Blue
-									__result.normal.background = on ? nodeBackgroundImageBlueActive : nodeBackgroundImageBlue;
-									break;
-								default: // Anything Else
-									__result.normal.background = on ? nodeBackgroundImageActive : nodeBackgroundImage;
-									break;
+								nodeBackgroundPatched[styleHash] = true;
+
+								if(styleName == "node") // Regular state node
+								{
+									switch(color)
+									{
+										case 6: __result.normal.background = on ? nodeBackgroundImageRedActive : nodeBackgroundImageRed; break; // Red 
+										case 5: __result.normal.background = on ? nodeBackgroundImageOrangeActive : nodeBackgroundImageOrange; break; // Orange
+										case 4: __result.normal.background = on ? nodeBackgroundImageYellowActive : nodeBackgroundImageYellow; break; // Yellow
+										case 3: __result.normal.background = on ? nodeBackgroundImageGreenActive : nodeBackgroundImageGreen; break; // Green
+										case 2: __result.normal.background = on ? nodeBackgroundImageAquaActive : nodeBackgroundImageAqua; break; // Aqua
+										case 1: __result.normal.background = on ? nodeBackgroundImageBlueActive : nodeBackgroundImageBlue; break; // Blue
+										default:__result.normal.background = on ? nodeBackgroundImageActive : nodeBackgroundImage; break; // Anything Else
+									}
+								}
+								else if(styleName == "node hex") // SubStateMachine node
+								{
+									__result.normal.background = on ? stateMachineBackgroundImageActive : stateMachineBackgroundImage;
+								}
+
+								__result.normal.textColor = RATSGUI.prefs_StateTextColor;
+								__result.fontSize = RATSGUI.prefs_StateLabelFontSize;
 							}
 						}
-						else if(styleName == "node hex") // SubStateMachine node
+						else
 						{
-							__result.fontSize = AnimatorExtensionsGUI.prefs_StateLabelFontSize;
-							__result.normal.textColor = AnimatorExtensionsGUI.prefs_StateTextColor;
-							__result.normal.background = on ? stateMachineBackgroundImageActive : stateMachineBackgroundImage;
+							__result.normal.background = EditorGUIUtility.Load(styleHash) as Texture2D; 
+							__result.normal.textColor = defaultTextColor;
+							__result.fontSize = 12;
+
+							// if(nodeBackgroundPatched.ContainsKey(styleHash))
+							// {
+							// 	if(nodeBackgroundPatched[styleHash] == true)
+							// 	{
+							// 		__result.normal.background = defaultNodeBackgroundCache[styleHash].GetTexture2D();
+							// 		__result.normal.textColor = defaultTextColor;
+							// 		__result.fontSize = 12;
+							// 		nodeBackgroundPatched[styleHash] = false;
+							// 	}
+							// }
 						}
 					}
+
+					private static Dictionary<string, InternalTextureInfo> defaultNodeBackgroundCache = new Dictionary<string, InternalTextureInfo>();
+					private static Dictionary<string, bool> nodeBackgroundPatched = new Dictionary<string, bool>();
+
+					public static string GetStyleCacheKey(string styleName, int color, bool on)
+					{
+						if(styleName == "node hex")
+							return String.Format("node{0} hex{1}", color.ToString(), on ? " on" : "");
+						else if(styleName == "node")
+							return String.Format("node{0}{1}", color.ToString(), on ? " on" : "");
+						else
+							return String.Format("{0}{1}{2}", styleName, color.ToString(), on ? " on" : "");
+					}
+
 				}
 
 				// Show motion name and extra details on state graph nodes
 				static bool prefs_DimOffLabels_last = false;
-				static Color lastTextColor = AnimatorExtensionsGUI.prefs_StateTextColor;
+				static Color lastTextColor = RATSGUI.prefs_StateTextColor;
 				[HarmonyPatch]
 				[HarmonyPriority(Priority.Low)]
 				class PatchAnimatorLabels
@@ -551,35 +590,35 @@ namespace Razgriz.AnimatorExtensions
 						bool hasStateMachine = aStateMachine != null;
 
 						// Lazy-init styles because built-in ones not available during static init
-						if (StateMotionStyle == null || (prefs_DimOffLabels_last != AnimatorExtensionsGUI.prefs_HideOffLabels) || lastTextColor != AnimatorExtensionsGUI.prefs_StateTextColor)
+						if (StateMotionStyle == null || (prefs_DimOffLabels_last != RATSGUI.prefs_HideOffLabels) || lastTextColor != RATSGUI.prefs_StateTextColor)
 						{
 							StateExtrasStyle = new GUIStyle(EditorStyles.label);
 							StateExtrasStyle.alignment = TextAnchor.UpperRight;
 							StateExtrasStyle.fontStyle = FontStyle.Bold;
-							StateExtrasStyle.normal.textColor = AnimatorExtensionsGUI.prefs_StateTextColor;
+							StateExtrasStyle.normal.textColor = RATSGUI.prefs_StateTextColor;
 
 							StateExtrasStyleActive = new GUIStyle(EditorStyles.label);
 							StateExtrasStyleActive.alignment = TextAnchor.UpperRight;
 							StateExtrasStyleActive.fontStyle = FontStyle.Bold;
-							StateExtrasStyleActive.normal.textColor = AnimatorExtensionsGUI.prefs_StateTextColor;
+							StateExtrasStyleActive.normal.textColor = RATSGUI.prefs_StateTextColor;
 
 							StateExtrasStyleInactive = new GUIStyle(EditorStyles.label);
 							StateExtrasStyleInactive.alignment = TextAnchor.UpperRight;
 							StateExtrasStyleInactive.fontStyle = FontStyle.Bold;
-							float inactiveExtrasTextAlpha = AnimatorExtensionsGUI.prefs_HideOffLabels ? 0.0f : 0.5f;
-							StateExtrasStyleInactive.normal.textColor = new Color(AnimatorExtensionsGUI.prefs_StateTextColor.r, AnimatorExtensionsGUI.prefs_StateTextColor.g, AnimatorExtensionsGUI.prefs_StateTextColor.b, inactiveExtrasTextAlpha);
+							float inactiveExtrasTextAlpha = RATSGUI.prefs_HideOffLabels ? 0.0f : 0.5f;
+							StateExtrasStyleInactive.normal.textColor = new Color(RATSGUI.prefs_StateTextColor.r, RATSGUI.prefs_StateTextColor.g, RATSGUI.prefs_StateTextColor.b, inactiveExtrasTextAlpha);
 
 							StateMotionStyle = new GUIStyle(EditorStyles.miniBoldLabel);
 							StateMotionStyle.fontSize = 9;
 							StateMotionStyle.alignment = TextAnchor.LowerCenter;
-							StateMotionStyle.normal.textColor = AnimatorExtensionsGUI.prefs_StateTextColor;
+							StateMotionStyle.normal.textColor = RATSGUI.prefs_StateTextColor;
 
 							StateBlendtreeStyle = new GUIStyle(EditorStyles.label);
 							StateBlendtreeStyle.alignment = TextAnchor.UpperLeft;
 							StateBlendtreeStyle.fontStyle = FontStyle.Bold;
 						}
 
-						prefs_DimOffLabels_last = AnimatorExtensionsGUI.prefs_HideOffLabels;
+						prefs_DimOffLabels_last = RATSGUI.prefs_HideOffLabels;
 						Rect stateRect = GUILayoutUtility.GetLastRect();
 
 						
@@ -601,8 +640,8 @@ namespace Razgriz.AnimatorExtensions
 							bool isEmptyAnim = false;
 							bool isEmptyState = false;
 
-							int off1 = (debugShowLabels || (AnimatorExtensionsGUI.prefs_StateExtraLabelsWD && AnimatorExtensionsGUI.prefs_StateExtraLabelsBehavior)) ? 15 : 0;
-							int off2 = (debugShowLabels || (AnimatorExtensionsGUI.prefs_StateExtraLabelsMotionTime && AnimatorExtensionsGUI.prefs_StateExtraLabelsSpeed)) ? 15 : 0;
+							int off1 = (debugShowLabels || (RATSGUI.prefs_StateExtraLabelsWD && RATSGUI.prefs_StateExtraLabelsBehavior)) ? 15 : 0;
+							int off2 = (debugShowLabels || (RATSGUI.prefs_StateExtraLabelsMotionTime && RATSGUI.prefs_StateExtraLabelsSpeed)) ? 15 : 0;
 
 							Rect wdLabelRect 			= new Rect(stateRect.x - off1, stateRect.y - 30, stateRect.width, 15);
 							Rect behaviorLabelRect 		= new Rect(stateRect.x, 	   stateRect.y - 30, stateRect.width, 15);
@@ -644,7 +683,7 @@ namespace Razgriz.AnimatorExtensions
 							int iconOffset = 0;
 
 							// Loop time label
-							if(isLoopTime && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateLoopedLabels))
+							if(isLoopTime && (debugShowLabels || RATSGUI.prefs_StateLoopedLabels))
 							{
 								Rect loopingLabelRect = new Rect(stateRect.x + 1, stateRect.y - 29, 16, 16);
 								EditorGUI.LabelField(loopingLabelRect, new GUIContent(EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Animation Clip is Looping"));
@@ -652,11 +691,11 @@ namespace Razgriz.AnimatorExtensions
 							}
 							
 							// Empty Animation/State Warning, top left (option)
-							if(AnimatorExtensionsGUI.prefs_ShowWarningsTopLeft)
+							if(RATSGUI.prefs_ShowWarningsTopLeft)
 							{
 								
 								Rect emptyWarningRect = new Rect(stateRect.x + iconOffset + 1, stateRect.y - 28, 14, 14);
-								if((debugShowLabels || AnimatorExtensionsGUI.prefs_StateAnimIsEmptyLabel))
+								if((debugShowLabels || RATSGUI.prefs_StateAnimIsEmptyLabel))
 								{
 									if(isEmptyAnim) EditorGUI.LabelField(emptyWarningRect, new GUIContent(EditorGUIUtility.IconContent("Warning@2x").image, "Animation Clip has no Keyframes"));
 									else if(isEmptyState) EditorGUI.LabelField(emptyWarningRect, new GUIContent(EditorGUIUtility.IconContent("Error@2x").image, "State has no Motion assigned"));
@@ -664,12 +703,12 @@ namespace Razgriz.AnimatorExtensions
 							}
 
 							#if !RAZGRIZ_AEXTENSIONS_CECOMPAT
-								if(hasMotion && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
-								if(				(debugShowLabels || AnimatorExtensionsGUI.prefs_StateExtraLabelsBehavior)) EditorGUI.LabelField(behaviorLabelRect, "B", (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive));
-								if(hasMotion && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateExtraLabelsMotionTime)) EditorGUI.LabelField(motionTimeLabelRect, "M", (hasMotionTime ? StateExtrasStyleActive : StateExtrasStyleInactive));
-								if(hasMotion && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateExtraLabelsSpeed)) EditorGUI.LabelField(speedLabelRect, "S", (hasSpeedParam ? StateExtrasStyleActive : StateExtrasStyleInactive));
+								if(hasMotion && (debugShowLabels || RATSGUI.prefs_StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
+								if(				(debugShowLabels || RATSGUI.prefs_StateExtraLabelsBehavior)) EditorGUI.LabelField(behaviorLabelRect, "B", (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive));
+								if(hasMotion && (debugShowLabels || RATSGUI.prefs_StateExtraLabelsMotionTime)) EditorGUI.LabelField(motionTimeLabelRect, "M", (hasMotionTime ? StateExtrasStyleActive : StateExtrasStyleInactive));
+								if(hasMotion && (debugShowLabels || RATSGUI.prefs_StateExtraLabelsSpeed)) EditorGUI.LabelField(speedLabelRect, "S", (hasSpeedParam ? StateExtrasStyleActive : StateExtrasStyleInactive));
 
-								if (hasMotion && (debugShowLabels || AnimatorExtensionsGUI.prefs_StateMotionLabels))
+								if (hasMotion && (debugShowLabels || RATSGUI.prefs_StateMotionLabels))
 								{
 									string motionName = "  [none]";
 									if (aState.motion) motionName = "  " + aState.motion.name;
@@ -684,12 +723,12 @@ namespace Razgriz.AnimatorExtensions
 										labelTooltip = "State contains a Blendtree";
 										iconSize = 14;
 									}
-									else if(isEmptyAnim && !AnimatorExtensionsGUI.prefs_ShowWarningsTopLeft)
+									else if(isEmptyAnim && !RATSGUI.prefs_ShowWarningsTopLeft)
 									{
 										labelIcon = EditorGUIUtility.IconContent("Warning@2x").image;
 										labelTooltip = "Animation Clip has no Keyframes";
 									}
-									else if(isEmptyState && !AnimatorExtensionsGUI.prefs_ShowWarningsTopLeft)
+									else if(isEmptyState && !RATSGUI.prefs_ShowWarningsTopLeft)
 									{
 										labelIcon = EditorGUIUtility.IconContent("Error@2x").image;
 										labelTooltip = "State has no Motion assigned";
@@ -741,17 +780,15 @@ namespace Razgriz.AnimatorExtensions
 						Type animatableObjectType = (Type)NodeTypeAnimatableObjectType.GetValue(node);
 						string componentPrefix = "";
 
-						if(!string.IsNullOrEmpty(propertyName) && AnimatorExtensionsGUI.prefs_AnimationWindowTrimActualNames) propertyName = propertyName.Replace("m_", "");
+						if(!string.IsNullOrEmpty(propertyName) && RATSGUI.prefs_AnimationWindowTrimActualNames) propertyName = propertyName.Replace("m_", "");
 
 						if(animatableObjectType != null)
 						{
 							componentPrefix = (animatableObjectType).ToString().Split('.').Last() + ".";
 						}
 
-						string displayNameString = AnimatorExtensionsGUI.prefs_AnimationWindowShowActualPropertyNames ? componentPrefix + propertyName : displayName;
-
-						NodeTypeIndent.SetValue(node, (int)(AnimatorExtensionsGUI.prefs_AnimationWindowIndentScale * ((float)propertyPath.Split('/').Length)) );
-						
+						string displayNameString = RATSGUI.prefs_AnimationWindowShowActualPropertyNames ? componentPrefix + propertyName : displayName;
+						NodeTypeIndent.SetValue(node, (int)(RATSGUI.prefs_AnimationWindowIndentScale * ((float)propertyPath.Split('/').Length)) );						
 						NodeDisplayNameProp.SetValue(node, displayNameString);
 					}
 				}
@@ -765,7 +802,7 @@ namespace Razgriz.AnimatorExtensions
 					[HarmonyPostfix]
 					static string Postfix(string __result, GameObject rootGameObject, string path)
 					{
-						if(AnimatorExtensionsGUI.prefs_AnimationWindowShowFullPath)
+						if(RATSGUI.prefs_AnimationWindowShowFullPath)
 						{
 							if (string.IsNullOrEmpty(path)) return rootGameObject != null ? rootGameObject.name : "";
 
@@ -784,45 +821,68 @@ namespace Razgriz.AnimatorExtensions
 
 		#region Utility
 
-			#region HelperFunctions
-				// Recursive helper functions to gather deeply-nested parameter references
-				private static void GatherBtParams(BlendTree bt, ref Dictionary<string, AnimatorControllerParameter> srcparams, ref Dictionary<string, AnimatorControllerParameter> queuedparams)
+			#region Helpers
+
+				private struct InternalTextureInfo
 				{
-					if (srcparams.ContainsKey(bt.blendParameter))
-						queuedparams[bt.blendParameter] = srcparams[bt.blendParameter];
-					if (srcparams.ContainsKey(bt.blendParameterY))
-						queuedparams[bt.blendParameterY] = srcparams[bt.blendParameterY];
+					public int Width;
+					public int Height;
+					public bool Mips;
+					public bool Linear;
+					public TextureFormat Format;
+					public IntPtr Ptr;
+
+					public InternalTextureInfo(int width, int height, TextureFormat format, bool mips, bool linear, IntPtr ptr)
+					{
+						Width = width; Height = height; Mips = mips; Linear = linear; Format = format; Ptr = ptr;
+					}
+
+					public InternalTextureInfo(Texture2D tex, bool linear)
+					{
+						Width = tex.width; Height = tex.height; Mips = tex.mipmapCount > 0; Linear = linear; Format = tex.format; Ptr = tex.GetNativeTexturePtr();
+					}
+
+					public Texture2D GetTexture2D() => Texture2D.CreateExternalTexture(Width, Height, Format, Mips, Linear, Ptr);
+				}
+
+				// Recursive helper functions to gather deeply-nested parameter references
+				private static void GatherBtParams(BlendTree bt, ref Dictionary<string, AnimatorControllerParameter> srcParams, ref Dictionary<string, AnimatorControllerParameter> queuedParams)
+				{
+					if (srcParams.ContainsKey(bt.blendParameter))
+						queuedParams[bt.blendParameter] = srcParams[bt.blendParameter];
+					if (srcParams.ContainsKey(bt.blendParameterY))
+						queuedParams[bt.blendParameterY] = srcParams[bt.blendParameterY];
 
 					foreach (var cmotion in bt.children)
 					{
-						if (srcparams.ContainsKey(cmotion.directBlendParameter))
-							queuedparams[cmotion.directBlendParameter] = srcparams[cmotion.directBlendParameter];
+						if (srcParams.ContainsKey(cmotion.directBlendParameter))
+							queuedParams[cmotion.directBlendParameter] = srcParams[cmotion.directBlendParameter];
 
 						// Go deeper to nested BlendTrees
 						var cbt = cmotion.motion as BlendTree;
 						if (!(cbt is null))
-							GatherBtParams(cbt, ref srcparams, ref queuedparams);
+							GatherBtParams(cbt, ref srcParams, ref queuedParams);
 					}
 				}
 				
-				private static void GatherSmParams(AnimatorStateMachine sm, ref Dictionary<string, AnimatorControllerParameter> srcparams, ref Dictionary<string, AnimatorControllerParameter> queuedparams)
+				private static void GatherSmParams(AnimatorStateMachine sm, ref Dictionary<string, AnimatorControllerParameter> srcParams, ref Dictionary<string, AnimatorControllerParameter> queuedParams)
 				{
 					// Go over states to check controlling or BlendTree params
 					foreach (var cstate in sm.states)
 					{
 						var s = cstate.state;
-						if (s.mirrorParameterActive && srcparams.ContainsKey(s.mirrorParameter))
-							queuedparams[s.mirrorParameter] = srcparams[s.mirrorParameter];
-						if (s.speedParameterActive && srcparams.ContainsKey(s.speedParameter))
-							queuedparams[s.speedParameter] = srcparams[s.speedParameter];
-						if (s.timeParameterActive && srcparams.ContainsKey(s.timeParameter))
-							queuedparams[s.timeParameter] = srcparams[s.timeParameter];
-						if (s.cycleOffsetParameterActive && srcparams.ContainsKey(s.cycleOffsetParameter))
-							queuedparams[s.cycleOffsetParameter] = srcparams[s.cycleOffsetParameter];
+						if (s.mirrorParameterActive && srcParams.ContainsKey(s.mirrorParameter))
+							queuedParams[s.mirrorParameter] = srcParams[s.mirrorParameter];
+						if (s.speedParameterActive && srcParams.ContainsKey(s.speedParameter))
+							queuedParams[s.speedParameter] = srcParams[s.speedParameter];
+						if (s.timeParameterActive && srcParams.ContainsKey(s.timeParameter))
+							queuedParams[s.timeParameter] = srcParams[s.timeParameter];
+						if (s.cycleOffsetParameterActive && srcParams.ContainsKey(s.cycleOffsetParameter))
+							queuedParams[s.cycleOffsetParameter] = srcParams[s.cycleOffsetParameter];
 
 						var bt = s.motion as BlendTree;
 						if (!(bt is null))
-							GatherBtParams(bt, ref srcparams, ref queuedparams);
+							GatherBtParams(bt, ref srcParams, ref queuedParams);
 					}
 
 					// Go over all transitions
@@ -832,12 +892,12 @@ namespace Razgriz.AnimatorExtensions
 						transitions.AddRange(cstate.state.transitions);
 					foreach (var transition in transitions)
 					foreach (var cond in transition.conditions)
-						if (srcparams.ContainsKey(cond.parameter))
-							queuedparams[cond.parameter] = srcparams[cond.parameter];
+						if (srcParams.ContainsKey(cond.parameter))
+							queuedParams[cond.parameter] = srcParams[cond.parameter];
 
 					// Go deeper to child sate machines
 					foreach (var csm in sm.stateMachines)
-						GatherSmParams(csm.stateMachine, ref srcparams, ref queuedparams);
+						GatherSmParams(csm.stateMachine, ref srcParams, ref queuedParams);
 				}
 				
 				// Layer Copy/Paste Functions
@@ -954,7 +1014,14 @@ namespace Razgriz.AnimatorExtensions
 					dest.syncedLayerIndex = src.syncedLayerIndex;
 				}
 
-			#endregion HelperFunctions
+				private static void PlayModeChanged(PlayModeStateChange state)
+				{
+					// if(state == PlayModeStateChange.)
+					InitTextures();
+					UpdateGraphTextures();
+				}
+
+			#endregion Helpers
 
 			#region ReflectionCache
 				// Animator Window
@@ -1077,53 +1144,61 @@ namespace Razgriz.AnimatorExtensions
 
 				public static void UpdateGraphTextures()
 				{
-					Color glowTint = new Color(44/255f, 119/255f, 212/255f, 1f);
-					Texture2D glowState = new Texture2D(nodeBackgroundImageActive.width, nodeBackgroundImageActive.height);
-					Texture2D glowStateMachine = new Texture2D(stateMachineBackgroundImageActive.width, stateMachineBackgroundImageActive.height);
-					glowState.SetPixels(nodeBackgroundActivePixels);
-					glowStateMachine.SetPixels(stateMachineBackgroundPixelsActive);
-					TintTexture2D(ref glowState, glowTint);
-					TintTexture2D(ref glowStateMachine, glowTint);
-					Color[] glowData = glowState.GetPixels();
-					Color[] glowStateMachineData = glowStateMachine.GetPixels();
+					try
+					{
+						Color glowTint = new Color(44/255f, 119/255f, 212/255f, 1f);
+						Texture2D glowState = new Texture2D(nodeBackgroundImageActive.width, nodeBackgroundImageActive.height);
+						Texture2D glowStateMachine = new Texture2D(stateMachineBackgroundImageActive.width, stateMachineBackgroundImageActive.height);
+						glowState.SetPixels(nodeBackgroundActivePixels);
+						glowStateMachine.SetPixels(stateMachineBackgroundPixelsActive);
+						TintTexture2D(ref glowState, glowTint);
+						TintTexture2D(ref glowStateMachine, glowTint);
+						Color[] glowData = glowState.GetPixels();
+						Color[] glowStateMachineData = glowStateMachine.GetPixels();
 
-					stateMachineBackgroundImage.SetPixels(stateMachineBackgroundPixels);
+						stateMachineBackgroundImage.SetPixels(stateMachineBackgroundPixels);
 
-					nodeBackgroundImageBlue.SetPixels(nodeBackgroundPixels);
-					nodeBackgroundImageYellow.SetPixels(nodeBackgroundPixels);
-					nodeBackgroundImage.SetPixels(nodeBackgroundPixels);
-					nodeBackgroundImageAqua.SetPixels(nodeBackgroundPixels);
-					nodeBackgroundImageGreen.SetPixels(nodeBackgroundPixels);
-					nodeBackgroundImageOrange.SetPixels(nodeBackgroundPixels);
-					nodeBackgroundImageRed.SetPixels(nodeBackgroundPixels);
+						nodeBackgroundImageBlue.SetPixels(nodeBackgroundPixels);
+						nodeBackgroundImageYellow.SetPixels(nodeBackgroundPixels);
+						nodeBackgroundImage.SetPixels(nodeBackgroundPixels);
+						nodeBackgroundImageAqua.SetPixels(nodeBackgroundPixels);
+						nodeBackgroundImageGreen.SetPixels(nodeBackgroundPixels);
+						nodeBackgroundImageOrange.SetPixels(nodeBackgroundPixels);
+						nodeBackgroundImageRed.SetPixels(nodeBackgroundPixels);
 
-					stateMachineBackgroundImageActive.SetPixels(glowStateMachineData);
+						stateMachineBackgroundImageActive.SetPixels(glowStateMachineData);
 
-					nodeBackgroundImageActive.SetPixels(glowData);
-					nodeBackgroundImageBlueActive.SetPixels(glowData);
-					nodeBackgroundImageYellowActive.SetPixels(glowData);
-					nodeBackgroundImageAquaActive.SetPixels(glowData);
-					nodeBackgroundImageGreenActive.SetPixels(glowData);
-					nodeBackgroundImageOrangeActive.SetPixels(glowData);
-					nodeBackgroundImageRedActive.SetPixels(glowData);
+						nodeBackgroundImageActive.SetPixels(glowData);
+						nodeBackgroundImageBlueActive.SetPixels(glowData);
+						nodeBackgroundImageYellowActive.SetPixels(glowData);
+						nodeBackgroundImageAquaActive.SetPixels(glowData);
+						nodeBackgroundImageGreenActive.SetPixels(glowData);
+						nodeBackgroundImageOrangeActive.SetPixels(glowData);
+						nodeBackgroundImageRedActive.SetPixels(glowData);
 
-					// Main color tint
-					TintTexture2D(ref stateMachineBackgroundImage, AnimatorExtensionsGUI.prefs_StateColorGray);
-					TintTexture2D(ref nodeBackgroundImage, AnimatorExtensionsGUI.prefs_StateColorGray);
-					TintTexture2D(ref nodeBackgroundImageAqua, AnimatorExtensionsGUI.prefs_StateColorAqua);
-					TintTexture2D(ref nodeBackgroundImageGreen, AnimatorExtensionsGUI.prefs_StateColorGreen);
-					TintTexture2D(ref nodeBackgroundImageOrange, AnimatorExtensionsGUI.prefs_StateColorOrange);
-					TintTexture2D(ref nodeBackgroundImageRed, AnimatorExtensionsGUI.prefs_StateColorRed); 
+						// Main color tint
+						TintTexture2D(ref stateMachineBackgroundImage, RATSGUI.prefs_StateColorGray);
+						TintTexture2D(ref nodeBackgroundImage, RATSGUI.prefs_StateColorGray);
+						TintTexture2D(ref nodeBackgroundImageAqua, RATSGUI.prefs_StateColorAqua);
+						TintTexture2D(ref nodeBackgroundImageGreen, RATSGUI.prefs_StateColorGreen);
+						TintTexture2D(ref nodeBackgroundImageOrange, RATSGUI.prefs_StateColorOrange);
+						TintTexture2D(ref nodeBackgroundImageRed, RATSGUI.prefs_StateColorRed); 
 
-					// Glowing edge for selected
-					AddTexture2D(ref stateMachineBackgroundImageActive, stateMachineBackgroundImage);
-					AddTexture2D(ref nodeBackgroundImageActive, nodeBackgroundImage);
-					AddTexture2D(ref nodeBackgroundImageBlueActive, nodeBackgroundImageBlue);
-					AddTexture2D(ref nodeBackgroundImageAquaActive, nodeBackgroundImageAqua);
-					AddTexture2D(ref nodeBackgroundImageGreenActive, nodeBackgroundImageGreen);
-					AddTexture2D(ref nodeBackgroundImageYellowActive, nodeBackgroundImageYellow);
-					AddTexture2D(ref nodeBackgroundImageOrangeActive, nodeBackgroundImageOrange);
-					AddTexture2D(ref nodeBackgroundImageRedActive, nodeBackgroundImageRed);
+						// Glowing edge for selected
+						AddTexture2D(ref stateMachineBackgroundImageActive, stateMachineBackgroundImage);
+						AddTexture2D(ref nodeBackgroundImageActive, nodeBackgroundImage);
+						AddTexture2D(ref nodeBackgroundImageBlueActive, nodeBackgroundImageBlue);
+						AddTexture2D(ref nodeBackgroundImageAquaActive, nodeBackgroundImageAqua);
+						AddTexture2D(ref nodeBackgroundImageGreenActive, nodeBackgroundImageGreen);
+						AddTexture2D(ref nodeBackgroundImageYellowActive, nodeBackgroundImageYellow);
+						AddTexture2D(ref nodeBackgroundImageOrangeActive, nodeBackgroundImageOrange);
+						AddTexture2D(ref nodeBackgroundImageRedActive, nodeBackgroundImageRed);
+					}
+					catch(MissingReferenceException e)
+					{
+						Debug.Log("Texture Update Exception Caught: " + e.ToString());
+						InitTextures();
+					}
 				}
 
 				private static byte[] GetFileBytes(string filePath)

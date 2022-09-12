@@ -1,5 +1,5 @@
-// Some Harmony based Unity animator window patches to help workflow
-// Original by Dj Lukis.LT, under MIT License
+// RATS - Raz's Animator Tweaks'n Stuff
+// Original AnimatorExtensions by Dj Lukis.LT, under MIT License
 
 // Copyright (c) 2022 Razgriz
 // SPDX-License-Identifier: MIT
@@ -7,14 +7,17 @@
 #if UNITY_EDITOR
 using System;
 using System.Text.RegularExpressions;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Razgriz.AnimatorExtensions
+namespace Razgriz.RATS
 {
-	public class AnimatorExtensionsGUI : EditorWindow
+	public class RATSGUI : EditorWindow
 	{
-		public const string version = "2022.09.05";
+		public const string version = "2022.09.09";
 
 		public static bool prefs_DisableAnimatorGraphFixes;
 
@@ -45,6 +48,7 @@ namespace Razgriz.AnimatorExtensions
 		public static Color prefs_StateColorGreen = new Color(17/255f, 119/255f, 51/255f, 1f);
 		public static Color prefs_StateColorRed = new Color(170/255f, 5/255f, 30/255f, 1f);
 		public static int prefs_StateLabelFontSize;
+		public static bool prefs_NodeStyleOverride = true;
 
 		public static bool prefs_NewStateWriteDefaults;
 		public static bool prefs_NewLayersWeight1;
@@ -58,31 +62,45 @@ namespace Razgriz.AnimatorExtensions
 		public static bool prefs_AnimationWindowTrimActualNames;
 
 		public static bool hasInitializedPreferences = false;
-		static int tab = 0;
+		public static bool updateNodeStyle = false;
+
+		public enum Tabs : int
+		{
+			Tweaks = 0,
+			Theming = 1,
+			AnimEditor = 2
+		}
+
+		string[] toolbarStrings = {"Tweaks", "Theming", "AnimEditor"};
+
+		static Tabs tab = Tabs.Tweaks;
 
 		private static Texture2D githubIcon;
 		private static Texture2D editorWindowIcon;
 		static GUIStyle ToggleButtonStyle;
 
-		[MenuItem("Tools/AnimatorExtensions")]
+		[MenuItem("Tools/RATS/Options")]
 		public static void ShowWindow()
 		{
 			if(editorWindowIcon == null)
 			{
 				// Decode from base64 encoded 16x16 icon
-				editorWindowIcon = TextureFromBase64PNG("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/GMzLdsAAAAgY0hSTQAAeiUAAICDAAD5/wAAgOkAAHUwAADqYAAAOpgAABdvkl/FRgAABCBJREFUeAEAEATv+wH///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPAAAAEYAAADXAAAApwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AP///wD///8A////Ef///8X////v////7f///+T///+E////AP///wD///8A////AP///wD///8A////AAD///8A////AP///wD///+P////8f////r////+////9v///9////8D////AP///wD///8A////AP///wD///8AAgAAAAAAAAARAAAAPAAAABwAAAD+AAAABQAAAAEAAAAHAAAADwAAACAAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAB////OwAAALQAAAAAAAAABwAAAPsAAAAHAAAABwAAAAAAAAD8AAAAwQAAAPAAAAAnAAAApQAAAJAAAAAxAAAA6QH///8LAAAAPgAAAAIAAAD5AAAACgAAAKEAAAAJAAAABwAAAP0AAADXAAAAIAAAAMUAAAAfAAAA5QAAACAAAADmAP///wD///8A////rf///9T////0////9P///9r////0//////////3///+w////AP////D////8////5////5kB////AAAAAAAAAAA4AAAABwAAAB0AAADRAAAAOwAAAJcAAAAAAAAAAAAAAAAAAADIAAAANQAAAAMAAAAAAAAAQwH///8GAAAALwAAAAEAAAACAAAATgAAAEEAAAA4AAAA/QAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIkAAAB4AP///zP/////////////////////////o/////////////////////////////////////////+m////B////wAA////BP///xP///8T////FP///xb///9w////tf/////////////////////////8////ev///wf///8A////AAH///8uAAAAbQAAAG0AAADLAAAAEAAAAAoAAADRAAAAyQAAABoAAADlAAAAvwAAAMsAAADwAAAAAAAAAAAAAAAAAf///wIAAAAXAAAA6gAAAE8AAADmAAAA8QAAACEAAADjAAAA4wAAAPYAAAD6AAAAAAAAAAAAAAAAAAAAAAAAAAAB////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA///VX1UQhwRiOAAAAABJRU5ErkJggg==");
+				editorWindowIcon = TextureFromBase64PNG("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");
 			}
 
-			AnimatorExtensionsGUI window = EditorWindow.GetWindow<AnimatorExtensionsGUI>();
-			window.titleContent = new GUIContent(" RATS", editorWindowIcon);
+			RATSGUI window = EditorWindow.GetWindow<RATSGUI>();
+			window.titleContent = new GUIContent("  RATS", editorWindowIcon);
 		}
+
+        void OnInspectorUpdate() {
+            this.Repaint();
+        }
 
 		void OnGUI()
 		{
 			if(!hasInitializedPreferences) HandlePreferences();
 			
-    		string[] toolbarStrings = {"Main", "Styling"};
-			tab = GUILayout.Toolbar(tab, toolbarStrings);
+			tab = (Tabs)GUILayout.Toolbar((int)tab, toolbarStrings);
 
 			switch(tab)
 			{
@@ -205,7 +223,7 @@ namespace Razgriz.AnimatorExtensions
 					break;
 
 
-				case 1:
+				case Tabs.Theming:
 					// Graph Styling
 					using(new GUILayout.VerticalScope())
 					{
@@ -222,6 +240,7 @@ namespace Razgriz.AnimatorExtensions
 						prefs_GraphGridColorMinor = EditorGUILayout.ColorField("Minor Grid", prefs_GraphGridColorMinor);
 
 						DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
+						
 						EditorGUI.BeginChangeCheck();
 						prefs_StateTextColor = EditorGUILayout.ColorField("State Text Color", prefs_StateTextColor);
 						prefs_StateColorGray = EditorGUILayout.ColorField("Normal State Color", prefs_StateColorGray);
@@ -229,12 +248,17 @@ namespace Razgriz.AnimatorExtensions
 						prefs_StateColorAqua = EditorGUILayout.ColorField("Any State Color", prefs_StateColorAqua);
 						prefs_StateColorGreen = EditorGUILayout.ColorField("Entry State Color", prefs_StateColorGreen);
 						prefs_StateColorRed = EditorGUILayout.ColorField("Exit State Color", prefs_StateColorRed);
+
+						DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
+						ToggleButton(ref prefs_NodeStyleOverride, "Override Default Node Style");
+						prefs_StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", prefs_StateLabelFontSize, 5, 20);
+
+						updateNodeStyle = false;
 						if(EditorGUI.EndChangeCheck())
 						{
-							AnimatorExtensions.UpdateGraphTextures();
+							RATS.UpdateGraphTextures();
+							updateNodeStyle = true;
 						}
-						DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
-						prefs_StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", prefs_StateLabelFontSize, 5, 20);
 
 						using(new GUILayout.HorizontalScope())
 						{
@@ -244,6 +268,10 @@ namespace Razgriz.AnimatorExtensions
 
 						EditorGUILayout.LabelField("Tip: hold Control while dragging for the opposite of this setting", new GUIStyle("miniLabel"));
 					}
+					break;
+
+				case Tabs.AnimEditor:
+
 					break;
 			}
 
@@ -264,7 +292,7 @@ namespace Razgriz.AnimatorExtensions
 
 						bool githubLinkClicked = GUILayout.Button(new GUIContent("  View Repo on Github", githubIcon), new GUIStyle("Button"));
 						EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link); // Lights up button with link cursor
-						if (githubLinkClicked) Application.OpenURL(@"https://github.com/rrazgriz/AnimatorExtensions");
+						if (githubLinkClicked) Application.OpenURL(@"https://github.com/rrazgriz/RATS");
 					}
 					
 					// Version & Name
@@ -295,90 +323,90 @@ namespace Razgriz.AnimatorExtensions
 		{
 			if(!hasInitializedPreferences) // Need to grab from EditorPrefs
 			{
-				prefs_DisableAnimatorGraphFixes = EditorPrefs.GetBool("AnimatorExtensions.prefs_DisableAnimatorGraphFixes", false);
+				prefs_DisableAnimatorGraphFixes = EditorPrefs.GetBool("RATS.prefs_DisableAnimatorGraphFixes", false);
 
-				prefs_StateMotionLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateMotionLabels", true);
-				prefs_StateBlendtreeLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateBlendtreeLabels", true);
-				prefs_StateAnimIsEmptyLabel = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateAnimIsEmptyLabel", true);
-				prefs_StateLoopedLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateLoopedLabels", true);
-				prefs_HideOffLabels = EditorPrefs.GetBool("AnimatorExtensions.prefs_HideOffLabels", false);
-				prefs_ShowWarningsTopLeft = EditorPrefs.GetBool("AnimatorExtensions.prefs_ShowWarningsTopLeft", false);
+				prefs_StateMotionLabels = EditorPrefs.GetBool("RATS.prefs_StateMotionLabels", true);
+				prefs_StateBlendtreeLabels = EditorPrefs.GetBool("RATS.prefs_StateBlendtreeLabels", true);
+				prefs_StateAnimIsEmptyLabel = EditorPrefs.GetBool("RATS.prefs_StateAnimIsEmptyLabel", true);
+				prefs_StateLoopedLabels = EditorPrefs.GetBool("RATS.prefs_StateLoopedLabels", true);
+				prefs_HideOffLabels = EditorPrefs.GetBool("RATS.prefs_HideOffLabels", false);
+				prefs_ShowWarningsTopLeft = EditorPrefs.GetBool("RATS.prefs_ShowWarningsTopLeft", false);
 
-				prefs_StateExtraLabelsWD = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabelsWD", true);
-				prefs_StateExtraLabelsBehavior = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabelsBehavior", true);
-				prefs_StateExtraLabelsMotionTime = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabelsMotionTime", false);
-				prefs_StateExtraLabelsSpeed = EditorPrefs.GetBool("AnimatorExtensions.prefs_StateExtraLabelsSpeed", false);
+				prefs_StateExtraLabelsWD = EditorPrefs.GetBool("RATS.prefs_StateExtraLabelsWD", true);
+				prefs_StateExtraLabelsBehavior = EditorPrefs.GetBool("RATS.prefs_StateExtraLabelsBehavior", true);
+				prefs_StateExtraLabelsMotionTime = EditorPrefs.GetBool("RATS.prefs_StateExtraLabelsMotionTime", false);
+				prefs_StateExtraLabelsSpeed = EditorPrefs.GetBool("RATS.prefs_StateExtraLabelsSpeed", false);
 
-				prefs_GraphGridOverride = EditorPrefs.GetBool("AnimatorExtensions.prefs_GraphGridOverride", false);
-				prefs_GraphGridDivisorMinor = EditorPrefs.GetFloat("AnimatorExtensions.prefs_GraphGridDivisorMinor", 10.0f);
-				prefs_GraphGridScalingMajor = EditorPrefs.GetFloat("AnimatorExtensions.prefs_GraphGridScalingMajor", 1.0f);
+				prefs_GraphGridOverride = EditorPrefs.GetBool("RATS.prefs_GraphGridOverride", false);
+				prefs_GraphGridDivisorMinor = EditorPrefs.GetFloat("RATS.prefs_GraphGridDivisorMinor", 10.0f);
+				prefs_GraphGridScalingMajor = EditorPrefs.GetFloat("RATS.prefs_GraphGridScalingMajor", 1.0f);
 				
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_GraphGridBackgroundColor", ColorUtility.ToHtmlStringRGBA(GUI.backgroundColor)), out prefs_GraphGridBackgroundColor);
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_GraphGridColorMajor", "0000002e"), out prefs_GraphGridColorMajor);
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_GraphGridColorMinor", "00000047"), out prefs_GraphGridColorMinor);
-				prefs_GraphDragNoSnap = EditorPrefs.GetBool("AnimatorExtensions.prefs_GraphDragNoSnap", false);
-				prefs_GraphDragSnapToModifiedGrid = EditorPrefs.GetBool("AnimatorExtensions.prefs_GraphDragSnapToModifiedGrid", false);
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_StateTextColor", "E5E5E5FF"), out prefs_StateTextColor);
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_StateColorGray", "4D4D4DFF"), out prefs_StateColorGray);
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_StateColorOrange", "C66025FF"), out prefs_StateColorOrange);
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_StateColorAqua", "389496FF"), out prefs_StateColorAqua);
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_StateColorGreen", "117733FF"), out prefs_StateColorGreen);
-				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("AnimatorExtensions.prefs_StateColorRed", "AA051EFF"), out prefs_StateColorRed);
-				prefs_StateLabelFontSize = EditorPrefs.GetInt("AnimatorExtensions.prefs_StateLabelFontSize", 12);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_GraphGridBackgroundColor", ColorUtility.ToHtmlStringRGBA(GUI.backgroundColor)), out prefs_GraphGridBackgroundColor);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_GraphGridColorMajor", "0000002e"), out prefs_GraphGridColorMajor);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_GraphGridColorMinor", "00000047"), out prefs_GraphGridColorMinor);
+				prefs_GraphDragNoSnap = EditorPrefs.GetBool("RATS.prefs_GraphDragNoSnap", false);
+				prefs_GraphDragSnapToModifiedGrid = EditorPrefs.GetBool("RATS.prefs_GraphDragSnapToModifiedGrid", false);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateTextColor", "E5E5E5FF"), out prefs_StateTextColor);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorGray", "4D4D4DFF"), out prefs_StateColorGray);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorOrange", "C66025FF"), out prefs_StateColorOrange);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorAqua", "389496FF"), out prefs_StateColorAqua);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorGreen", "117733FF"), out prefs_StateColorGreen);
+				ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorRed", "AA051EFF"), out prefs_StateColorRed);
+				prefs_StateLabelFontSize = EditorPrefs.GetInt("RATS.prefs_StateLabelFontSize", 12);
 
-				prefs_NewStateWriteDefaults = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewStateWriteDefaults", false);
-				prefs_NewLayersWeight1 = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewLayersWeight1", true);
-				prefs_NewTransitionsZeroTime = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewTransitionsZeroTime", true);
-				prefs_NewTransitionsExitTime = EditorPrefs.GetBool("AnimatorExtensions.prefs_NewTransitionsExitTime", false);
+				prefs_NewStateWriteDefaults = EditorPrefs.GetBool("RATS.prefs_NewStateWriteDefaults", false);
+				prefs_NewLayersWeight1 = EditorPrefs.GetBool("RATS.prefs_NewLayersWeight1", true);
+				prefs_NewTransitionsZeroTime = EditorPrefs.GetBool("RATS.prefs_NewTransitionsZeroTime", true);
+				prefs_NewTransitionsExitTime = EditorPrefs.GetBool("RATS.prefs_NewTransitionsExitTime", false);
 
-				prefs_AnimationWindowShowActualPropertyNames = EditorPrefs.GetBool("AnimatorExtensions.prefs_AnimationWindowShowActualPropertyNames", false);
-				prefs_AnimationWindowShowFullPath = EditorPrefs.GetBool("AnimatorExtensions.prefs_AnimationWindowShowFullPath", false);
-				prefs_AnimationWindowTrimActualNames = EditorPrefs.GetBool("AnimatorExtensions.prefs_AnimationWindowTrimActualNames", false);
-				prefs_AnimationWindowIndentScale = EditorPrefs.GetFloat("AnimatorExtensions.prefs_AnimationWindowIndentScale", 1.0f);
+				prefs_AnimationWindowShowActualPropertyNames = EditorPrefs.GetBool("RATS.prefs_AnimationWindowShowActualPropertyNames", false);
+				prefs_AnimationWindowShowFullPath = EditorPrefs.GetBool("RATS.prefs_AnimationWindowShowFullPath", false);
+				prefs_AnimationWindowTrimActualNames = EditorPrefs.GetBool("RATS.prefs_AnimationWindowTrimActualNames", false);
+				prefs_AnimationWindowIndentScale = EditorPrefs.GetFloat("RATS.prefs_AnimationWindowIndentScale", 1.0f);
 
 				hasInitializedPreferences = true;
 			}
 			else // Already grabbed, set them instead
 			{
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_DisableAnimatorGraphFixes", prefs_DisableAnimatorGraphFixes);
+				EditorPrefs.SetBool("RATS.prefs_DisableAnimatorGraphFixes", prefs_DisableAnimatorGraphFixes);
 
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateMotionLabels", prefs_StateMotionLabels);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateBlendtreeLabels", prefs_StateBlendtreeLabels);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateAnimIsEmptyLabel", prefs_StateAnimIsEmptyLabel);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateLoopedLabels", prefs_StateLoopedLabels);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_HideOffLabels", prefs_HideOffLabels);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_ShowWarningsTopLeft", prefs_ShowWarningsTopLeft);
+				EditorPrefs.SetBool("RATS.prefs_StateMotionLabels", prefs_StateMotionLabels);
+				EditorPrefs.SetBool("RATS.prefs_StateBlendtreeLabels", prefs_StateBlendtreeLabels);
+				EditorPrefs.SetBool("RATS.prefs_StateAnimIsEmptyLabel", prefs_StateAnimIsEmptyLabel);
+				EditorPrefs.SetBool("RATS.prefs_StateLoopedLabels", prefs_StateLoopedLabels);
+				EditorPrefs.SetBool("RATS.prefs_HideOffLabels", prefs_HideOffLabels);
+				EditorPrefs.SetBool("RATS.prefs_ShowWarningsTopLeft", prefs_ShowWarningsTopLeft);
 
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabelsWD", prefs_StateExtraLabelsWD);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabelsBehavior", prefs_StateExtraLabelsBehavior);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabelsMotionTime", prefs_StateExtraLabelsMotionTime);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_StateExtraLabelsSpeed", prefs_StateExtraLabelsSpeed);
+				EditorPrefs.SetBool("RATS.prefs_StateExtraLabelsWD", prefs_StateExtraLabelsWD);
+				EditorPrefs.SetBool("RATS.prefs_StateExtraLabelsBehavior", prefs_StateExtraLabelsBehavior);
+				EditorPrefs.SetBool("RATS.prefs_StateExtraLabelsMotionTime", prefs_StateExtraLabelsMotionTime);
+				EditorPrefs.SetBool("RATS.prefs_StateExtraLabelsSpeed", prefs_StateExtraLabelsSpeed);
 
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_GraphGridOverride", prefs_GraphGridOverride);
-				EditorPrefs.SetFloat("AnimatorExtensions.prefs_GraphGridScalingMajor", prefs_GraphGridScalingMajor);
-				EditorPrefs.SetFloat("AnimatorExtensions.prefs_GraphGridDivisorMinor", prefs_GraphGridDivisorMinor);
-				EditorPrefs.SetString("AnimatorExtensions.prefs_GraphGridBackgroundColor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridBackgroundColor));
-				EditorPrefs.SetString("AnimatorExtensions.prefs_GraphGridColorMajor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridColorMajor));
-				EditorPrefs.SetString("AnimatorExtensions.prefs_GraphGridColorMinor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridColorMinor));
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_GraphDragNoSnap", prefs_GraphDragNoSnap);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_GraphDragSnapToModifiedGrid", prefs_GraphDragSnapToModifiedGrid);
-				EditorPrefs.SetString("AnimatorExtensions.prefs_StateTextColor", ColorUtility.ToHtmlStringRGBA(prefs_StateTextColor));
-				EditorPrefs.SetString("AnimatorExtensions.prefs_StateColorGray", ColorUtility.ToHtmlStringRGBA(prefs_StateColorGray));
-				EditorPrefs.SetString("AnimatorExtensions.prefs_StateColorOrange", ColorUtility.ToHtmlStringRGBA(prefs_StateColorOrange));
-				EditorPrefs.SetString("AnimatorExtensions.prefs_StateColorAqua", ColorUtility.ToHtmlStringRGBA(prefs_StateColorAqua));
-				EditorPrefs.SetString("AnimatorExtensions.prefs_StateColorGreen", ColorUtility.ToHtmlStringRGBA(prefs_StateColorGreen));
-				EditorPrefs.SetString("AnimatorExtensions.prefs_StateColorRed", ColorUtility.ToHtmlStringRGBA(prefs_StateColorRed));
-				EditorPrefs.SetInt("AnimatorExtensions.prefs_StateLabelFontSize", prefs_StateLabelFontSize);
+				EditorPrefs.SetBool("RATS.prefs_GraphGridOverride", prefs_GraphGridOverride);
+				EditorPrefs.SetFloat("RATS.prefs_GraphGridScalingMajor", prefs_GraphGridScalingMajor);
+				EditorPrefs.SetFloat("RATS.prefs_GraphGridDivisorMinor", prefs_GraphGridDivisorMinor);
+				EditorPrefs.SetString("RATS.prefs_GraphGridBackgroundColor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridBackgroundColor));
+				EditorPrefs.SetString("RATS.prefs_GraphGridColorMajor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridColorMajor));
+				EditorPrefs.SetString("RATS.prefs_GraphGridColorMinor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridColorMinor));
+				EditorPrefs.SetBool("RATS.prefs_GraphDragNoSnap", prefs_GraphDragNoSnap);
+				EditorPrefs.SetBool("RATS.prefs_GraphDragSnapToModifiedGrid", prefs_GraphDragSnapToModifiedGrid);
+				EditorPrefs.SetString("RATS.prefs_StateTextColor", ColorUtility.ToHtmlStringRGBA(prefs_StateTextColor));
+				EditorPrefs.SetString("RATS.prefs_StateColorGray", ColorUtility.ToHtmlStringRGBA(prefs_StateColorGray));
+				EditorPrefs.SetString("RATS.prefs_StateColorOrange", ColorUtility.ToHtmlStringRGBA(prefs_StateColorOrange));
+				EditorPrefs.SetString("RATS.prefs_StateColorAqua", ColorUtility.ToHtmlStringRGBA(prefs_StateColorAqua));
+				EditorPrefs.SetString("RATS.prefs_StateColorGreen", ColorUtility.ToHtmlStringRGBA(prefs_StateColorGreen));
+				EditorPrefs.SetString("RATS.prefs_StateColorRed", ColorUtility.ToHtmlStringRGBA(prefs_StateColorRed));
+				EditorPrefs.SetInt("RATS.prefs_StateLabelFontSize", prefs_StateLabelFontSize);
 
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewStateWriteDefaults", prefs_NewStateWriteDefaults);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewLayersWeight1", prefs_NewLayersWeight1);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewTransitionsZeroTime", prefs_NewTransitionsZeroTime);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_NewTransitionsExitTime", prefs_NewTransitionsExitTime);
+				EditorPrefs.SetBool("RATS.prefs_NewStateWriteDefaults", prefs_NewStateWriteDefaults);
+				EditorPrefs.SetBool("RATS.prefs_NewLayersWeight1", prefs_NewLayersWeight1);
+				EditorPrefs.SetBool("RATS.prefs_NewTransitionsZeroTime", prefs_NewTransitionsZeroTime);
+				EditorPrefs.SetBool("RATS.prefs_NewTransitionsExitTime", prefs_NewTransitionsExitTime);
 
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_AnimationWindowShowActualPropertyNames", prefs_AnimationWindowShowActualPropertyNames);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_AnimationWindowShowFullPath", prefs_AnimationWindowShowFullPath);
-				EditorPrefs.SetBool("AnimatorExtensions.prefs_AnimationWindowTrimActualNames", prefs_AnimationWindowTrimActualNames);
-				EditorPrefs.SetFloat("AnimatorExtensions.prefs_AnimationWindowIndentScale", prefs_AnimationWindowIndentScale);
+				EditorPrefs.SetBool("RATS.prefs_AnimationWindowShowActualPropertyNames", prefs_AnimationWindowShowActualPropertyNames);
+				EditorPrefs.SetBool("RATS.prefs_AnimationWindowShowFullPath", prefs_AnimationWindowShowFullPath);
+				EditorPrefs.SetBool("RATS.prefs_AnimationWindowTrimActualNames", prefs_AnimationWindowTrimActualNames);
+				EditorPrefs.SetFloat("RATS.prefs_AnimationWindowIndentScale", prefs_AnimationWindowIndentScale);
 			}
 		}
 
