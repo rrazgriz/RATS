@@ -17,7 +17,7 @@ namespace Razgriz.RATS
 {
 	public class RATSGUI : EditorWindow
 	{
-		public const string version = "2022.09.09";
+		public const string version = "2022.09.13";
 
 		public static bool prefs_DisableAnimatorGraphFixes;
 
