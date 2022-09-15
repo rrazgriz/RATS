@@ -34,7 +34,8 @@ namespace Razgriz.RATS
 			Prefs.Add(testInt1);
 			Prefs.Add(testFloat2);
 			Prefs.Add(testInt2);
-
+			
+			Prefs.Create("aTestBool", true);
 			Prefs.Create("aTestColor", Color.green);
 
 			Prefs.InitializeAll();
@@ -50,96 +51,97 @@ namespace Razgriz.RATS
 	public class EditorPreferenceGroup
 	{
 		private string _prefix = MethodBase.GetCurrentMethod().DeclaringType.Namespace;
+		private string _id = "";
+		readonly Dictionary<string, IEditorPreference> _preferences = new Dictionary<string, IEditorPreference>();
 
-		public EditorPreferenceGroup() { }
-		public EditorPreferenceGroup(string prefix) { _prefix = prefix; }
+		public EditorPreferenceGroup(string id = "") 
+		{
+			_id = id;
+		}
 
-		readonly Dictionary<string, Type> prefsNameList = new Dictionary<string, Type>();
-		readonly Dictionary<string, IEditorPreference> preferences = new Dictionary<string, IEditorPreference>();
-		
-		readonly Dictionary<string, EditorPreference<bool>> boolPrefs;
-		readonly Dictionary<string, EditorPreference<float>> floatPrefs;
-		readonly Dictionary<string, EditorPreference<int>> intPrefs;
-		readonly Dictionary<string, EditorPreference<string>> stringPrefs;
-		readonly Dictionary<string, EditorPreference<Color>> colorPrefs;
+		public EditorPreferenceGroup(string prefix, string id = "") 
+		{
+			_id = id;
+			_prefix = prefix;
+		}
 
-		public T GetValue<T>(string name) { return GetPref<T>(name).Value; }
-		public T GetDefaultValue<T>(string name) { return GetPref<T>(name).DefaultValue; }
+		public T GetValue<T>(string name) 
+		{
+			return GetPref<T>(name).Value;
+		}
+
+		public T GetDefaultValue<T>(string name) 
+		{ 
+			return GetPref<T>(name).DefaultValue;
+		}
+
+		bool ValidatePreferenceAccess<T>(string name)
+		{
+			if (!_preferences.Keys.Contains(name))
+			{
+				Debug.LogError($"[RATS] Preferences Manager: Preference {name} doesn't exist in preference group {_id}");
+				return false;
+			}
+			else if (_preferences[name].Type() != typeof(T))
+			{
+				Debug.LogError($"[RATS] Preferences Manager: Tried to access preference {name} of type {_preferences[name].Type().ToString()} with {typeof(T).ToString()}");
+				return false;
+			}
+			else
+			{
+				return true;
+			}
+		}
+
 		public EditorPreference<T> GetPref<T>(string name)
 		{
-			return preferences[name] as EditorPreference<T>;
-
-			// if(typeof(T) == typeof(bool)) return boolPrefs[name] as EditorPreference<T>;
-			// else if(typeof(T) == typeof(float)) return floatPrefs[name] as EditorPreference<T>;
-			// else if(typeof(T) == typeof(int)) return intPrefs[name] as EditorPreference<T>;
-			// else if(typeof(T) == typeof(string)) return stringPrefs[name] as EditorPreference<T>;
-			// else if(typeof(T) == typeof(Color)) return colorPrefs[name] as EditorPreference<T>;
-			// else throw new ArgumentException("[RATS] Prefs manager: Tried to get pref of invalid type: " + typeof(T).ToString(), nameof(T));
+			if (!ValidatePreferenceAccess<T>(name))
+				return default(EditorPreference<T>);
+			else
+				return _preferences[name] as EditorPreference<T>;
 		}
 
-		public List<string> PrefsList() { return preferences.Keys.ToList<string>(); }
-		// public List<string> PrefsList<T>() { return PrefsList(typeof(T)); }
+		public bool Contains(string name)
+		{
+			return _preferences.ContainsKey(name);
+		}
+
+		public List<string> PrefsList() 
+		{
+			return _preferences.Keys.ToList<string>();
+		}
+
 		public List<string> PrefsList(Type type)
 		{
-			var list = new List<string>();
-			foreach(var item in preferences)
-			{
-				if(item.Value.Type() == type) list.Add(item.Key);
-			}
-
-			return list;
+			return _preferences.Where(pref => pref.Value.Type() == type).Select(p => p.Key).ToList();
 		}
 
-        // public List<IEditorPreference> GetAllPrefs()
-        // {
-		// 	return boolPrefs.Values.ToList().Cast<IEditorPreference>()
-		// 	.Concat(floatPrefs.Values.ToList().Cast<IEditorPreference>())
-		// 	.Concat(intPrefs.Values.ToList().Cast<IEditorPreference>())
-		// 	.Concat(stringPrefs.Values.ToList().Cast<IEditorPreference>())
-		// 	.Concat(colorPrefs.Values.ToList().Cast<IEditorPreference>())
-		// 	.ToList();
-        // }
+		public void InitializeAll() 
+		{
+			_preferences.Values.ToList().ForEach(pref => pref.Initialize());
+		}
 
-		public void InitializeAll() { preferences.Values.ToList().ForEach(pref => pref.Initialize()); }
+		public void SaveAll()
+		{
+			_preferences.Values.ToList().ForEach(pref => pref.Save());
+		}
 
-		public void SaveAll() { preferences.Values.ToList().ForEach(pref => pref.Save()); }
+        public void ResetAll()
+		{
+			_preferences.Values.ToList().ForEach(pref => pref.ResetToDefault());
+		}
 
-        public void ResetToDefault() { preferences.Values.ToList().ForEach(pref => pref.ResetToDefault());}
+		public void Create(string name, bool 	defaultValue) { this.Add(new EditorPreference<bool>		(name, defaultValue, _prefix)); }
+		public void Create(string name, float 	defaultValue) { this.Add(new EditorPreference<float>	(name, defaultValue, _prefix)); }
+		public void Create(string name, int  	defaultValue) { this.Add(new EditorPreference<int>		(name, defaultValue, _prefix)); }
+		public void Create(string name, string 	defaultValue) { this.Add(new EditorPreference<string>	(name, defaultValue, _prefix)); }
+		public void Create(string name, Color 	defaultValue) { this.Add(new EditorPreference<Color>	(name, defaultValue, _prefix)); }
 
-
-		// public void InitializeAll() { GetAllPrefs().ForEach(pref => pref.Initialize()); }
-
-		// public void SaveAll() { GetAllPrefs().ForEach(pref => pref.Save()); }
-
-        // public void ResetToDefault() { GetAllPrefs().ForEach(pref => pref.ResetToDefault());}
-
-		// public void Create<T>(string name, T defaultValue)
-		// {
-		// 	if(typeof(T) == typeof(bool)) 			this.Add(new EditorPreference<bool>(name, (bool)(object)defaultValue, _prefix));
-		// 	else if(typeof(T) == typeof(float)) 	this.Add(new EditorPreference<float>(name, (float)(object)defaultValue, _prefix));
-		// 	else if(typeof(T) == typeof(int)) 		this.Add(new EditorPreference<int>(name, (int)(object)defaultValue, _prefix));
-		// 	else if(typeof(T) == typeof(string)) 	this.Add(new EditorPreference<string>(name, (string)(object)defaultValue, _prefix));
-		// 	else if(typeof(T) == typeof(Color)) 	this.Add(new EditorPreference<Color>(name, (Color)(object)defaultValue, _prefix));
-		// 	else throw new ArgumentException("[RATS] Prefs manager: Tried to get prefs list of invalid type: " + typeof(T).ToString(), nameof(defaultValue));
-		// }
-
-		public void Create(string name, bool 	defaultValue) { preferences.Add(name, new EditorPreference<bool>(name, (bool)(object)defaultValue, _prefix)); }
-		public void Create(string name, float 	defaultValue) { preferences.Add(name, new EditorPreference<float>(name, (float)(object)defaultValue, _prefix)); }
-		public void Create(string name, int  	defaultValue) { preferences.Add(name, new EditorPreference<int>(name, (int)(object)defaultValue, _prefix)); }
-		public void Create(string name, string 	defaultValue) { preferences.Add(name, new EditorPreference<string>(name, (string)(object)defaultValue, _prefix)); }
-		public void Create(string name, Color 	defaultValue) { preferences.Add(name, new EditorPreference<Color>(name, (Color)(object)defaultValue, _prefix)); }
-
-        public void Add(EditorPreference<bool> 		pref) { preferences.Add(pref.Name, pref); }
-		public void Add(EditorPreference<int> 		pref) { preferences.Add(pref.Name, pref); }
-		public void Add(EditorPreference<float> 	pref) { preferences.Add(pref.Name, pref); }
-		public void Add(EditorPreference<string> 	pref) { preferences.Add(pref.Name, pref); }
-		public void Add(EditorPreference<Color> 	pref) { preferences.Add(pref.Name, pref); }
-
-        // public void Add(EditorPreference<bool> 		pref) { boolPrefs.Add(pref.Name, pref); prefsNameList.Add(pref.Name, typeof(bool)); 	preferences.Add(pref.Name, pref as IEditorPreference); }
-		// public void Add(EditorPreference<int> 		pref) { intPrefs.Add(pref.Name, pref); prefsNameList.Add(pref.Name, typeof(int)); 		preferences.Add(pref.Name, pref as IEditorPreference); }
-		// public void Add(EditorPreference<float> 	pref) { floatPrefs.Add(pref.Name, pref); prefsNameList.Add(pref.Name, typeof(float)); 	preferences.Add(pref.Name, pref as IEditorPreference); }
-		// public void Add(EditorPreference<string> 	pref) { stringPrefs.Add(pref.Name, pref); prefsNameList.Add(pref.Name, typeof(string)); preferences.Add(pref.Name, pref as IEditorPreference); }
-		// public void Add(EditorPreference<Color> 	pref) { colorPrefs.Add(pref.Name, pref); prefsNameList.Add(pref.Name, typeof(Color)); 	preferences.Add(pref.Name, pref as IEditorPreference); }
+        public void Add(EditorPreference<bool> 		pref) { _preferences.Add(pref.Name, pref); }
+		public void Add(EditorPreference<int> 		pref) { _preferences.Add(pref.Name, pref); }
+		public void Add(EditorPreference<float> 	pref) { _preferences.Add(pref.Name, pref); }
+		public void Add(EditorPreference<string> 	pref) { _preferences.Add(pref.Name, pref); }
+		public void Add(EditorPreference<Color> 	pref) { _preferences.Add(pref.Name, pref); }
 	}
 
 	public interface IEditorPreference
@@ -175,15 +177,15 @@ namespace Razgriz.RATS
 			get { return _editorPrefsID; }
 		}
 
-		public string Prefix
-		{
-			get { return _prefix; }
-			set
-			{
-				_prefix = value;
-				_editorPrefsID = CreateEditorPrefsID(value, _name);
-			}
-		}
+		// public string Prefix
+		// {
+		// 	get { return _prefix; }
+		// 	set
+		// 	{
+		// 		_prefix = value;
+		// 		_editorPrefsID = CreateEditorPrefsID(value, _name);
+		// 	}
+		// }
 
 		public string Name
 		{
