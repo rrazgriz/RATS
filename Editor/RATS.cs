@@ -24,6 +24,7 @@ namespace Razgriz.RATS
     {
         public static Harmony harmonyInstance = new Harmony("Razgriz.RATS");
         private static int wait = 0;
+        public static RATSPreferences Prefs = new RATSPreferences();
 
         static RATS()
         {

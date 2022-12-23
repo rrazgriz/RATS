@@ -15,9 +15,71 @@ using UnityEngine;
 
 namespace Razgriz.RATS
 {
+    [Serializable]
+    public class RATSPreferences
+    {
+        const string RATS_EDITORPREFS_KEY = "RATS.PreferencesSerialized";
+
+        public bool DisableAnimatorGraphFixes = false;
+        public bool StateMotionLabels = true;
+        public bool StateBlendtreeLabels = true;
+        public bool StateAnimIsEmptyLabel = true;
+        public bool StateLoopedLabels = true;
+        public bool HideOffLabels = false;
+        public bool ShowWarningsTopLeft = false;
+        public bool StateExtraLabelsWD = true;
+        public bool StateExtraLabelsBehavior = true;
+        public bool StateExtraLabelsMotionTime = false;
+        public bool StateExtraLabelsSpeed = false;
+        public bool GraphGridOverride = false;
+        public float GraphGridDivisorMinor = 10.0f;
+        public float GraphGridScalingMajor = 1.0f;
+        public bool GraphDragNoSnap = false;
+        public bool GraphDragSnapToModifiedGrid = false;
+        public Color GraphGridBackgroundColor = GUI.backgroundColor;
+        public Color GraphGridColorMajor = new Color(0f, 0f, 0f, 0.18f);
+        public Color GraphGridColorMinor = new Color(0f, 0f, 0f, 0.28f);
+        public Color StateTextColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        public Color StateColorGray = new Color(0.3f, 0.3f, 0.3f, 1f);
+        public Color StateColorOrange = new Color(0.78f, 0.38f, 0.15f, 1f);
+        public Color StateColorAqua = new Color(0.22f, 0.58f, 0.59f, 1f);
+        public Color StateColorGreen = new Color(0.07f, 0.47f, 0.20f, 1f);
+        public Color StateColorRed = new Color(0.67f, 0.02f, 0.12f, 1f);
+        public int StateLabelFontSize = 12;
+        public bool NewStateWriteDefaults = false;
+        public bool NewLayersWeight1 = true;
+        public bool NewTransitionsZeroTime = true;
+        public bool NewTransitionsExitTime = false;
+        public bool AnimationWindowShowActualPropertyNames = false;
+        public bool AnimationWindowShowFullPath = false;
+        public bool AnimationWindowTrimActualNames = false;
+        public float AnimationWindowIndentScale = 1.0f;
+    }
+
+    public static class RATSPreferenceHandler
+    {
+        const string RATS_EDITORPREFSKEY = "RATS.PreferencesSerialized";
+
+        public static void Save(RATSPreferences prefs, string key = RATS_EDITORPREFSKEY)
+        {
+            string prefsJson = JsonUtility.ToJson(prefs);
+            EditorPrefs.SetString(RATS_EDITORPREFSKEY, prefsJson);
+            Debug.Log("Saved RATS prefs: " + prefsJson);
+        }
+
+        public static void Load(ref RATSPreferences prefs, string key = RATS_EDITORPREFSKEY)
+        {
+            string prefsJson = EditorPrefs.GetString(key, "{}");
+            JsonUtility.FromJsonOverwrite(prefsJson, prefs);
+            Debug.Log("Loaded RATS prefs: " + prefsJson);
+            // Update our prefs in case the user has upgraded or something
+            Save(prefs, key);
+        }
+    }
+
     public class RATSGUI : EditorWindow
     {
-        public const string version = "2022.09.14";
+        public const string version = "2022.12.23";
 
         public static bool prefs_DisableAnimatorGraphFixes;
 
@@ -323,6 +385,8 @@ namespace Razgriz.RATS
         {
             if(!hasInitializedPreferences) // Need to grab from EditorPrefs
             {
+                RATSPreferenceHandler.Load(ref RATS.Prefs);
+
                 prefs_DisableAnimatorGraphFixes = EditorPrefs.GetBool("RATS.prefs_DisableAnimatorGraphFixes", false);
 
                 prefs_StateMotionLabels = EditorPrefs.GetBool("RATS.prefs_StateMotionLabels", true);
@@ -407,6 +471,8 @@ namespace Razgriz.RATS
                 EditorPrefs.SetBool("RATS.prefs_AnimationWindowShowFullPath", prefs_AnimationWindowShowFullPath);
                 EditorPrefs.SetBool("RATS.prefs_AnimationWindowTrimActualNames", prefs_AnimationWindowTrimActualNames);
                 EditorPrefs.SetFloat("RATS.prefs_AnimationWindowIndentScale", prefs_AnimationWindowIndentScale);
+
+                RATSPreferenceHandler.Save(RATS.Prefs);
             }
         }
 
