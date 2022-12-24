@@ -62,7 +62,7 @@ namespace Razgriz.RATS
         public static void Save(RATSPreferences prefs, string key = RATS_EDITORPREFSKEY)
         {
             string prefsJson = JsonUtility.ToJson(prefs);
-            EditorPrefs.SetString(RATS_EDITORPREFSKEY, prefsJson);
+            EditorPrefs.SetString(key, prefsJson);
             Debug.Log("Saved RATS prefs: " + prefsJson);
         }
 
@@ -93,10 +93,12 @@ namespace Razgriz.RATS
         string[] toolbarStrings = {"Tweaks", "Theming", "AnimEditor"};
 
         static Tabs tab = Tabs.Tweaks;
+        static Tabs lastTab = Tabs.Tweaks;
 
         private static Texture2D githubIcon;
         private static Texture2D editorWindowIcon;
         static GUIStyle ToggleButtonStyle;
+        static Vector2 scrollPosition = Vector2.zero;
 
         [MenuItem("Tools/RATS/Options")]
         public static void ShowWindow()
@@ -146,40 +148,49 @@ namespace Razgriz.RATS
             if (!hasInitializedPreferences) HandlePreferences();
 
             tab = (Tabs)GUILayout.Toolbar((int)tab, toolbarStrings);
+            if(lastTab != tab)
+            {
+                scrollPosition = Vector2.zero;
+            }
+            lastTab = tab;
 
             switch (tab)
             {
                 case Tabs.Tweaks:
                     SectionLabel(new GUIContent("  General Tweaks", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
-                    DrawGraphStateDefaultsOptions();
-                    DrawGraphLabelsOptions();
-                    DrawAnimationWindowOptions();
-                    DrawCompatibilityOptions();
+                    // scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+                    using (EditorGUILayout.ScrollViewScope scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
+                    {
+                        DrawGraphStateDefaultsOptions();
+                        DrawGraphLabelsOptions();
+                        DrawAnimationWindowOptions();
+                        DrawCompatibilityOptions();
+                        scrollPosition = scrollView.scrollPosition;
+                    }
+                    DrawRATSOptionsFooter();
                     break;
 
-
                 case Tabs.Theming:
-                    // Graph Styling
-                    using (new GUILayout.VerticalScope())
+                    SectionLabel(new GUIContent("  Animator Graph Styling", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
+                    using (EditorGUILayout.ScrollViewScope scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
                     {
-                        SectionLabel(new GUIContent("  Animator Graph Styling", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
                         DrawGridStyleOptions();
-                        DrawNodeStyleOptions();
                         DrawNodeSnappingOptions();
+                        DrawNodeStyleOptions();
+                        DrawRATSOptionsFooter();
+                        scrollPosition = scrollView.scrollPosition;
                     }
                     break;
 
                 case Tabs.AnimEditor:
-
+                    DrawRATSOptionsFooter();
                     break;
-            }
-
-            // Footer
-            DrawGUIFooter();
+            }            
 
             if (GUI.changed) HandlePreferences();
         }
 
+        // UI Sections
         private static void DrawGraphStateDefaultsOptions()
         {
             // Graph/State Defaults
@@ -235,7 +246,11 @@ namespace Razgriz.RATS
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.StateMotionLabels, "<b>Tt</b>    Motion Names", "Show the name of the state's clip/blendtree");
-                    ToggleButton(ref RATS.Prefs.HideOffLabels, "Hide Labels Completely", "Hide Labels when condition is false, instead of dimming");
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField("Off Style", new GUILayoutOption[] {GUILayout.MinWidth(20f)});
+                        RATS.Prefs.HideOffLabels = EditorGUILayout.Popup(RATS.Prefs.HideOffLabels ? 1 : 0, new string[] {"Fade", "Hide"}, new GUILayoutOption[] {GUILayout.MinWidth(100f)}) == 1;
+                    }
                 }
 
                 using (new GUILayout.HorizontalScope())
@@ -282,7 +297,7 @@ namespace Razgriz.RATS
                 ToggleButton(ref RATS.Prefs.DisableAnimatorGraphFixes, "Disable Graph Window Patches (takes a few seconds)", "Allows other utilities to patch Controller editor window");
                 if (EditorGUI.EndChangeCheck())
                 {
-                    SetDefineSymbol("RAZGRIZ_AEXTENSIONS_NOANIMATOR", RATS.Prefs.DisableAnimatorGraphFixes);
+                    SetDefineSymbol("RATS_NO_ANIMATOR", RATS.Prefs.DisableAnimatorGraphFixes);
 
                     // Disable Options that conflict with CEditor
                     if (RATS.Prefs.DisableAnimatorGraphFixes)
@@ -352,16 +367,19 @@ namespace Razgriz.RATS
 
         private static void DrawNodeSnappingOptions()
         {
-            using (new GUILayout.HorizontalScope())
+            using (new EditorGUILayout.VerticalScope())
             {
                 DrawUILine(lightUILineColor);
-                ToggleButton(ref RATS.Prefs.GraphDragNoSnap, "Disable Snapping by Default", "Disable grid snapping (hold Control while dragging for alternate mode)");
-                ToggleButton(ref RATS.Prefs.GraphDragSnapToModifiedGrid, "Snap to custom grid", "Snaps to user-specified grid");
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.GraphDragNoSnap, "Disable Snapping by Default", "Disable grid snapping (hold Control while dragging for alternate mode)");
+                    ToggleButton(ref RATS.Prefs.GraphDragSnapToModifiedGrid, "Snap to custom grid", "Snaps to user-specified grid");
+                }
                 EditorGUILayout.LabelField("Tip: hold Control while dragging for the opposite of this setting", new GUIStyle("miniLabel"));
             }
         }
 
-        private static void DrawGUIFooter()
+        private static void DrawRATSOptionsFooter()
         {
             using (new GUILayout.VerticalScope())
             {
@@ -392,14 +410,14 @@ namespace Razgriz.RATS
         }
 
         // Helper Functions
-        public static void SectionLabel(string label) { SectionLabel(new GUIContent(label)); }
+        public static void SectionLabel(string label) => SectionLabel(new GUIContent(label));
         public static void SectionLabel(GUIContent label)
         {
             EditorGUILayout.LabelField(label, new GUIStyle("BoldLabel"));
         }
 
 
-        public static void ToggleButton(ref bool param, string label, string tooltip="") { ToggleButton(ref param, new GUIContent(label, tooltip)); }
+        public static void ToggleButton(ref bool param, string label, string tooltip="") => ToggleButton(ref param, new GUIContent(label, tooltip));
         public static void ToggleButton(ref bool param, GUIContent label)
         {
             if(ToggleButtonStyle == null)
@@ -413,7 +431,7 @@ namespace Razgriz.RATS
 
         public static readonly Color lightUILineColor = new Color(0.5f, 0.5f, 0.5f, 0.2f);
         public static readonly Color heavyUILineColor = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-        public static void DrawUILine() { DrawUILine(heavyUILineColor); }
+        public static void DrawUILine() => DrawUILine(heavyUILineColor);
         public static void DrawUILine(Color color, int thickness = 1, int padding = 10)
         {
             Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(padding+thickness));
@@ -431,7 +449,7 @@ namespace Razgriz.RATS
         // Add/Remove scripting define symbols
         // Copyright Thryrallo, from ThryEditor
         // SPDX-License-Identifier: MIT
-        public static void SetDefineSymbol(string symbol, bool active) { SetDefineSymbol(symbol, active, true); }
+        public static void SetDefineSymbol(string symbol, bool active) => SetDefineSymbol(symbol, active, true);
         public static void SetDefineSymbol(string symbol, bool active, bool refresh_if_changed)
         {
             try

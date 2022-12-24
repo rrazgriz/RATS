@@ -52,7 +52,7 @@ namespace Razgriz.RATS
         #region AnimatorWindowPatches
 
         // CEditor Compatibility
-        #if !RAZGRIZ_AEXTENSIONS_NOANIMATOR
+        #if !RATS_NO_ANIMATOR
             #region BugFixes
                 // Prevent scroll position reset when rearranging or editing layers
                 private static Vector2 _layerScrollCache;
@@ -381,7 +381,7 @@ namespace Razgriz.RATS
 
             #endregion GraphFeatures
 
-        #endif //RAZGRIZ_AEXTENSIONS_NOANIMATOR
+        #endif //RATS_NO_ANIMATOR
 
             #region GraphVisuals
 
@@ -703,7 +703,7 @@ namespace Razgriz.RATS
                                 }
                             }
 
-                            #if !RAZGRIZ_AEXTENSIONS_CECOMPAT
+                            #if !RATS_NO_ANIMATOR
                                 if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
                                 if(				(debugShowLabels || RATS.Prefs.StateExtraLabelsBehavior)) EditorGUI.LabelField(behaviorLabelRect, "B", (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive));
                                 if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsMotionTime)) EditorGUI.LabelField(motionTimeLabelRect, "M", (hasMotionTime ? StateExtrasStyleActive : StateExtrasStyleInactive));
@@ -751,7 +751,7 @@ namespace Razgriz.RATS
                                     EditorGUI.LabelField(motionLabelRect, motionLabel, StateMotionStyle);
                                     EditorGUI.LabelField(motionIconRect, new GUIContent(labelIcon, labelTooltip));
                                 }
-                            #endif
+                            #endif //!RATS_NO_ANIMATOR
                         }
                     }
                 }
