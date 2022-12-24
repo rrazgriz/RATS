@@ -206,7 +206,7 @@ namespace Razgriz.RATS
                     [HarmonyPrefix]
                     static void Prefix(ref AnimatorControllerLayer layer)
                     {
-                        layer.defaultWeight = RATSGUI.prefs_NewLayersWeight1 ? 1.0f : 0.0f;
+                        layer.defaultWeight = RATS.Prefs.NewLayersWeight1 ? 1.0f : 0.0f;
                     }
                 }
 
@@ -328,13 +328,13 @@ namespace Razgriz.RATS
                     [HarmonyPostfix]
                     static void Postfix(ref AnimatorStateTransition __result)
                     {
-                        if(RATSGUI.prefs_NewTransitionsZeroTime)
+                        if(RATS.Prefs.NewTransitionsZeroTime)
                         {
                             __result.duration = 0.0f;
                             __result.exitTime = 0.0f;
                         }
             
-                        __result.hasExitTime = RATSGUI.prefs_NewTransitionsExitTime;
+                        __result.hasExitTime = RATS.Prefs.NewTransitionsExitTime;
                     }
                 }
 
@@ -348,7 +348,7 @@ namespace Razgriz.RATS
                     [HarmonyPrefix]
                     static void Prefix(ref AnimatorState state, Vector3 position)
                     {
-                        if(!RATSGUI.prefs_NewStateWriteDefaults) state.writeDefaultValues = false;
+                        if(!RATS.Prefs.NewStateWriteDefaults) state.writeDefaultValues = false;
                     }
                 }
 
@@ -397,13 +397,13 @@ namespace Razgriz.RATS
                     static void Postfix(object __instance, Rect gridRect, float zoomLevel)
                     {
                         // Overwrite the whole grid drawing lol
-                        if(RATSGUI.prefs_GraphGridOverride)
+                        if(RATS.Prefs.GraphGridOverride)
                         {
                             GL.PushMatrix();
 
                             // Draw Background
                             GL.Begin(GL.QUADS);
-                            Color backgroundColor = RATSGUI.prefs_GraphGridBackgroundColor;
+                            Color backgroundColor = RATS.Prefs.GraphGridBackgroundColor;
                             backgroundColor.a = 1;
                             GL.Color(backgroundColor);
                             GL.Vertex(new Vector3(gridRect.xMin, gridRect.yMin, 0f));
@@ -419,8 +419,8 @@ namespace Razgriz.RATS
                             
                             float gridSize;
                             // Major
-                            GL.Color(Color.Lerp(Color.clear, RATSGUI.prefs_GraphGridColorMajor, tMajor));
-                            gridSize = RATSGUI.prefs_GraphGridScalingMajor * 100f;
+                            GL.Color(Color.Lerp(Color.clear, RATS.Prefs.GraphGridColorMajor, tMajor));
+                            gridSize = RATS.Prefs.GraphGridScalingMajor * 100f;
                             for (float x = gridRect.xMin - gridRect.xMin % gridSize; x < gridRect.xMax; x += gridSize)
                             {
                                 GL.Vertex(new Vector3(x, gridRect.yMin)); GL.Vertex(new Vector3(x, gridRect.yMax));
@@ -431,8 +431,8 @@ namespace Razgriz.RATS
                             }
 
                             // Minor
-                            GL.Color(Color.Lerp(Color.clear, RATSGUI.prefs_GraphGridColorMinor, tMinor));
-                            gridSize = RATSGUI.prefs_GraphGridScalingMajor * (100f / RATSGUI.prefs_GraphGridDivisorMinor);
+                            GL.Color(Color.Lerp(Color.clear, RATS.Prefs.GraphGridColorMinor, tMinor));
+                            gridSize = RATS.Prefs.GraphGridScalingMajor * (100f / RATS.Prefs.GraphGridDivisorMinor);
                             for (float x = gridRect.xMin - gridRect.xMin % gridSize; x < gridRect.xMax; x += gridSize)
                             {
                                 GL.Vertex(new Vector3(x, gridRect.yMin)); GL.Vertex(new Vector3(x, gridRect.yMax));
@@ -460,15 +460,15 @@ namespace Razgriz.RATS
                     static bool Prefix(ref Rect __result, Rect position)
                     {
                         // Logical XOR
-                        bool doDesnap = Event.current.control ^ RATSGUI.prefs_GraphDragNoSnap;
+                        bool doDesnap = Event.current.control ^ RATS.Prefs.GraphDragNoSnap;
                         if(doDesnap)
                         {
                             __result = position;
                             return false;
                         }
-                        else if(RATSGUI.prefs_GraphDragSnapToModifiedGrid && RATSGUI.prefs_GraphGridOverride) // Enforce Minor Grid Spacing Snapping
+                        else if(RATS.Prefs.GraphDragSnapToModifiedGrid && RATS.Prefs.GraphGridOverride) // Enforce Minor Grid Spacing Snapping
                         {
-                            float minorGridSpacing = RATSGUI.prefs_GraphGridScalingMajor * (100f / RATSGUI.prefs_GraphGridDivisorMinor);
+                            float minorGridSpacing = RATS.Prefs.GraphGridScalingMajor * (100f / RATS.Prefs.GraphGridDivisorMinor);
                             __result = new Rect(Mathf.Round(position.x / minorGridSpacing) * minorGridSpacing, Mathf.Round(position.y / minorGridSpacing) * minorGridSpacing, position.width, position.height);
                             return false;
                         }
@@ -502,7 +502,7 @@ namespace Razgriz.RATS
                         // 	defaultNodeBackgroundCache[styleHash] = new InternalTextureInfo(__result.normal.background, false);
                         // }
 
-                        if(RATSGUI.prefs_NodeStyleOverride)
+                        if(RATS.Prefs.NodeStyleOverride)
                         {
                             bool isPatched = false;
                             bool wasPatchedAtSomePoint = nodeBackgroundPatched.TryGetValue(styleHash, out isPatched);
@@ -529,8 +529,8 @@ namespace Razgriz.RATS
                                     __result.normal.background = on ? stateMachineBackgroundImageActive : stateMachineBackgroundImage;
                                 }
 
-                                __result.normal.textColor = RATSGUI.prefs_StateTextColor;
-                                __result.fontSize = RATSGUI.prefs_StateLabelFontSize;
+                                __result.normal.textColor = RATS.Prefs.StateTextColor;
+                                __result.fontSize = RATS.Prefs.StateLabelFontSize;
                             }
                         }
                         else
@@ -569,7 +569,7 @@ namespace Razgriz.RATS
 
                 // Show motion name and extra details on state graph nodes
                 static bool prefs_DimOffLabels_last = false;
-                static Color lastTextColor = RATSGUI.prefs_StateTextColor;
+                static Color lastTextColor = RATS.Prefs.StateTextColor;
                 [HarmonyPatch]
                 [HarmonyPriority(Priority.Low)]
                 class PatchAnimatorLabels
@@ -591,35 +591,35 @@ namespace Razgriz.RATS
                         bool hasStateMachine = aStateMachine != null;
 
                         // Lazy-init styles because built-in ones not available during static init
-                        if (StateMotionStyle == null || (prefs_DimOffLabels_last != RATSGUI.prefs_HideOffLabels) || lastTextColor != RATSGUI.prefs_StateTextColor)
+                        if (StateMotionStyle == null || (prefs_DimOffLabels_last != RATS.Prefs.HideOffLabels) || lastTextColor != RATS.Prefs.StateTextColor)
                         {
                             StateExtrasStyle = new GUIStyle(EditorStyles.label);
                             StateExtrasStyle.alignment = TextAnchor.UpperRight;
                             StateExtrasStyle.fontStyle = FontStyle.Bold;
-                            StateExtrasStyle.normal.textColor = RATSGUI.prefs_StateTextColor;
+                            StateExtrasStyle.normal.textColor = RATS.Prefs.StateTextColor;
 
                             StateExtrasStyleActive = new GUIStyle(EditorStyles.label);
                             StateExtrasStyleActive.alignment = TextAnchor.UpperRight;
                             StateExtrasStyleActive.fontStyle = FontStyle.Bold;
-                            StateExtrasStyleActive.normal.textColor = RATSGUI.prefs_StateTextColor;
+                            StateExtrasStyleActive.normal.textColor = RATS.Prefs.StateTextColor;
 
                             StateExtrasStyleInactive = new GUIStyle(EditorStyles.label);
                             StateExtrasStyleInactive.alignment = TextAnchor.UpperRight;
                             StateExtrasStyleInactive.fontStyle = FontStyle.Bold;
-                            float inactiveExtrasTextAlpha = RATSGUI.prefs_HideOffLabels ? 0.0f : 0.5f;
-                            StateExtrasStyleInactive.normal.textColor = new Color(RATSGUI.prefs_StateTextColor.r, RATSGUI.prefs_StateTextColor.g, RATSGUI.prefs_StateTextColor.b, inactiveExtrasTextAlpha);
+                            float inactiveExtrasTextAlpha = RATS.Prefs.HideOffLabels ? 0.0f : 0.5f;
+                            StateExtrasStyleInactive.normal.textColor = new Color(RATS.Prefs.StateTextColor.r, RATS.Prefs.StateTextColor.g, RATS.Prefs.StateTextColor.b, inactiveExtrasTextAlpha);
 
                             StateMotionStyle = new GUIStyle(EditorStyles.miniBoldLabel);
                             StateMotionStyle.fontSize = 9;
                             StateMotionStyle.alignment = TextAnchor.LowerCenter;
-                            StateMotionStyle.normal.textColor = RATSGUI.prefs_StateTextColor;
+                            StateMotionStyle.normal.textColor = RATS.Prefs.StateTextColor;
 
                             StateBlendtreeStyle = new GUIStyle(EditorStyles.label);
                             StateBlendtreeStyle.alignment = TextAnchor.UpperLeft;
                             StateBlendtreeStyle.fontStyle = FontStyle.Bold;
                         }
 
-                        prefs_DimOffLabels_last = RATSGUI.prefs_HideOffLabels;
+                        prefs_DimOffLabels_last = RATS.Prefs.HideOffLabels;
                         Rect stateRect = GUILayoutUtility.GetLastRect();
 
                         
@@ -641,8 +641,8 @@ namespace Razgriz.RATS
                             bool isEmptyAnim = false;
                             bool isEmptyState = false;
 
-                            int off1 = (debugShowLabels || (RATSGUI.prefs_StateExtraLabelsWD && RATSGUI.prefs_StateExtraLabelsBehavior)) ? 15 : 0;
-                            int off2 = (debugShowLabels || (RATSGUI.prefs_StateExtraLabelsMotionTime && RATSGUI.prefs_StateExtraLabelsSpeed)) ? 15 : 0;
+                            int off1 = (debugShowLabels || (RATS.Prefs.StateExtraLabelsWD && RATS.Prefs.StateExtraLabelsBehavior)) ? 15 : 0;
+                            int off2 = (debugShowLabels || (RATS.Prefs.StateExtraLabelsMotionTime && RATS.Prefs.StateExtraLabelsSpeed)) ? 15 : 0;
 
                             Rect wdLabelRect 			= new Rect(stateRect.x - off1, stateRect.y - 30, stateRect.width, 15);
                             Rect behaviorLabelRect 		= new Rect(stateRect.x, 	   stateRect.y - 30, stateRect.width, 15);
@@ -684,7 +684,7 @@ namespace Razgriz.RATS
                             int iconOffset = 0;
 
                             // Loop time label
-                            if(isLoopTime && (debugShowLabels || RATSGUI.prefs_StateLoopedLabels))
+                            if(isLoopTime && (debugShowLabels || RATS.Prefs.StateLoopedLabels))
                             {
                                 Rect loopingLabelRect = new Rect(stateRect.x + 1, stateRect.y - 29, 16, 16);
                                 EditorGUI.LabelField(loopingLabelRect, new GUIContent(EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Animation Clip is Looping"));
@@ -692,11 +692,11 @@ namespace Razgriz.RATS
                             }
                             
                             // Empty Animation/State Warning, top left (option)
-                            if(RATSGUI.prefs_ShowWarningsTopLeft)
+                            if(RATS.Prefs.ShowWarningsTopLeft)
                             {
                                 
                                 Rect emptyWarningRect = new Rect(stateRect.x + iconOffset + 1, stateRect.y - 28, 14, 14);
-                                if((debugShowLabels || RATSGUI.prefs_StateAnimIsEmptyLabel))
+                                if((debugShowLabels || RATS.Prefs.StateAnimIsEmptyLabel))
                                 {
                                     if(isEmptyAnim) EditorGUI.LabelField(emptyWarningRect, new GUIContent(EditorGUIUtility.IconContent("Warning@2x").image, "Animation Clip has no Keyframes"));
                                     else if(isEmptyState) EditorGUI.LabelField(emptyWarningRect, new GUIContent(EditorGUIUtility.IconContent("Error@2x").image, "State has no Motion assigned"));
@@ -704,12 +704,12 @@ namespace Razgriz.RATS
                             }
 
                             #if !RAZGRIZ_AEXTENSIONS_CECOMPAT
-                                if(hasMotion && (debugShowLabels || RATSGUI.prefs_StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
-                                if(				(debugShowLabels || RATSGUI.prefs_StateExtraLabelsBehavior)) EditorGUI.LabelField(behaviorLabelRect, "B", (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive));
-                                if(hasMotion && (debugShowLabels || RATSGUI.prefs_StateExtraLabelsMotionTime)) EditorGUI.LabelField(motionTimeLabelRect, "M", (hasMotionTime ? StateExtrasStyleActive : StateExtrasStyleInactive));
-                                if(hasMotion && (debugShowLabels || RATSGUI.prefs_StateExtraLabelsSpeed)) EditorGUI.LabelField(speedLabelRect, "S", (hasSpeedParam ? StateExtrasStyleActive : StateExtrasStyleInactive));
+                                if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
+                                if(				(debugShowLabels || RATS.Prefs.StateExtraLabelsBehavior)) EditorGUI.LabelField(behaviorLabelRect, "B", (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive));
+                                if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsMotionTime)) EditorGUI.LabelField(motionTimeLabelRect, "M", (hasMotionTime ? StateExtrasStyleActive : StateExtrasStyleInactive));
+                                if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsSpeed)) EditorGUI.LabelField(speedLabelRect, "S", (hasSpeedParam ? StateExtrasStyleActive : StateExtrasStyleInactive));
 
-                                if (hasMotion && (debugShowLabels || RATSGUI.prefs_StateMotionLabels))
+                                if (hasMotion && (debugShowLabels || RATS.Prefs.StateMotionLabels))
                                 {
                                     string motionName = "  [none]";
                                     if (aState.motion) motionName = "  " + aState.motion.name;
@@ -724,12 +724,12 @@ namespace Razgriz.RATS
                                         labelTooltip = "State contains a Blendtree";
                                         iconSize = 14;
                                     }
-                                    else if(isEmptyAnim && !RATSGUI.prefs_ShowWarningsTopLeft)
+                                    else if(isEmptyAnim && !RATS.Prefs.ShowWarningsTopLeft)
                                     {
                                         labelIcon = EditorGUIUtility.IconContent("Warning@2x").image;
                                         labelTooltip = "Animation Clip has no Keyframes";
                                     }
-                                    else if(isEmptyState && !RATSGUI.prefs_ShowWarningsTopLeft)
+                                    else if(isEmptyState && !RATS.Prefs.ShowWarningsTopLeft)
                                     {
                                         labelIcon = EditorGUIUtility.IconContent("Error@2x").image;
                                         labelTooltip = "State has no Motion assigned";
@@ -781,15 +781,15 @@ namespace Razgriz.RATS
                         Type animatableObjectType = (Type)NodeTypeAnimatableObjectType.GetValue(node);
                         string componentPrefix = "";
 
-                        if(!string.IsNullOrEmpty(propertyName) && RATSGUI.prefs_AnimationWindowTrimActualNames) propertyName = propertyName.Replace("m_", "");
+                        if(!string.IsNullOrEmpty(propertyName) && RATS.Prefs.AnimationWindowTrimActualNames) propertyName = propertyName.Replace("m_", "");
 
                         if(animatableObjectType != null)
                         {
                             componentPrefix = (animatableObjectType).ToString().Split('.').Last() + ".";
                         }
 
-                        string displayNameString = RATSGUI.prefs_AnimationWindowShowActualPropertyNames ? componentPrefix + propertyName : displayName;
-                        NodeTypeIndent.SetValue(node, (int)(RATSGUI.prefs_AnimationWindowIndentScale * ((float)propertyPath.Split('/').Length)) );						
+                        string displayNameString = RATS.Prefs.AnimationWindowShowActualPropertyNames ? componentPrefix + propertyName : displayName;
+                        NodeTypeIndent.SetValue(node, (int)(RATS.Prefs.AnimationWindowIndentScale * ((float)propertyPath.Split('/').Length)) );						
                         NodeDisplayNameProp.SetValue(node, displayNameString);
                     }
                 }
@@ -803,7 +803,7 @@ namespace Razgriz.RATS
                     [HarmonyPostfix]
                     static string Postfix(string __result, GameObject rootGameObject, string path)
                     {
-                        if(RATSGUI.prefs_AnimationWindowShowFullPath)
+                        if(RATS.Prefs.AnimationWindowShowFullPath)
                         {
                             if (string.IsNullOrEmpty(path)) return rootGameObject != null ? rootGameObject.name : "";
 
@@ -1178,12 +1178,12 @@ namespace Razgriz.RATS
                         nodeBackgroundImageRedActive.SetPixels(glowData);
 
                         // Main color tint
-                        TintTexture2D(ref stateMachineBackgroundImage, RATSGUI.prefs_StateColorGray);
-                        TintTexture2D(ref nodeBackgroundImage, RATSGUI.prefs_StateColorGray);
-                        TintTexture2D(ref nodeBackgroundImageAqua, RATSGUI.prefs_StateColorAqua);
-                        TintTexture2D(ref nodeBackgroundImageGreen, RATSGUI.prefs_StateColorGreen);
-                        TintTexture2D(ref nodeBackgroundImageOrange, RATSGUI.prefs_StateColorOrange);
-                        TintTexture2D(ref nodeBackgroundImageRed, RATSGUI.prefs_StateColorRed); 
+                        TintTexture2D(ref stateMachineBackgroundImage, RATS.Prefs.StateColorGray);
+                        TintTexture2D(ref nodeBackgroundImage, RATS.Prefs.StateColorGray);
+                        TintTexture2D(ref nodeBackgroundImageAqua, RATS.Prefs.StateColorAqua);
+                        TintTexture2D(ref nodeBackgroundImageGreen, RATS.Prefs.StateColorGreen);
+                        TintTexture2D(ref nodeBackgroundImageOrange, RATS.Prefs.StateColorOrange);
+                        TintTexture2D(ref nodeBackgroundImageRed, RATS.Prefs.StateColorRed); 
 
                         // Glowing edge for selected
                         AddTexture2D(ref stateMachineBackgroundImageActive, stateMachineBackgroundImage);

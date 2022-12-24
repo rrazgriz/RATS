@@ -18,8 +18,6 @@ namespace Razgriz.RATS
     [Serializable]
     public class RATSPreferences
     {
-        const string RATS_EDITORPREFS_KEY = "RATS.PreferencesSerialized";
-
         public bool DisableAnimatorGraphFixes = false;
         public bool StateMotionLabels = true;
         public bool StateBlendtreeLabels = true;
@@ -36,9 +34,10 @@ namespace Razgriz.RATS
         public float GraphGridScalingMajor = 1.0f;
         public bool GraphDragNoSnap = false;
         public bool GraphDragSnapToModifiedGrid = false;
-        public Color GraphGridBackgroundColor = GUI.backgroundColor;
+        public Color GraphGridBackgroundColor = new Color(0.2f, 0.2f, 0.2f, 1.0f);
         public Color GraphGridColorMajor = new Color(0f, 0f, 0f, 0.18f);
         public Color GraphGridColorMinor = new Color(0f, 0f, 0f, 0.28f);
+        public bool NodeStyleOverride = true;
         public Color StateTextColor = new Color(0.9f, 0.9f, 0.9f, 1f);
         public Color StateColorGray = new Color(0.3f, 0.3f, 0.3f, 1f);
         public Color StateColorOrange = new Color(0.78f, 0.38f, 0.15f, 1f);
@@ -80,48 +79,6 @@ namespace Razgriz.RATS
     public class RATSGUI : EditorWindow
     {
         public const string version = "2022.12.23";
-
-        public static bool prefs_DisableAnimatorGraphFixes;
-
-        public static bool prefs_StateMotionLabels;
-        public static bool prefs_StateBlendtreeLabels;
-        public static bool prefs_StateAnimIsEmptyLabel;
-        public static bool prefs_StateLoopedLabels;
-        public static bool prefs_HideOffLabels;
-        public static bool prefs_ShowWarningsTopLeft;
-
-        public static bool prefs_StateExtraLabelsWD;
-        public static bool prefs_StateExtraLabelsBehavior;
-        public static bool prefs_StateExtraLabelsMotionTime;
-        public static bool prefs_StateExtraLabelsSpeed;
-
-        public static bool prefs_GraphGridOverride;
-        public static float prefs_GraphGridDivisorMinor;
-        public static float prefs_GraphGridScalingMajor;
-        public static Color prefs_GraphGridColorMinor = new Color(0.0f, 0.0f, 0.0f, 0.18f);
-        public static Color prefs_GraphGridColorMajor = new Color(0.0f, 0.0f, 0.0f, 0.28f);
-        public static Color prefs_GraphGridBackgroundColor = new Color(0.1647f, 0.1647f, 0.1647f, 1.0f);
-        public static bool prefs_GraphDragNoSnap;
-        public static bool prefs_GraphDragSnapToModifiedGrid;
-        public static Color prefs_StateTextColor = new Color(0.9f, 0.9f, 0.9f, 1.0f);
-        public static Color prefs_StateColorGray = new Color(0.3f, 0.3f, 0.3f, 1.0f);
-        public static Color prefs_StateColorOrange = new Color(198/255f, 96/255f, 37/255f, 1f);
-        public static Color prefs_StateColorAqua = new Color(56/255f, 148/255f, 150/255f, 1f);
-        public static Color prefs_StateColorGreen = new Color(17/255f, 119/255f, 51/255f, 1f);
-        public static Color prefs_StateColorRed = new Color(170/255f, 5/255f, 30/255f, 1f);
-        public static int prefs_StateLabelFontSize;
-        public static bool prefs_NodeStyleOverride = true;
-
-        public static bool prefs_NewStateWriteDefaults;
-        public static bool prefs_NewLayersWeight1;
-        public static bool prefs_NewTransitionsZeroTime;
-        public static bool prefs_NewTransitionsExitTime;
-
-        public static bool prefs_AnimationWindowShowActualPropertyNames;
-        public static float prefs_AnimationWindowIndentScale;
-        
-        public static bool prefs_AnimationWindowShowFullPath;
-        public static bool prefs_AnimationWindowTrimActualNames;
 
         public static bool hasInitializedPreferences = false;
         public static bool updateNodeStyle = false;
@@ -167,20 +124,20 @@ namespace Razgriz.RATS
             switch(tab)
             {
                 default:
-                    EditorGUI.BeginDisabledGroup(prefs_DisableAnimatorGraphFixes); // CEditor Compatibility
+                    EditorGUI.BeginDisabledGroup(RATS.Prefs.DisableAnimatorGraphFixes); // CEditor Compatibility
                     // Graph/State Defaults
                     using(new GUILayout.VerticalScope())
                     {
                         SectionLabel(new GUIContent("  Animator Graph Defaults", EditorGUIUtility.IconContent("d_CreateAddNew").image));
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_NewStateWriteDefaults, "New States: WD Setting", "Enable or disable Write Defaults on new states");
-                            ToggleButton(ref prefs_NewLayersWeight1, "New Layers: 1 Weight", "Set new layers to have 1 weight automatically");
+                            ToggleButton(ref RATS.Prefs.NewStateWriteDefaults, "New States: WD Setting", "Enable or disable Write Defaults on new states");
+                            ToggleButton(ref RATS.Prefs.NewLayersWeight1, "New Layers: 1 Weight", "Set new layers to have 1 weight automatically");
                         }
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_NewTransitionsExitTime, "New Transition: Has Exit Time", "Enable or Disable Has Exit Time on new transitions");
-                            ToggleButton(ref prefs_NewTransitionsZeroTime, "New Transition: 0 Time", "Set new transitions to have 0 exit/transition time");
+                            ToggleButton(ref RATS.Prefs.NewTransitionsExitTime, "New Transition: Has Exit Time", "Enable or Disable Has Exit Time on new transitions");
+                            ToggleButton(ref RATS.Prefs.NewTransitionsZeroTime, "New Transition: 0 Time", "Set new transitions to have 0 exit/transition time");
                         }
                     }
 
@@ -194,30 +151,30 @@ namespace Razgriz.RATS
 
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_StateLoopedLabels, new GUIContent("   Loop Time", EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Show an icon when a state's animation is set to Loop Time"));
-                            ToggleButton(ref prefs_StateBlendtreeLabels, new GUIContent("   Blendtrees", EditorGUIUtility.IconContent("d_BlendTree Icon").image, "Show an icon when a state's motion is a Blendtree"));
+                            ToggleButton(ref RATS.Prefs.StateLoopedLabels, new GUIContent("   Loop Time", EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Show an icon when a state's animation is set to Loop Time"));
+                            ToggleButton(ref RATS.Prefs.StateBlendtreeLabels, new GUIContent("   Blendtrees", EditorGUIUtility.IconContent("d_BlendTree Icon").image, "Show an icon when a state's motion is a Blendtree"));
                         }
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_StateAnimIsEmptyLabel, new GUIContent("   Empty Anims/States", EditorGUIUtility.IconContent("Warning").image, "Display a warning if a state's animation is empty or if a state has no motion"));
-                            ToggleButton(ref prefs_ShowWarningsTopLeft, "Warning Icons Top Left", "Show warnings in top left instead of next to name");
+                            ToggleButton(ref RATS.Prefs.StateAnimIsEmptyLabel, new GUIContent("   Empty Anims/States", EditorGUIUtility.IconContent("Warning").image, "Display a warning if a state's animation is empty or if a state has no motion"));
+                            ToggleButton(ref RATS.Prefs.ShowWarningsTopLeft, "Warning Icons Top Left", "Show warnings in top left instead of next to name");
                         }
 
                         DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_StateExtraLabelsWD, "<b>WD</b>  Write Defaults", "Indicate whether a state has Write Defaults enabled");
-                            ToggleButton(ref prefs_StateExtraLabelsBehavior, "<b>B</b>      Behavior", "Indicate whether a state has a State Behavior");
+                            ToggleButton(ref RATS.Prefs.StateExtraLabelsWD, "<b>WD</b>  Write Defaults", "Indicate whether a state has Write Defaults enabled");
+                            ToggleButton(ref RATS.Prefs.StateExtraLabelsBehavior, "<b>B</b>      Behavior", "Indicate whether a state has a State Behavior");
                         }
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_StateExtraLabelsSpeed, "<b>S</b>      Speed Param", "Indicate whether a state has a Speed parameter");
-                            ToggleButton(ref prefs_StateExtraLabelsMotionTime, "<b>M</b>     Motion Time", "Indicate whether a state has a Motion Time parameter");
+                            ToggleButton(ref RATS.Prefs.StateExtraLabelsSpeed, "<b>S</b>      Speed Param", "Indicate whether a state has a Speed parameter");
+                            ToggleButton(ref RATS.Prefs.StateExtraLabelsMotionTime, "<b>M</b>     Motion Time", "Indicate whether a state has a Motion Time parameter");
                         }
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_StateMotionLabels, "<b>Tt</b>    Motion Names", "Show the name of the state's clip/blendtree");
-                            ToggleButton(ref prefs_HideOffLabels, "Hide Labels Completely", "Hide Labels when condition is false, instead of dimming");
+                            ToggleButton(ref RATS.Prefs.StateMotionLabels, "<b>Tt</b>    Motion Names", "Show the name of the state's clip/blendtree");
+                            ToggleButton(ref RATS.Prefs.HideOffLabels, "Hide Labels Completely", "Hide Labels when condition is false, instead of dimming");
                         }
                         
                         using(new GUILayout.HorizontalScope())
@@ -234,16 +191,16 @@ namespace Razgriz.RATS
                         
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_AnimationWindowShowActualPropertyNames, "Show Actual Property Names", "Show the actual name of properties instead of Unity's display names");
-                            ToggleButton(ref prefs_AnimationWindowShowFullPath, "Show Full Path", "Show the full path of properties being animated");
+                            ToggleButton(ref RATS.Prefs.AnimationWindowShowActualPropertyNames, "Show Actual Property Names", "Show the actual name of properties instead of Unity's display names");
+                            ToggleButton(ref RATS.Prefs.AnimationWindowShowFullPath, "Show Full Path", "Show the full path of properties being animated");
                         }
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_AnimationWindowTrimActualNames, "Trim m_ From Actual Names", "Trim the leading m_ from actual property names");
+                            ToggleButton(ref RATS.Prefs.AnimationWindowTrimActualNames, "Trim m_ From Actual Names", "Trim the leading m_ from actual property names");
                         }
 
-                        prefs_AnimationWindowIndentScale = EditorGUILayout.Slider("Hierarchy Indent Scale", prefs_AnimationWindowIndentScale, 0.0f, 1.0f);
-                        prefs_AnimationWindowIndentScale = Mathf.Round(prefs_AnimationWindowIndentScale * 20f)/20f;
+                        RATS.Prefs.AnimationWindowIndentScale = EditorGUILayout.Slider("Hierarchy Indent Scale", RATS.Prefs.AnimationWindowIndentScale, 0.0f, 1.0f);
+                        RATS.Prefs.AnimationWindowIndentScale = Mathf.Round(RATS.Prefs.AnimationWindowIndentScale * 20f)/20f;
 
                         EditorGUILayout.LabelField("When disabling these options, click on a different animation to refresh", new GUIStyle("miniLabel"));
                     }
@@ -255,25 +212,25 @@ namespace Razgriz.RATS
                         SectionLabel(new GUIContent("  Compatibility", EditorGUIUtility.IconContent("d_UnityEditor.Graphs.AnimatorControllerTool").image));
 
                         EditorGUI.BeginChangeCheck();
-                        ToggleButton(ref prefs_DisableAnimatorGraphFixes, "Disable Graph Window Patches (takes a few seconds)", "Allows other utilities to patch Controller editor window");
+                        ToggleButton(ref RATS.Prefs.DisableAnimatorGraphFixes, "Disable Graph Window Patches (takes a few seconds)", "Allows other utilities to patch Controller editor window");
                         if(EditorGUI.EndChangeCheck())
                         {
-                            SetDefineSymbol("RAZGRIZ_AEXTENSIONS_NOANIMATOR", prefs_DisableAnimatorGraphFixes);
+                            SetDefineSymbol("RAZGRIZ_AEXTENSIONS_NOANIMATOR", RATS.Prefs.DisableAnimatorGraphFixes);
 
                             // Disable Options that conflict with CEditor
-                            if(prefs_DisableAnimatorGraphFixes)
+                            if(RATS.Prefs.DisableAnimatorGraphFixes)
                             {
-                                prefs_StateLoopedLabels = false;
-                                prefs_StateBlendtreeLabels = false;
-                                prefs_StateAnimIsEmptyLabel = false;
-                                prefs_ShowWarningsTopLeft = false;
-                                prefs_StateExtraLabelsWD = false;
-                                prefs_StateExtraLabelsBehavior = false;
-                                prefs_StateExtraLabelsSpeed = false;
-                                prefs_StateExtraLabelsMotionTime = false;
-                                prefs_StateMotionLabels = false;
-                                prefs_HideOffLabels = false;
-                                prefs_GraphGridOverride = false;
+                                RATS.Prefs.StateLoopedLabels = false;
+                                RATS.Prefs.StateBlendtreeLabels = false;
+                                RATS.Prefs.StateAnimIsEmptyLabel = false;
+                                RATS.Prefs.ShowWarningsTopLeft = false;
+                                RATS.Prefs.StateExtraLabelsWD = false;
+                                RATS.Prefs.StateExtraLabelsBehavior = false;
+                                RATS.Prefs.StateExtraLabelsSpeed = false;
+                                RATS.Prefs.StateExtraLabelsMotionTime = false;
+                                RATS.Prefs.StateMotionLabels = false;
+                                RATS.Prefs.HideOffLabels = false;
+                                RATS.Prefs.GraphGridOverride = false;
                             }
                             HandlePreferences();
 
@@ -291,29 +248,29 @@ namespace Razgriz.RATS
                     {
                         SectionLabel(new GUIContent("  Animator Graph Styling", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
 
-                        ToggleButton(ref prefs_GraphGridOverride, "Override Default Grid Style");
-                        prefs_GraphGridBackgroundColor = EditorGUILayout.ColorField(new GUIContent("Background"), prefs_GraphGridBackgroundColor, true, false, false);
+                        ToggleButton(ref RATS.Prefs.GraphGridOverride, "Override Default Grid Style");
+                        RATS.Prefs.GraphGridBackgroundColor = EditorGUILayout.ColorField(new GUIContent("Background"), RATS.Prefs.GraphGridBackgroundColor, true, false, false);
 
-                        prefs_GraphGridScalingMajor = EditorGUILayout.Slider("Major Grid Spacing", prefs_GraphGridScalingMajor, 0.0f, 5.0f);
-                        prefs_GraphGridDivisorMinor = EditorGUILayout.Slider("Minor Grid Divisions", prefs_GraphGridDivisorMinor, 1.0f, 50f);
-                        prefs_GraphGridDivisorMinor = Mathf.Round(prefs_GraphGridDivisorMinor * 1f)/1f;
+                        RATS.Prefs.GraphGridScalingMajor = EditorGUILayout.Slider("Major Grid Spacing", RATS.Prefs.GraphGridScalingMajor, 0.0f, 5.0f);
+                        RATS.Prefs.GraphGridDivisorMinor = EditorGUILayout.Slider("Minor Grid Divisions", RATS.Prefs.GraphGridDivisorMinor, 1.0f, 50f);
+                        RATS.Prefs.GraphGridDivisorMinor = Mathf.Round(RATS.Prefs.GraphGridDivisorMinor * 1f)/1f;
 
-                        prefs_GraphGridColorMajor = EditorGUILayout.ColorField("Major Grid", prefs_GraphGridColorMajor);
-                        prefs_GraphGridColorMinor = EditorGUILayout.ColorField("Minor Grid", prefs_GraphGridColorMinor);
+                        RATS.Prefs.GraphGridColorMajor = EditorGUILayout.ColorField("Major Grid", RATS.Prefs.GraphGridColorMajor);
+                        RATS.Prefs.GraphGridColorMinor = EditorGUILayout.ColorField("Minor Grid", RATS.Prefs.GraphGridColorMinor);
 
                         DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
                         
                         EditorGUI.BeginChangeCheck();
-                        prefs_StateTextColor = EditorGUILayout.ColorField("State Text Color", prefs_StateTextColor);
-                        prefs_StateColorGray = EditorGUILayout.ColorField("Normal State Color", prefs_StateColorGray);
-                        prefs_StateColorOrange = EditorGUILayout.ColorField("Default State Color", prefs_StateColorOrange);
-                        prefs_StateColorAqua = EditorGUILayout.ColorField("Any State Color", prefs_StateColorAqua);
-                        prefs_StateColorGreen = EditorGUILayout.ColorField("Entry State Color", prefs_StateColorGreen);
-                        prefs_StateColorRed = EditorGUILayout.ColorField("Exit State Color", prefs_StateColorRed);
+                        RATS.Prefs.StateTextColor = EditorGUILayout.ColorField("State Text Color", RATS.Prefs.StateTextColor);
+                        RATS.Prefs.StateColorGray = EditorGUILayout.ColorField("Normal State Color", RATS.Prefs.StateColorGray);
+                        RATS.Prefs.StateColorOrange = EditorGUILayout.ColorField("Default State Color", RATS.Prefs.StateColorOrange);
+                        RATS.Prefs.StateColorAqua = EditorGUILayout.ColorField("Any State Color", RATS.Prefs.StateColorAqua);
+                        RATS.Prefs.StateColorGreen = EditorGUILayout.ColorField("Entry State Color", RATS.Prefs.StateColorGreen);
+                        RATS.Prefs.StateColorRed = EditorGUILayout.ColorField("Exit State Color", RATS.Prefs.StateColorRed);
 
                         DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
-                        ToggleButton(ref prefs_NodeStyleOverride, "Override Default Node Style");
-                        prefs_StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", prefs_StateLabelFontSize, 5, 20);
+                        ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Override Default Node Style");
+                        RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
 
                         updateNodeStyle = false;
                         if(EditorGUI.EndChangeCheck())
@@ -324,8 +281,8 @@ namespace Razgriz.RATS
 
                         using(new GUILayout.HorizontalScope())
                         {
-                            ToggleButton(ref prefs_GraphDragNoSnap, "Disable Snapping by Default", "Disable grid snapping (hold Control while dragging for alternate mode)");
-                            ToggleButton(ref prefs_GraphDragSnapToModifiedGrid, "Snap to custom grid", "Snaps to user-specified grid");
+                            ToggleButton(ref RATS.Prefs.GraphDragNoSnap, "Disable Snapping by Default", "Disable grid snapping (hold Control while dragging for alternate mode)");
+                            ToggleButton(ref RATS.Prefs.GraphDragSnapToModifiedGrid, "Snap to custom grid", "Snaps to user-specified grid");
                         }
 
                         EditorGUILayout.LabelField("Tip: hold Control while dragging for the opposite of this setting", new GUIStyle("miniLabel"));
@@ -386,92 +343,10 @@ namespace Razgriz.RATS
             if(!hasInitializedPreferences) // Need to grab from EditorPrefs
             {
                 RATSPreferenceHandler.Load(ref RATS.Prefs);
-
-                prefs_DisableAnimatorGraphFixes = EditorPrefs.GetBool("RATS.prefs_DisableAnimatorGraphFixes", false);
-
-                prefs_StateMotionLabels = EditorPrefs.GetBool("RATS.prefs_StateMotionLabels", true);
-                prefs_StateBlendtreeLabels = EditorPrefs.GetBool("RATS.prefs_StateBlendtreeLabels", true);
-                prefs_StateAnimIsEmptyLabel = EditorPrefs.GetBool("RATS.prefs_StateAnimIsEmptyLabel", true);
-                prefs_StateLoopedLabels = EditorPrefs.GetBool("RATS.prefs_StateLoopedLabels", true);
-                prefs_HideOffLabels = EditorPrefs.GetBool("RATS.prefs_HideOffLabels", false);
-                prefs_ShowWarningsTopLeft = EditorPrefs.GetBool("RATS.prefs_ShowWarningsTopLeft", false);
-
-                prefs_StateExtraLabelsWD = EditorPrefs.GetBool("RATS.prefs_StateExtraLabelsWD", true);
-                prefs_StateExtraLabelsBehavior = EditorPrefs.GetBool("RATS.prefs_StateExtraLabelsBehavior", true);
-                prefs_StateExtraLabelsMotionTime = EditorPrefs.GetBool("RATS.prefs_StateExtraLabelsMotionTime", false);
-                prefs_StateExtraLabelsSpeed = EditorPrefs.GetBool("RATS.prefs_StateExtraLabelsSpeed", false);
-
-                prefs_GraphGridOverride = EditorPrefs.GetBool("RATS.prefs_GraphGridOverride", false);
-                prefs_GraphGridDivisorMinor = EditorPrefs.GetFloat("RATS.prefs_GraphGridDivisorMinor", 10.0f);
-                prefs_GraphGridScalingMajor = EditorPrefs.GetFloat("RATS.prefs_GraphGridScalingMajor", 1.0f);
-                
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_GraphGridBackgroundColor", ColorUtility.ToHtmlStringRGBA(GUI.backgroundColor)), out prefs_GraphGridBackgroundColor);
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_GraphGridColorMajor", "0000002e"), out prefs_GraphGridColorMajor);
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_GraphGridColorMinor", "00000047"), out prefs_GraphGridColorMinor);
-                prefs_GraphDragNoSnap = EditorPrefs.GetBool("RATS.prefs_GraphDragNoSnap", false);
-                prefs_GraphDragSnapToModifiedGrid = EditorPrefs.GetBool("RATS.prefs_GraphDragSnapToModifiedGrid", false);
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateTextColor", "E5E5E5FF"), out prefs_StateTextColor);
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorGray", "4D4D4DFF"), out prefs_StateColorGray);
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorOrange", "C66025FF"), out prefs_StateColorOrange);
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorAqua", "389496FF"), out prefs_StateColorAqua);
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorGreen", "117733FF"), out prefs_StateColorGreen);
-                ColorUtility.TryParseHtmlString("#" + EditorPrefs.GetString("RATS.prefs_StateColorRed", "AA051EFF"), out prefs_StateColorRed);
-                prefs_StateLabelFontSize = EditorPrefs.GetInt("RATS.prefs_StateLabelFontSize", 12);
-
-                prefs_NewStateWriteDefaults = EditorPrefs.GetBool("RATS.prefs_NewStateWriteDefaults", false);
-                prefs_NewLayersWeight1 = EditorPrefs.GetBool("RATS.prefs_NewLayersWeight1", true);
-                prefs_NewTransitionsZeroTime = EditorPrefs.GetBool("RATS.prefs_NewTransitionsZeroTime", true);
-                prefs_NewTransitionsExitTime = EditorPrefs.GetBool("RATS.prefs_NewTransitionsExitTime", false);
-
-                prefs_AnimationWindowShowActualPropertyNames = EditorPrefs.GetBool("RATS.prefs_AnimationWindowShowActualPropertyNames", false);
-                prefs_AnimationWindowShowFullPath = EditorPrefs.GetBool("RATS.prefs_AnimationWindowShowFullPath", false);
-                prefs_AnimationWindowTrimActualNames = EditorPrefs.GetBool("RATS.prefs_AnimationWindowTrimActualNames", false);
-                prefs_AnimationWindowIndentScale = EditorPrefs.GetFloat("RATS.prefs_AnimationWindowIndentScale", 1.0f);
-
                 hasInitializedPreferences = true;
             }
             else // Already grabbed, set them instead
             {
-                EditorPrefs.SetBool("RATS.prefs_DisableAnimatorGraphFixes", prefs_DisableAnimatorGraphFixes);
-
-                EditorPrefs.SetBool("RATS.prefs_StateMotionLabels", prefs_StateMotionLabels);
-                EditorPrefs.SetBool("RATS.prefs_StateBlendtreeLabels", prefs_StateBlendtreeLabels);
-                EditorPrefs.SetBool("RATS.prefs_StateAnimIsEmptyLabel", prefs_StateAnimIsEmptyLabel);
-                EditorPrefs.SetBool("RATS.prefs_StateLoopedLabels", prefs_StateLoopedLabels);
-                EditorPrefs.SetBool("RATS.prefs_HideOffLabels", prefs_HideOffLabels);
-                EditorPrefs.SetBool("RATS.prefs_ShowWarningsTopLeft", prefs_ShowWarningsTopLeft);
-
-                EditorPrefs.SetBool("RATS.prefs_StateExtraLabelsWD", prefs_StateExtraLabelsWD);
-                EditorPrefs.SetBool("RATS.prefs_StateExtraLabelsBehavior", prefs_StateExtraLabelsBehavior);
-                EditorPrefs.SetBool("RATS.prefs_StateExtraLabelsMotionTime", prefs_StateExtraLabelsMotionTime);
-                EditorPrefs.SetBool("RATS.prefs_StateExtraLabelsSpeed", prefs_StateExtraLabelsSpeed);
-
-                EditorPrefs.SetBool("RATS.prefs_GraphGridOverride", prefs_GraphGridOverride);
-                EditorPrefs.SetFloat("RATS.prefs_GraphGridScalingMajor", prefs_GraphGridScalingMajor);
-                EditorPrefs.SetFloat("RATS.prefs_GraphGridDivisorMinor", prefs_GraphGridDivisorMinor);
-                EditorPrefs.SetString("RATS.prefs_GraphGridBackgroundColor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridBackgroundColor));
-                EditorPrefs.SetString("RATS.prefs_GraphGridColorMajor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridColorMajor));
-                EditorPrefs.SetString("RATS.prefs_GraphGridColorMinor", ColorUtility.ToHtmlStringRGBA(prefs_GraphGridColorMinor));
-                EditorPrefs.SetBool("RATS.prefs_GraphDragNoSnap", prefs_GraphDragNoSnap);
-                EditorPrefs.SetBool("RATS.prefs_GraphDragSnapToModifiedGrid", prefs_GraphDragSnapToModifiedGrid);
-                EditorPrefs.SetString("RATS.prefs_StateTextColor", ColorUtility.ToHtmlStringRGBA(prefs_StateTextColor));
-                EditorPrefs.SetString("RATS.prefs_StateColorGray", ColorUtility.ToHtmlStringRGBA(prefs_StateColorGray));
-                EditorPrefs.SetString("RATS.prefs_StateColorOrange", ColorUtility.ToHtmlStringRGBA(prefs_StateColorOrange));
-                EditorPrefs.SetString("RATS.prefs_StateColorAqua", ColorUtility.ToHtmlStringRGBA(prefs_StateColorAqua));
-                EditorPrefs.SetString("RATS.prefs_StateColorGreen", ColorUtility.ToHtmlStringRGBA(prefs_StateColorGreen));
-                EditorPrefs.SetString("RATS.prefs_StateColorRed", ColorUtility.ToHtmlStringRGBA(prefs_StateColorRed));
-                EditorPrefs.SetInt("RATS.prefs_StateLabelFontSize", prefs_StateLabelFontSize);
-
-                EditorPrefs.SetBool("RATS.prefs_NewStateWriteDefaults", prefs_NewStateWriteDefaults);
-                EditorPrefs.SetBool("RATS.prefs_NewLayersWeight1", prefs_NewLayersWeight1);
-                EditorPrefs.SetBool("RATS.prefs_NewTransitionsZeroTime", prefs_NewTransitionsZeroTime);
-                EditorPrefs.SetBool("RATS.prefs_NewTransitionsExitTime", prefs_NewTransitionsExitTime);
-
-                EditorPrefs.SetBool("RATS.prefs_AnimationWindowShowActualPropertyNames", prefs_AnimationWindowShowActualPropertyNames);
-                EditorPrefs.SetBool("RATS.prefs_AnimationWindowShowFullPath", prefs_AnimationWindowShowFullPath);
-                EditorPrefs.SetBool("RATS.prefs_AnimationWindowTrimActualNames", prefs_AnimationWindowTrimActualNames);
-                EditorPrefs.SetFloat("RATS.prefs_AnimationWindowIndentScale", prefs_AnimationWindowIndentScale);
-
                 RATSPreferenceHandler.Save(RATS.Prefs);
             }
         }
