@@ -160,7 +160,7 @@ namespace Razgriz.RATS
                             ToggleButton(ref RATS.Prefs.ShowWarningsTopLeft, "Warning Icons Top Left", "Show warnings in top left instead of next to name");
                         }
 
-                        DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
+                        DrawUILine(lightUILineColor);
                         using(new GUILayout.HorizontalScope())
                         {
                             ToggleButton(ref RATS.Prefs.StateExtraLabelsWD, "<b>WD</b>  Write Defaults", "Indicate whether a state has Write Defaults enabled");
@@ -248,7 +248,7 @@ namespace Razgriz.RATS
                     {
                         SectionLabel(new GUIContent("  Animator Graph Styling", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
 
-                        ToggleButton(ref RATS.Prefs.GraphGridOverride, "Override Default Grid Style");
+                        ToggleButton(ref RATS.Prefs.GraphGridOverride, "Override Grid Style");
                         RATS.Prefs.GraphGridBackgroundColor = EditorGUILayout.ColorField(new GUIContent("Background"), RATS.Prefs.GraphGridBackgroundColor, true, false, false);
 
                         RATS.Prefs.GraphGridScalingMajor = EditorGUILayout.Slider("Major Grid Spacing", RATS.Prefs.GraphGridScalingMajor, 0.0f, 5.0f);
@@ -258,7 +258,10 @@ namespace Razgriz.RATS
                         RATS.Prefs.GraphGridColorMajor = EditorGUILayout.ColorField("Major Grid", RATS.Prefs.GraphGridColorMajor);
                         RATS.Prefs.GraphGridColorMinor = EditorGUILayout.ColorField("Minor Grid", RATS.Prefs.GraphGridColorMinor);
 
-                        DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
+                        DrawUILine(lightUILineColor);
+
+                        ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Override Node Style");
+                        RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
                         
                         EditorGUI.BeginChangeCheck();
                         RATS.Prefs.StateTextColor = EditorGUILayout.ColorField("State Text Color", RATS.Prefs.StateTextColor);
@@ -268,16 +271,14 @@ namespace Razgriz.RATS
                         RATS.Prefs.StateColorGreen = EditorGUILayout.ColorField("Entry State Color", RATS.Prefs.StateColorGreen);
                         RATS.Prefs.StateColorRed = EditorGUILayout.ColorField("Exit State Color", RATS.Prefs.StateColorRed);
 
-                        DrawUILine(new Color(0.5f, 0.5f, 0.5f, 0.2f));
-                        ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Override Default Node Style");
-                        RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
-
                         updateNodeStyle = false;
                         if(EditorGUI.EndChangeCheck())
                         {
                             RATS.UpdateGraphTextures();
                             updateNodeStyle = true;
                         }
+
+                        DrawUILine(lightUILineColor);
 
                         using(new GUILayout.HorizontalScope())
                         {
@@ -371,8 +372,9 @@ namespace Razgriz.RATS
             param = EditorGUILayout.ToggleLeft(label, param, ToggleButtonStyle);
         }
 
-        public static void DrawUILine() { DrawUILine(new Color(0.5f, 0.5f, 0.5f, 1.0f)); }
-        public static void DrawUILine(int thickness) { DrawUILine(new Color(0.5f, 0.5f, 0.5f, 1.0f), thickness); }
+        public static readonly Color lightUILineColor = new Color(0.5f, 0.5f, 0.5f, 0.2f);
+        public static readonly Color heavyUILineColor = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+        public static void DrawUILine() { DrawUILine(heavyUILineColor); }
         public static void DrawUILine(Color color, int thickness = 1, int padding = 10)
         {
             Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(padding+thickness));
