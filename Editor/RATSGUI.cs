@@ -115,217 +115,6 @@ namespace Razgriz.RATS
             this.Repaint();
         }
 
-        void OnGUI()
-        {
-            if(!hasInitializedPreferences) HandlePreferences();
-            
-            tab = (Tabs)GUILayout.Toolbar((int)tab, toolbarStrings);
-
-            switch(tab)
-            {
-                default:
-                    EditorGUI.BeginDisabledGroup(RATS.Prefs.DisableAnimatorGraphFixes); // CEditor Compatibility
-                    // Graph/State Defaults
-                    using(new GUILayout.VerticalScope())
-                    {
-                        SectionLabel(new GUIContent("  Animator Graph Defaults", EditorGUIUtility.IconContent("d_CreateAddNew").image));
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.NewStateWriteDefaults, "New States: WD Setting", "Enable or disable Write Defaults on new states");
-                            ToggleButton(ref RATS.Prefs.NewLayersWeight1, "New Layers: 1 Weight", "Set new layers to have 1 weight automatically");
-                        }
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.NewTransitionsExitTime, "New Transition: Has Exit Time", "Enable or Disable Has Exit Time on new transitions");
-                            ToggleButton(ref RATS.Prefs.NewTransitionsZeroTime, "New Transition: 0 Time", "Set new transitions to have 0 exit/transition time");
-                        }
-                    }
-
-                    EditorGUI.EndDisabledGroup(); // CEditor Compatibility 
-
-                    // Graph Labels
-                    using(new GUILayout.VerticalScope())
-                    {
-                        DrawUILine();
-                        SectionLabel(new GUIContent("  Animator Graph Labels", EditorGUIUtility.IconContent("d_AnimatorController Icon").image));
-
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.StateLoopedLabels, new GUIContent("   Loop Time", EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Show an icon when a state's animation is set to Loop Time"));
-                            ToggleButton(ref RATS.Prefs.StateBlendtreeLabels, new GUIContent("   Blendtrees", EditorGUIUtility.IconContent("d_BlendTree Icon").image, "Show an icon when a state's motion is a Blendtree"));
-                        }
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.StateAnimIsEmptyLabel, new GUIContent("   Empty Anims/States", EditorGUIUtility.IconContent("Warning").image, "Display a warning if a state's animation is empty or if a state has no motion"));
-                            ToggleButton(ref RATS.Prefs.ShowWarningsTopLeft, "Warning Icons Top Left", "Show warnings in top left instead of next to name");
-                        }
-
-                        DrawUILine(lightUILineColor);
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.StateExtraLabelsWD, "<b>WD</b>  Write Defaults", "Indicate whether a state has Write Defaults enabled");
-                            ToggleButton(ref RATS.Prefs.StateExtraLabelsBehavior, "<b>B</b>      Behavior", "Indicate whether a state has a State Behavior");
-                        }
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.StateExtraLabelsSpeed, "<b>S</b>      Speed Param", "Indicate whether a state has a Speed parameter");
-                            ToggleButton(ref RATS.Prefs.StateExtraLabelsMotionTime, "<b>M</b>     Motion Time", "Indicate whether a state has a Motion Time parameter");
-                        }
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.StateMotionLabels, "<b>Tt</b>    Motion Names", "Show the name of the state's clip/blendtree");
-                            ToggleButton(ref RATS.Prefs.HideOffLabels, "Hide Labels Completely", "Hide Labels when condition is false, instead of dimming");
-                        }
-                        
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            EditorGUILayout.LabelField("Tip: Hold ALT to see all labels at any time", new GUIStyle("miniLabel"));
-                        }
-                    }
-
-                    // Animation Window
-                    using(new GUILayout.VerticalScope())
-                    {
-                        DrawUILine();
-                        SectionLabel(new GUIContent("  Animation Window", EditorGUIUtility.IconContent("d_UnityEditor.AnimationWindow").image));
-                        
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.AnimationWindowShowActualPropertyNames, "Show Actual Property Names", "Show the actual name of properties instead of Unity's display names");
-                            ToggleButton(ref RATS.Prefs.AnimationWindowShowFullPath, "Show Full Path", "Show the full path of properties being animated");
-                        }
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.AnimationWindowTrimActualNames, "Trim m_ From Actual Names", "Trim the leading m_ from actual property names");
-                        }
-
-                        RATS.Prefs.AnimationWindowIndentScale = EditorGUILayout.Slider("Hierarchy Indent Scale", RATS.Prefs.AnimationWindowIndentScale, 0.0f, 1.0f);
-                        RATS.Prefs.AnimationWindowIndentScale = Mathf.Round(RATS.Prefs.AnimationWindowIndentScale * 20f)/20f;
-
-                        EditorGUILayout.LabelField("When disabling these options, click on a different animation to refresh", new GUIStyle("miniLabel"));
-                    }
-
-                    // Disable Patch Categories
-                    using(new GUILayout.VerticalScope())
-                    {
-                        DrawUILine();
-                        SectionLabel(new GUIContent("  Compatibility", EditorGUIUtility.IconContent("d_UnityEditor.Graphs.AnimatorControllerTool").image));
-
-                        EditorGUI.BeginChangeCheck();
-                        ToggleButton(ref RATS.Prefs.DisableAnimatorGraphFixes, "Disable Graph Window Patches (takes a few seconds)", "Allows other utilities to patch Controller editor window");
-                        if(EditorGUI.EndChangeCheck())
-                        {
-                            SetDefineSymbol("RAZGRIZ_AEXTENSIONS_NOANIMATOR", RATS.Prefs.DisableAnimatorGraphFixes);
-
-                            // Disable Options that conflict with CEditor
-                            if(RATS.Prefs.DisableAnimatorGraphFixes)
-                            {
-                                RATS.Prefs.StateLoopedLabels = false;
-                                RATS.Prefs.StateBlendtreeLabels = false;
-                                RATS.Prefs.StateAnimIsEmptyLabel = false;
-                                RATS.Prefs.ShowWarningsTopLeft = false;
-                                RATS.Prefs.StateExtraLabelsWD = false;
-                                RATS.Prefs.StateExtraLabelsBehavior = false;
-                                RATS.Prefs.StateExtraLabelsSpeed = false;
-                                RATS.Prefs.StateExtraLabelsMotionTime = false;
-                                RATS.Prefs.StateMotionLabels = false;
-                                RATS.Prefs.HideOffLabels = false;
-                                RATS.Prefs.GraphGridOverride = false;
-                            }
-                            HandlePreferences();
-
-                            // Try to force recompilation, takes a few seconds
-                            UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
-                            AssetDatabase.Refresh();
-                        }
-                    }
-                    break;
-
-
-                case Tabs.Theming:
-                    // Graph Styling
-                    using(new GUILayout.VerticalScope())
-                    {
-                        SectionLabel(new GUIContent("  Animator Graph Styling", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
-
-                        ToggleButton(ref RATS.Prefs.GraphGridOverride, "Override Grid Style");
-                        RATS.Prefs.GraphGridBackgroundColor = EditorGUILayout.ColorField(new GUIContent("Background"), RATS.Prefs.GraphGridBackgroundColor, true, false, false);
-
-                        RATS.Prefs.GraphGridScalingMajor = EditorGUILayout.Slider("Major Grid Spacing", RATS.Prefs.GraphGridScalingMajor, 0.0f, 5.0f);
-                        RATS.Prefs.GraphGridDivisorMinor = EditorGUILayout.Slider("Minor Grid Divisions", RATS.Prefs.GraphGridDivisorMinor, 1.0f, 50f);
-                        RATS.Prefs.GraphGridDivisorMinor = Mathf.Round(RATS.Prefs.GraphGridDivisorMinor * 1f)/1f;
-
-                        RATS.Prefs.GraphGridColorMajor = EditorGUILayout.ColorField("Major Grid", RATS.Prefs.GraphGridColorMajor);
-                        RATS.Prefs.GraphGridColorMinor = EditorGUILayout.ColorField("Minor Grid", RATS.Prefs.GraphGridColorMinor);
-
-                        DrawUILine(lightUILineColor);
-
-                        ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Override Node Style");
-                        RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
-                        
-                        EditorGUI.BeginChangeCheck();
-                        RATS.Prefs.StateTextColor = EditorGUILayout.ColorField("State Text Color", RATS.Prefs.StateTextColor);
-                        RATS.Prefs.StateColorGray = EditorGUILayout.ColorField("Normal State Color", RATS.Prefs.StateColorGray);
-                        RATS.Prefs.StateColorOrange = EditorGUILayout.ColorField("Default State Color", RATS.Prefs.StateColorOrange);
-                        RATS.Prefs.StateColorAqua = EditorGUILayout.ColorField("Any State Color", RATS.Prefs.StateColorAqua);
-                        RATS.Prefs.StateColorGreen = EditorGUILayout.ColorField("Entry State Color", RATS.Prefs.StateColorGreen);
-                        RATS.Prefs.StateColorRed = EditorGUILayout.ColorField("Exit State Color", RATS.Prefs.StateColorRed);
-
-                        updateNodeStyle = false;
-                        if(EditorGUI.EndChangeCheck())
-                        {
-                            RATS.UpdateGraphTextures();
-                            updateNodeStyle = true;
-                        }
-
-                        DrawUILine(lightUILineColor);
-
-                        using(new GUILayout.HorizontalScope())
-                        {
-                            ToggleButton(ref RATS.Prefs.GraphDragNoSnap, "Disable Snapping by Default", "Disable grid snapping (hold Control while dragging for alternate mode)");
-                            ToggleButton(ref RATS.Prefs.GraphDragSnapToModifiedGrid, "Snap to custom grid", "Snaps to user-specified grid");
-                        }
-
-                        EditorGUILayout.LabelField("Tip: hold Control while dragging for the opposite of this setting", new GUIStyle("miniLabel"));
-                    }
-                    break;
-
-                case Tabs.AnimEditor:
-
-                    break;
-            }
-
-            // Footer
-            using(new GUILayout.VerticalScope())
-            {
-                DrawUILine();
-                using(new GUILayout.HorizontalScope())
-                {
-                    // Github link button
-                    using(new GUILayout.HorizontalScope())
-                    {
-                        if(githubIcon == null)
-                        {
-                            // Decode from base64 encoded 16x16 github icon png
-                            githubIcon = TextureFromBase64PNG(RATSConstants.GithubLogoBase64);
-                        }
-
-                        bool githubLinkClicked = GUILayout.Button(new GUIContent("  View Repo on Github", githubIcon), new GUIStyle("Button"));
-                        EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link); // Lights up button with link cursor
-                        if (githubLinkClicked) Application.OpenURL(@"https://github.com/rrazgriz/RATS");
-                    }
-                    
-                    // Version & Name
-                    using(new GUILayout.HorizontalScope())
-                    {
-                        EditorGUILayout.LabelField("   v" + version + "   •   Razgriz", new GUIStyle("Label"));
-                    }
-                }
-            }
-
-            if (GUI.changed) HandlePreferences();
-        }
-
         public static void OnEnable()
         {
             if(editorWindowIcon == null)
@@ -349,6 +138,256 @@ namespace Razgriz.RATS
             else // Already grabbed, set them instead
             {
                 RATSPreferenceHandler.Save(RATS.Prefs);
+            }
+        }
+
+        void OnGUI()
+        {
+            if (!hasInitializedPreferences) HandlePreferences();
+
+            tab = (Tabs)GUILayout.Toolbar((int)tab, toolbarStrings);
+
+            switch (tab)
+            {
+                case Tabs.Tweaks:
+                    SectionLabel(new GUIContent("  General Tweaks", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
+                    DrawGraphStateDefaultsOptions();
+                    DrawGraphLabelsOptions();
+                    DrawAnimationWindowOptions();
+                    DrawCompatibilityOptions();
+                    break;
+
+
+                case Tabs.Theming:
+                    // Graph Styling
+                    using (new GUILayout.VerticalScope())
+                    {
+                        SectionLabel(new GUIContent("  Animator Graph Styling", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
+                        DrawGridStyleOptions();
+                        DrawNodeStyleOptions();
+                        DrawNodeSnappingOptions();
+                    }
+                    break;
+
+                case Tabs.AnimEditor:
+
+                    break;
+            }
+
+            // Footer
+            DrawGUIFooter();
+
+            if (GUI.changed) HandlePreferences();
+        }
+
+        private static void DrawGraphStateDefaultsOptions()
+        {
+            // Graph/State Defaults
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine(lightUILineColor);
+                EditorGUI.BeginDisabledGroup(RATS.Prefs.DisableAnimatorGraphFixes); // CEditor Compatibility
+                SectionLabel(new GUIContent("  Animator Graph Defaults", EditorGUIUtility.IconContent("d_CreateAddNew").image));
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.NewStateWriteDefaults, "New States: WD Setting", "Enable or disable Write Defaults on new states");
+                    ToggleButton(ref RATS.Prefs.NewLayersWeight1, "New Layers: 1 Weight", "Set new layers to have 1 weight automatically");
+                }
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.NewTransitionsExitTime, "New Transition: Has Exit Time", "Enable or Disable Has Exit Time on new transitions");
+                    ToggleButton(ref RATS.Prefs.NewTransitionsZeroTime, "New Transition: 0 Time", "Set new transitions to have 0 exit/transition time");
+                }
+                EditorGUI.EndDisabledGroup(); // CEditor Compatibility 
+            }
+        }
+
+        private static void DrawGraphLabelsOptions()
+        {
+            // Graph Labels
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine();
+                SectionLabel(new GUIContent("  Animator Graph Labels", EditorGUIUtility.IconContent("d_AnimatorController Icon").image));
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.StateLoopedLabels, new GUIContent("   Loop Time", EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Show an icon when a state's animation is set to Loop Time"));
+                    ToggleButton(ref RATS.Prefs.StateBlendtreeLabels, new GUIContent("   Blendtrees", EditorGUIUtility.IconContent("d_BlendTree Icon").image, "Show an icon when a state's motion is a Blendtree"));
+                }
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.StateAnimIsEmptyLabel, new GUIContent("   Empty Anims/States", EditorGUIUtility.IconContent("Warning").image, "Display a warning if a state's animation is empty or if a state has no motion"));
+                    ToggleButton(ref RATS.Prefs.ShowWarningsTopLeft, "Warning Icons Top Left", "Show warnings in top left instead of next to name");
+                }
+
+                DrawUILine(lightUILineColor);
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.StateExtraLabelsWD, "<b>WD</b>  Write Defaults", "Indicate whether a state has Write Defaults enabled");
+                    ToggleButton(ref RATS.Prefs.StateExtraLabelsBehavior, "<b>B</b>      Behavior", "Indicate whether a state has a State Behavior");
+                }
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.StateExtraLabelsSpeed, "<b>S</b>      Speed Param", "Indicate whether a state has a Speed parameter");
+                    ToggleButton(ref RATS.Prefs.StateExtraLabelsMotionTime, "<b>M</b>     Motion Time", "Indicate whether a state has a Motion Time parameter");
+                }
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.StateMotionLabels, "<b>Tt</b>    Motion Names", "Show the name of the state's clip/blendtree");
+                    ToggleButton(ref RATS.Prefs.HideOffLabels, "Hide Labels Completely", "Hide Labels when condition is false, instead of dimming");
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField("Tip: Hold ALT to see all labels at any time", new GUIStyle("miniLabel"));
+                }
+            }
+        }
+
+        private static void DrawAnimationWindowOptions()
+        {
+            // Animation Window
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine();
+                SectionLabel(new GUIContent("  Animation Window", EditorGUIUtility.IconContent("d_UnityEditor.AnimationWindow").image));
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.AnimationWindowShowActualPropertyNames, "Show Actual Property Names", "Show the actual name of properties instead of Unity's display names");
+                    ToggleButton(ref RATS.Prefs.AnimationWindowShowFullPath, "Show Full Path", "Show the full path of properties being animated");
+                }
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.AnimationWindowTrimActualNames, "Trim m_ From Actual Names", "Trim the leading m_ from actual property names");
+                }
+
+                RATS.Prefs.AnimationWindowIndentScale = EditorGUILayout.Slider("Hierarchy Indent Scale", RATS.Prefs.AnimationWindowIndentScale, 0.0f, 1.0f);
+                RATS.Prefs.AnimationWindowIndentScale = Mathf.Round(RATS.Prefs.AnimationWindowIndentScale * 20f) / 20f;
+
+                EditorGUILayout.LabelField("When disabling these options, click on a different animation to refresh", new GUIStyle("miniLabel"));
+            }
+        }
+
+        private static void DrawCompatibilityOptions()
+        {
+            // Disable Patch Categories
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine();
+                SectionLabel(new GUIContent("  Compatibility", EditorGUIUtility.IconContent("d_UnityEditor.Graphs.AnimatorControllerTool").image));
+
+                EditorGUI.BeginChangeCheck();
+                ToggleButton(ref RATS.Prefs.DisableAnimatorGraphFixes, "Disable Graph Window Patches (takes a few seconds)", "Allows other utilities to patch Controller editor window");
+                if (EditorGUI.EndChangeCheck())
+                {
+                    SetDefineSymbol("RAZGRIZ_AEXTENSIONS_NOANIMATOR", RATS.Prefs.DisableAnimatorGraphFixes);
+
+                    // Disable Options that conflict with CEditor
+                    if (RATS.Prefs.DisableAnimatorGraphFixes)
+                    {
+                        RATS.Prefs.StateLoopedLabels = false;
+                        RATS.Prefs.StateBlendtreeLabels = false;
+                        RATS.Prefs.StateAnimIsEmptyLabel = false;
+                        RATS.Prefs.ShowWarningsTopLeft = false;
+                        RATS.Prefs.StateExtraLabelsWD = false;
+                        RATS.Prefs.StateExtraLabelsBehavior = false;
+                        RATS.Prefs.StateExtraLabelsSpeed = false;
+                        RATS.Prefs.StateExtraLabelsMotionTime = false;
+                        RATS.Prefs.StateMotionLabels = false;
+                        RATS.Prefs.HideOffLabels = false;
+                        RATS.Prefs.GraphGridOverride = false;
+                    }
+                    HandlePreferences();
+
+                    // Try to force recompilation, takes a few seconds
+                    UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
+                    AssetDatabase.Refresh();
+                }
+            }
+        }
+
+        private static void DrawGridStyleOptions()
+        {
+            using (new EditorGUILayout.VerticalScope())
+            {
+                DrawUILine(lightUILineColor);
+                ToggleButton(ref RATS.Prefs.GraphGridOverride, "Override Grid Style");
+                RATS.Prefs.GraphGridBackgroundColor = EditorGUILayout.ColorField(new GUIContent("Background"), RATS.Prefs.GraphGridBackgroundColor, true, false, false);
+
+                RATS.Prefs.GraphGridScalingMajor = EditorGUILayout.Slider("Major Grid Spacing", RATS.Prefs.GraphGridScalingMajor, 0.0f, 5.0f);
+                RATS.Prefs.GraphGridDivisorMinor = EditorGUILayout.Slider("Minor Grid Divisions", RATS.Prefs.GraphGridDivisorMinor, 1.0f, 50f);
+                RATS.Prefs.GraphGridDivisorMinor = Mathf.Round(RATS.Prefs.GraphGridDivisorMinor * 1f) / 1f;
+
+                RATS.Prefs.GraphGridColorMajor = EditorGUILayout.ColorField("Major Grid", RATS.Prefs.GraphGridColorMajor);
+                RATS.Prefs.GraphGridColorMinor = EditorGUILayout.ColorField("Minor Grid", RATS.Prefs.GraphGridColorMinor);
+            }
+        }
+
+        private static void DrawNodeStyleOptions()
+        {
+            using (new EditorGUILayout.VerticalScope())
+            {
+                DrawUILine(lightUILineColor);
+                ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Override Node Style");
+                RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
+
+                EditorGUI.BeginChangeCheck();
+                RATS.Prefs.StateTextColor = EditorGUILayout.ColorField("State Text Color", RATS.Prefs.StateTextColor);
+                RATS.Prefs.StateColorGray = EditorGUILayout.ColorField("Normal State Color", RATS.Prefs.StateColorGray);
+                RATS.Prefs.StateColorOrange = EditorGUILayout.ColorField("Default State Color", RATS.Prefs.StateColorOrange);
+                RATS.Prefs.StateColorAqua = EditorGUILayout.ColorField("Any State Color", RATS.Prefs.StateColorAqua);
+                RATS.Prefs.StateColorGreen = EditorGUILayout.ColorField("Entry State Color", RATS.Prefs.StateColorGreen);
+                RATS.Prefs.StateColorRed = EditorGUILayout.ColorField("Exit State Color", RATS.Prefs.StateColorRed);
+                
+                updateNodeStyle = false;
+                if (EditorGUI.EndChangeCheck())
+                {
+                    RATS.UpdateGraphTextures();
+                    updateNodeStyle = true;
+                }
+            }
+        }
+
+        private static void DrawNodeSnappingOptions()
+        {
+            using (new GUILayout.HorizontalScope())
+            {
+                DrawUILine(lightUILineColor);
+                ToggleButton(ref RATS.Prefs.GraphDragNoSnap, "Disable Snapping by Default", "Disable grid snapping (hold Control while dragging for alternate mode)");
+                ToggleButton(ref RATS.Prefs.GraphDragSnapToModifiedGrid, "Snap to custom grid", "Snaps to user-specified grid");
+                EditorGUILayout.LabelField("Tip: hold Control while dragging for the opposite of this setting", new GUIStyle("miniLabel"));
+            }
+        }
+
+        private static void DrawGUIFooter()
+        {
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine();
+                using (new GUILayout.HorizontalScope())
+                {
+                    // Github link button
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        if (githubIcon == null)
+                        {
+                            // Decode from base64 encoded 16x16 github icon png
+                            githubIcon = TextureFromBase64PNG(RATSConstants.GithubLogoBase64);
+                        }
+
+                        bool githubLinkClicked = GUILayout.Button(new GUIContent("  View Repo on Github", githubIcon), new GUIStyle("Button"));
+                        EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link); // Lights up button with link cursor
+                        if (githubLinkClicked) Application.OpenURL(@"https://github.com/rrazgriz/RATS");
+                    }
+
+                    // Version & Name
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField("   v" + version + "   •   Razgriz", new GUIStyle("Label"));
+                    }
+                }
             }
         }
 
