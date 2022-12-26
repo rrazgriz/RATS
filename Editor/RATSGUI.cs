@@ -24,17 +24,17 @@ namespace Razgriz.RATS
         public bool StateAnimIsEmptyLabel = true;
         public bool StateLoopedLabels = true;
         public bool HideOffLabels = false;
-        public bool ShowWarningsTopLeft = false;
+        public bool ShowWarningsTopLeft = true;
         public bool StateExtraLabelsWD = true;
         public bool StateExtraLabelsBehavior = true;
-        public bool StateExtraLabelsMotionTime = false;
-        public bool StateExtraLabelsSpeed = false;
-        public bool GraphGridOverride = false;
-        public float GraphGridDivisorMinor = 10.0f;
+        public bool StateExtraLabelsMotionTime = true;
+        public bool StateExtraLabelsSpeed = true;
+        public bool GraphGridOverride = true;
+        public float GraphGridDivisorMinor = 0.0f;
         public float GraphGridScalingMajor = 1.0f;
         public bool GraphDragNoSnap = false;
         public bool GraphDragSnapToModifiedGrid = false;
-        public Color GraphGridBackgroundColor = new Color(0.2f, 0.2f, 0.2f, 1.0f);
+        public Color GraphGridBackgroundColor = new Color(0.15f, 0.15f, 0.15f, 1.0f);
         public Color GraphGridColorMajor = new Color(0f, 0f, 0f, 0.18f);
         public Color GraphGridColorMinor = new Color(0f, 0f, 0f, 0.28f);
         public bool NodeStyleOverride = true;
@@ -122,7 +122,7 @@ namespace Razgriz.RATS
             if(editorWindowIcon == null)
             {
                 // Decode from base64 encoded 16x16 github icon png
-                Byte[] editorWindowIcon_b64_bytes = System.Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDozN0JGMzM3RjEyMkRFRDExQjI2OTkxN0ZBNEFFQjQ2NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo3RjI0ODlEMzJEN0MxMUVEOUIwOERDM0I2MjBENkEwOCIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo3RjI0ODlEMjJEN0MxMUVEOUIwOERDM0I2MjBENkEwOCIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M2IChXaW5kb3dzKSI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjNBQkYzMzdGMTIyREVEMTFCMjY5OTE3RkE0QUVCNDY3IiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjM3QkYzMzdGMTIyREVEMTFCMjY5OTE3RkE0QUVCNDY3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+4Mj3cQAAAG1JREFUeNpi/P//PwMlgImBQkCxASw4xNH9xUipC/7T3Av/iXEuNnUsRGiCgRw0tWDDGNHSwX8kRf/JiQVGLAbhC0RGFjwK5hBwxWdCYYBPsxYQX0ePBWL9zYgvHTAS0MiIKxAZiTSE+ikRIMAAwHwXKDkCfHcAAAAASUVORK5CYII=");
+                Byte[] editorWindowIcon_b64_bytes = System.Convert.FromBase64String(RATSConstants.RATSLogoBase64);
                 editorWindowIcon = new Texture2D(1,1);
                 editorWindowIcon.LoadImage(editorWindowIcon_b64_bytes);
             }
