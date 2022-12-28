@@ -10,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -30,8 +31,8 @@ namespace Razgriz.RATS
         public bool StateExtraLabelsMotionTime = true;
         public bool StateExtraLabelsSpeed = true;
         public bool GraphGridOverride = true;
-        public float GraphGridDivisorMinor = 0.0f;
-        public float GraphGridScalingMajor = 1.0f;
+        public float GraphGridDivisorMinor = 1.0f;
+        public float GraphGridScalingMajor = 0.0f;
         public bool GraphDragNoSnap = false;
         public bool GraphDragSnapToModifiedGrid = false;
         public Color GraphGridBackgroundColor = new Color(0.15f, 0.15f, 0.15f, 1.0f);
@@ -78,7 +79,7 @@ namespace Razgriz.RATS
 
     public class RATSGUI : EditorWindow
     {
-        public const string version = "2022.12.23";
+        public const string version = "2022.12.25";
 
         public static bool hasInitializedPreferences = false;
         public static bool updateNodeStyle = false;
@@ -95,38 +96,45 @@ namespace Razgriz.RATS
         static Tabs tab = Tabs.Tweaks;
         static Tabs lastTab = Tabs.Tweaks;
 
-        private static Texture2D githubIcon;
-        private static Texture2D editorWindowIcon;
         static GUIStyle ToggleButtonStyle;
         static Vector2 scrollPosition = Vector2.zero;
+
+        private static Texture2D githubIcon16;
+        public static Texture2D GithubIcon16 { get; set; }
+
+        private static Texture2D ratsIcon16;
+        public static Texture2D RATSIcon16 { get; set; }
+
+        [InitializeOnLoadMethod]
+        static void InitGUITextures()
+        {
+            // System.IO.File.ReadAllBytes()
+            githubIcon16 = (Texture2D)AssetDatabase.LoadAssetAtPath<Texture>(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("9cb81a504770b4943839f4d46d94208f")).Replace("/", "\\"));
+            ratsIcon16 = (Texture2D)AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath("a5de26a705a067a4caed95b51ab10ea4"));
+        }
+
+        static void InitGUITextures(PlayModeStateChange state)
+        {
+            if(state == PlayModeStateChange.ExitingPlayMode)
+                InitGUITextures();
+        }
 
         [MenuItem("Tools/RATS/Options")]
         public static void ShowWindow()
         {
-            if(editorWindowIcon == null)
-            {
-                // Decode from base64 encoded 16x16 icon
-                editorWindowIcon = TextureFromBase64PNG(RATSConstants.RATSLogoBase64);
-            }
-
+            EditorApplication.playModeStateChanged -= InitGUITextures;
+            EditorApplication.playModeStateChanged += InitGUITextures;
             RATSGUI window = EditorWindow.GetWindow<RATSGUI>();
-            window.titleContent = new GUIContent("  RATS", editorWindowIcon);
+            window.titleContent = new GUIContent("  RATS", RATSIcon16);
         }
 
-        void OnInspectorUpdate() {
+        void OnInspectorUpdate() 
+        {
             this.Repaint();
         }
 
         public static void OnEnable()
         {
-            if(editorWindowIcon == null)
-            {
-                // Decode from base64 encoded 16x16 github icon png
-                Byte[] editorWindowIcon_b64_bytes = System.Convert.FromBase64String(RATSConstants.RATSLogoBase64);
-                editorWindowIcon = new Texture2D(1,1);
-                editorWindowIcon.LoadImage(editorWindowIcon_b64_bytes);
-            }
-            
             HandlePreferences();
         }
 
@@ -389,13 +397,7 @@ namespace Razgriz.RATS
                     // Github link button
                     using (new GUILayout.HorizontalScope())
                     {
-                        if (githubIcon == null)
-                        {
-                            // Decode from base64 encoded 16x16 github icon png
-                            githubIcon = TextureFromBase64PNG(RATSConstants.GithubLogoBase64);
-                        }
-
-                        bool githubLinkClicked = GUILayout.Button(new GUIContent("  View Repo on Github", githubIcon), new GUIStyle("Button"));
+                        bool githubLinkClicked = GUILayout.Button(new GUIContent("  View Repo on Github", GithubIcon16), new GUIStyle("Button"));
                         EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link); // Lights up button with link cursor
                         if (githubLinkClicked) Application.OpenURL(@"https://github.com/rrazgriz/RATS");
                     }
