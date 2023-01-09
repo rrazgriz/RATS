@@ -1,7 +1,7 @@
 // RATS - Raz's Animator Tweaks'n Stuff
 // Original AnimatorExtensions by Dj Lukis.LT, under MIT License
 
-// Copyright (c) 2022 Razgriz
+// Copyright (c) 2023 Razgriz
 // SPDX-License-Identifier: MIT
 
 #if UNITY_EDITOR

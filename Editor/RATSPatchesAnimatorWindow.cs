@@ -1,3 +1,9 @@
+// RATS - Raz's Animator Tweaks'n Stuff
+// Original AnimatorExtensions by Dj Lukis.LT, under MIT License
+
+// Copyright (c) 2023 Razgriz
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Reflection;
