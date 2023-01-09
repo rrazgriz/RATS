@@ -455,13 +455,6 @@ namespace Razgriz.RATS
             {
                 string styleHash = GetStyleCacheKey(styleName, color, on);
 
-                // if(!defaultNodeBackgroundCache.ContainsKey(styleHash))
-                // {
-                // 	Debug.Log(__result.normal.background.name);
-                // 	Debug.Log(styleHash);
-                // 	defaultNodeBackgroundCache[styleHash] = new InternalTextureInfo(__result.normal.background, false);
-                // }
-
                 if(RATS.Prefs.NodeStyleOverride)
                 {
                     bool isPatched = false;
@@ -498,21 +491,9 @@ namespace Razgriz.RATS
                     __result.normal.background = EditorGUIUtility.Load(styleHash) as Texture2D; 
                     __result.normal.textColor = defaultTextColor;
                     __result.fontSize = 12;
-
-                    // if(nodeBackgroundPatched.ContainsKey(styleHash))
-                    // {
-                    // 	if(nodeBackgroundPatched[styleHash] == true)
-                    // 	{
-                    // 		__result.normal.background = defaultNodeBackgroundCache[styleHash].GetTexture2D();
-                    // 		__result.normal.textColor = defaultTextColor;
-                    // 		__result.fontSize = 12;
-                    // 		nodeBackgroundPatched[styleHash] = false;
-                    // 	}
-                    // }
                 }
             }
 
-            private static Dictionary<string, InternalTextureInfo> defaultNodeBackgroundCache = new Dictionary<string, InternalTextureInfo>();
             private static Dictionary<string, bool> nodeBackgroundPatched = new Dictionary<string, bool>();
 
             public static string GetStyleCacheKey(string styleName, int color, bool on)
