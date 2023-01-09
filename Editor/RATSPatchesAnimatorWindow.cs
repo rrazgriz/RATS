@@ -173,7 +173,7 @@ namespace Razgriz.RATS
             [HarmonyPrefix]
             static void Prefix(ref AnimatorControllerLayer layer)
             {
-                layer.defaultWeight = RATS.Prefs.NewLayersWeight1 ? 1.0f : 0.0f;
+                layer.defaultWeight = RATS.Prefs.DefaultLayerWeight1 ? 1.0f : 0.0f;
             }
         }
 
@@ -295,13 +295,13 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             static void Postfix(ref AnimatorStateTransition __result)
             {
-                if(RATS.Prefs.NewTransitionsZeroTime)
-                {
-                    __result.duration = 0.0f;
-                    __result.exitTime = 0.0f;
-                }
-    
-                __result.hasExitTime = RATS.Prefs.NewTransitionsExitTime;
+                __result.duration = RATS.Prefs.DefaultTransitionTime;
+                __result.exitTime = RATS.Prefs.DefaultTransitionExitTime;
+                __result.hasExitTime = RATS.Prefs.DefaultTransitionHasExitTime;
+                __result.hasFixedDuration = RATS.Prefs.DefaultTransitionFixedDuration;
+                __result.interruptionSource = (TransitionInterruptionSource)RATS.Prefs.DefaultTransitionInterruptionSource;
+                __result.orderedInterruption = RATS.Prefs.DefaultTransitionOrderedInterruption;
+                __result.canTransitionToSelf = RATS.Prefs.DefaultTransitionCanTransitionToSelf;
             }
         }
 
@@ -315,7 +315,7 @@ namespace Razgriz.RATS
             [HarmonyPrefix]
             static void Prefix(ref AnimatorState state, Vector3 position)
             {
-                if(!RATS.Prefs.NewStateWriteDefaults) state.writeDefaultValues = false;
+                if(!RATS.Prefs.DefaultStateWriteDefaults) state.writeDefaultValues = false;
             }
         }
 

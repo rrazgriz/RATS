@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 
 namespace Razgriz.RATS
@@ -46,10 +47,15 @@ namespace Razgriz.RATS
         public Color StateColorGreen = new Color(0.07f, 0.47f, 0.20f, 1f);
         public Color StateColorRed = new Color(0.67f, 0.02f, 0.12f, 1f);
         public int StateLabelFontSize = 12;
-        public bool NewStateWriteDefaults = false;
-        public bool NewLayersWeight1 = true;
-        public bool NewTransitionsZeroTime = true;
-        public bool NewTransitionsExitTime = false;
+        public bool DefaultStateWriteDefaults = false;
+        public bool DefaultLayerWeight1 = true;
+        public bool DefaultTransitionHasExitTime = true;
+        public bool DefaultTransitionFixedDuration = true;
+        public float DefaultTransitionTime = 0.0f;
+        public float DefaultTransitionExitTime = 0.0f;
+        public int DefaultTransitionInterruptionSource = 0;
+        public bool DefaultTransitionOrderedInterruption = true;
+        public bool DefaultTransitionCanTransitionToSelf = true;
         public bool AnimationWindowShowActualPropertyNames = false;
         public bool AnimationWindowShowFullPath = false;
         public bool AnimationWindowTrimActualNames = false;
@@ -64,14 +70,13 @@ namespace Razgriz.RATS
         {
             string prefsJson = JsonUtility.ToJson(prefs);
             EditorPrefs.SetString(key, prefsJson);
-            Debug.Log("Saved RATS prefs: " + prefsJson);
         }
 
         public static void Load(ref RATSPreferences prefs, string key = RATS_EDITORPREFSKEY)
         {
             string prefsJson = EditorPrefs.GetString(key, "{}");
             JsonUtility.FromJsonOverwrite(prefsJson, prefs);
-            Debug.Log("Loaded RATS prefs: " + prefsJson);
+            Debug.Log($"Loaded RATS prefs from EditorPrefs Key: {key}");
             // Update our prefs in case the user has upgraded or something
             Save(prefs, key);
         }
@@ -209,10 +214,29 @@ namespace Razgriz.RATS
                 SectionLabel(new GUIContent("  Animator Graph Defaults", EditorGUIUtility.IconContent("d_CreateAddNew").image));
                 EditorGUI.indentLevel += optionsIndentStep;
 
-                RATS.Prefs.NewStateWriteDefaults = BooleanDropdown(RATS.Prefs.NewStateWriteDefaults, "Write Defaults", "Off", "On");
-                RATS.Prefs.NewLayersWeight1 = BooleanDropdown(RATS.Prefs.NewLayersWeight1, "Layer Weight", "0", "1");
-                RATS.Prefs.NewTransitionsExitTime = BooleanDropdown(RATS.Prefs.NewTransitionsExitTime, "Has Exit Time", "Disabled", "Enabled");
-                RATS.Prefs.NewTransitionsZeroTime = BooleanDropdown(RATS.Prefs.NewTransitionsZeroTime, "Transition/Exit Time", "Default", "Zero");
+                RATS.Prefs.DefaultStateWriteDefaults = BooleanDropdown(RATS.Prefs.DefaultStateWriteDefaults, "Write Defaults", "Off", "On");
+                RATS.Prefs.DefaultLayerWeight1 = BooleanDropdown(RATS.Prefs.DefaultLayerWeight1, "Layer Weight", "0", "1");
+                using (new GUILayout.HorizontalScope())
+                {
+                    RATS.Prefs.DefaultTransitionHasExitTime = EditorGUILayout.ToggleLeft(new GUIContent("Has Exit Time"), RATS.Prefs.DefaultTransitionHasExitTime);
+                    RATS.Prefs.DefaultTransitionExitTime = EditorGUILayout.DelayedFloatField("Exit Time  ", RATS.Prefs.DefaultTransitionExitTime);
+                    RATS.Prefs.DefaultTransitionExitTime = Mathf.Clamp(RATS.Prefs.DefaultTransitionExitTime, 0f, 10f);
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    RATS.Prefs.DefaultTransitionFixedDuration = EditorGUILayout.ToggleLeft(new GUIContent("Fixed Duration"), RATS.Prefs.DefaultTransitionFixedDuration);
+                    RATS.Prefs.DefaultTransitionTime = EditorGUILayout.DelayedFloatField("Transition Time  ", RATS.Prefs.DefaultTransitionTime);
+                    RATS.Prefs.DefaultTransitionTime = Mathf.Clamp(RATS.Prefs.DefaultTransitionTime, 0f, 10f);
+                }
+                
+                using (new GUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField("Interruption Source");
+                    RATS.Prefs.DefaultTransitionInterruptionSource = (int)(TransitionInterruptionSource)EditorGUILayout.EnumPopup((TransitionInterruptionSource)RATS.Prefs.DefaultTransitionInterruptionSource);
+                }
+                RATS.Prefs.DefaultTransitionOrderedInterruption = EditorGUILayout.ToggleLeft(new GUIContent("Ordered Interruption"), RATS.Prefs.DefaultTransitionOrderedInterruption);
+                RATS.Prefs.DefaultTransitionCanTransitionToSelf = EditorGUILayout.ToggleLeft(new GUIContent("Can Transition To Self"), RATS.Prefs.DefaultTransitionCanTransitionToSelf);
 
                 EditorGUI.EndDisabledGroup(); // CEditor Compatibility 
                 EditorGUI.indentLevel -= optionsIndentStep;
@@ -473,7 +497,7 @@ namespace Razgriz.RATS
             using (new GUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField(label, new GUILayoutOption[] {GUILayout.MinWidth(20f)});
-                return EditorGUILayout.Popup(value, optionLabels, new GUILayoutOption[] {GUILayout.MinWidth(100f)});
+                return EditorGUILayout.Popup(value, optionLabels, new GUILayoutOption[] {GUILayout.MinWidth(50f)});
             }
         }
 
