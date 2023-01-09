@@ -84,6 +84,7 @@ namespace Razgriz.RATS
 
         public static bool sectionExpandedBehavior = true;
         public static bool sectionExpandedStyling = true;
+        public static bool sectionExpandedInfo = true;
 
         public static bool hasInitializedPreferences = false;
         public static bool updateNodeStyle = false;
@@ -131,19 +132,16 @@ namespace Razgriz.RATS
             {
                 scrollPosition = scrollView.scrollPosition;
 
-                sectionExpandedStyling = EditorGUILayout.BeginFoldoutHeaderGroup(sectionExpandedStyling, new GUIContent("  Appearance", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
-                if(sectionExpandedStyling)
+                sectionExpandedInfo = EditorGUILayout.BeginFoldoutHeaderGroup(sectionExpandedInfo, new GUIContent("  Info", EditorGUIUtility.IconContent("d_ModelImporter Icon").image));
+                if(sectionExpandedInfo)
                 {
                     EditorGUI.indentLevel += 1;
-                    DrawGraphLabelsOptions();
-                    DrawGridStyleOptions();
-                    DrawNodeStyleOptions();
-                    DrawAnimationWindowAppearanceOptions();
+                    DrawRATSInfo();
                     EditorGUI.indentLevel -= 1;
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
 
-                EditorGUILayout.Space(12);
+                EditorGUILayout.Space(8);
                 DrawUILine();
                 sectionExpandedBehavior = EditorGUILayout.BeginFoldoutHeaderGroup(sectionExpandedBehavior, new GUIContent("  Behavior", EditorGUIUtility.IconContent("d_MoreOptions").image));
                 if(sectionExpandedBehavior)
@@ -155,6 +153,20 @@ namespace Razgriz.RATS
                     EditorGUI.indentLevel -= 1;
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
+
+                EditorGUILayout.Space(8);
+                DrawUILine();
+                sectionExpandedStyling = EditorGUILayout.BeginFoldoutHeaderGroup(sectionExpandedStyling, new GUIContent("  Appearance", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
+                if(sectionExpandedStyling)
+                {
+                    EditorGUI.indentLevel += 1;
+                    DrawGraphLabelsOptions();
+                    DrawGridStyleOptions();
+                    DrawNodeStyleOptions();
+                    DrawAnimationWindowAppearanceOptions();
+                    EditorGUI.indentLevel -= 1;
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
 
             DrawRATSOptionsFooter();
@@ -163,6 +175,30 @@ namespace Razgriz.RATS
         }
 
         // UI Sections
+        private static void DrawRATSInfo()
+        {
+            GUIStyle wrappedLabel = new GUIStyle(GUI.skin.GetStyle("label")) { wordWrap = true };
+
+            SectionLabel("Added Features");
+            EditorGUILayout.LabelField(
+            " •  Options for changing default Write Defaults setting, forcing default layer weight to 1, etc \n" +
+            " •  Copy and Paste layers using keyboard shorcuts or by right clicking \n" +
+            " •  Press F2 to rename selected layer \n" +
+            " •  Highlight/Select active animator controller by clicking its path in the bottom bar \n" +
+            " •  Custom Node/Grid Styling \n" +
+            " •  State Labels/Icons/Warnings \n" +
+            " •  Animation Window: Improve Label Appearance \n" +
+            "", wrappedLabel);
+
+            SectionLabel("Bug Fixes");
+            EditorGUILayout.LabelField(
+            " •  Keep new or edited layer in view when editing controllers \n" +
+            " •  Scroll to bottom of parameter list when adding a new parameter \n" +
+            " •  Disable undo of 'Paste Sub-Sate Machine' action as it leaves dangling sub-assets \n" +
+            " •  Prevent transition condition mode/function resetting when swapping parameter \n" +
+            "", wrappedLabel);
+        }
+
         private static void DrawGraphStateDefaultsOptions()
         {
             // Graph/State Defaults
@@ -316,12 +352,12 @@ namespace Razgriz.RATS
                 ToggleButton(ref RATS.Prefs.GraphGridOverride, "Use Custom Grid");
                 RATS.Prefs.GraphGridBackgroundColor = EditorGUILayout.ColorField(new GUIContent("Background"), RATS.Prefs.GraphGridBackgroundColor, true, false, false);
 
-                RATS.Prefs.GraphGridScalingMajor = EditorGUILayout.Slider("Major Grid Spacing", RATS.Prefs.GraphGridScalingMajor, 0.0f, 5.0f);
-                RATS.Prefs.GraphGridDivisorMinor = EditorGUILayout.Slider("Minor Grid Divisions", RATS.Prefs.GraphGridDivisorMinor, 1.0f, 50f);
+                RATS.Prefs.GraphGridScalingMajor = EditorGUILayout.Slider("Major Size", RATS.Prefs.GraphGridScalingMajor, 0.0f, 5.0f);
+                RATS.Prefs.GraphGridDivisorMinor = EditorGUILayout.Slider("Minor Divisions", RATS.Prefs.GraphGridDivisorMinor, 1.0f, 50f);
                 RATS.Prefs.GraphGridDivisorMinor = Mathf.Round(RATS.Prefs.GraphGridDivisorMinor * 1f) / 1f;
 
-                RATS.Prefs.GraphGridColorMajor = EditorGUILayout.ColorField("Major Grid", RATS.Prefs.GraphGridColorMajor);
-                RATS.Prefs.GraphGridColorMinor = EditorGUILayout.ColorField("Minor Grid", RATS.Prefs.GraphGridColorMinor);
+                RATS.Prefs.GraphGridColorMajor = EditorGUILayout.ColorField("Major", RATS.Prefs.GraphGridColorMajor);
+                RATS.Prefs.GraphGridColorMinor = EditorGUILayout.ColorField("Minor", RATS.Prefs.GraphGridColorMinor);
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
@@ -335,15 +371,15 @@ namespace Razgriz.RATS
                 EditorGUI.indentLevel += optionsIndentStep;
                 
                 ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Use Custom Node Style");
-                RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
+                RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
 
                 EditorGUI.BeginChangeCheck();
-                RATS.Prefs.StateTextColor = EditorGUILayout.ColorField("State Text Color", RATS.Prefs.StateTextColor);
-                RATS.Prefs.StateColorGray = EditorGUILayout.ColorField("Normal State Color", RATS.Prefs.StateColorGray);
-                RATS.Prefs.StateColorOrange = EditorGUILayout.ColorField("Default State Color", RATS.Prefs.StateColorOrange);
-                RATS.Prefs.StateColorAqua = EditorGUILayout.ColorField("Any State Color", RATS.Prefs.StateColorAqua);
-                RATS.Prefs.StateColorGreen = EditorGUILayout.ColorField("Entry State Color", RATS.Prefs.StateColorGreen);
-                RATS.Prefs.StateColorRed = EditorGUILayout.ColorField("Exit State Color", RATS.Prefs.StateColorRed);
+                RATS.Prefs.StateTextColor = EditorGUILayout.ColorField("Text Color", RATS.Prefs.StateTextColor);
+                RATS.Prefs.StateColorGray = EditorGUILayout.ColorField("Normal State", RATS.Prefs.StateColorGray);
+                RATS.Prefs.StateColorOrange = EditorGUILayout.ColorField("Default State", RATS.Prefs.StateColorOrange);
+                RATS.Prefs.StateColorAqua = EditorGUILayout.ColorField("Any State", RATS.Prefs.StateColorAqua);
+                RATS.Prefs.StateColorGreen = EditorGUILayout.ColorField("Entry State", RATS.Prefs.StateColorGreen);
+                RATS.Prefs.StateColorRed = EditorGUILayout.ColorField("Exit State", RATS.Prefs.StateColorRed);
                 
                 updateNodeStyle = false;
                 if (EditorGUI.EndChangeCheck())
@@ -412,7 +448,6 @@ namespace Razgriz.RATS
         {
             EditorGUILayout.LabelField(label, new GUIStyle("BoldLabel"));
         }
-
 
         public static void ToggleButton(ref bool param, string label, string tooltip="") => ToggleButton(ref param, new GUIContent(label, tooltip));
         public static void ToggleButton(ref bool param, GUIContent label)
