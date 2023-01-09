@@ -31,8 +31,7 @@ namespace Razgriz.RATS
             RATSGUI.HandlePreferences();
             // Register our patch delegate
             EditorApplication.update += DoPatches;
-            InitTextures();
-            UpdateGraphTextures();
+            HandleTextures();
             EditorApplication.playModeStateChanged += PlayModeChanged;
         }
 
@@ -42,8 +41,7 @@ namespace Razgriz.RATS
             wait++;
             if(wait > 2)
             {
-                InitTextures();
-                UpdateGraphTextures();
+                HandleTextures();
                 harmonyInstance.PatchAll();
                 // Unregister our delegate so it doesn't run again
                 EditorApplication.update -= DoPatches;
@@ -51,10 +49,21 @@ namespace Razgriz.RATS
             }
         }
 
+        [InitializeOnLoadMethod]
+        private static void OnProjectLoadedInEditor()
+        {
+            HandleTextures();
+        }
+
+        [UnityEditor.Callbacks.DidReloadScripts]
+        private static void DidReloadScripts()
+        {
+            HandleTextures();
+        }
+
         private static void PlayModeChanged(PlayModeStateChange state)
         {
-            InitTextures();
-            UpdateGraphTextures();
+            HandleTextures();
         }
         
         #region Helpers
@@ -334,7 +343,7 @@ namespace Razgriz.RATS
         private static Texture2D stateMachineBackgroundImageActive;
 
         // TODO: This texture handling code feels pretty inefficient but it only runs when adjusting so I'm not too concerned
-        static void InitTextures()
+        static void HandleTextures()
         {
             byte[] nodeBackgroundBytes = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("780a9e3efb8a1ca42b44c98c5e972f2d")).Replace("/", "\\"));
             byte[] nodeBackgroundActiveBytes = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("4fb6ef4881973e24cbcf73cff14ae0c8")).Replace("/", "\\"));
@@ -367,6 +376,8 @@ namespace Razgriz.RATS
             // These aren't really used as far as I can tell, so no user customization needed
             TintTexture2D(ref nodeBackgroundImageBlue, nodeBackgroundImageMask, new Color(27/255f, 27/255f, 150/255f, 1f));
             TintTexture2D(ref nodeBackgroundImageYellow, nodeBackgroundImageMask, new Color(204/255f, 165/255f, 39/255f, 1f));
+
+            UpdateGraphTextures();
         }
 
         public static void UpdateGraphTextures()
