@@ -84,80 +84,80 @@ namespace Razgriz.RATS
         private static AnimatorControllerParameterType ConditionParamType_pre;
         [HarmonyPatch]
         class PatchTransitionConditionChangeBreakingCondition
+        {
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(AnimatorTransitionInspectorBaseType, "DrawConditionsElement");
+
+            [HarmonyPrefix]
+            static void Prefix(object __instance, Rect rect, int index, bool selected, bool focused)
             {
-                [HarmonyTargetMethod]
-                static MethodBase TargetMethod() => AccessTools.Method(AnimatorTransitionInspectorBaseType, "DrawConditionsElement");
+                ConditionIndex = index;
+                SerializedProperty conditions = (SerializedProperty)Traverse.Create(__instance).Field("m_Conditions").GetValue();
+                SerializedProperty arrayElementAtIndex = conditions.GetArrayElementAtIndex(index);
+                ConditionMode_pre = arrayElementAtIndex.FindPropertyRelative("m_ConditionMode").intValue;
+                ConditionParam_pre = arrayElementAtIndex.FindPropertyRelative("m_ConditionEvent").stringValue;
 
-                [HarmonyPrefix]
-                static void Prefix(object __instance, Rect rect, int index, bool selected, bool focused)
+                AnimatorController ctrl = Traverse.Create(__instance).Field("m_Controller").GetValue() as AnimatorController;
+                if (ctrl)
                 {
-                    ConditionIndex = index;
-                    SerializedProperty conditions = (SerializedProperty)Traverse.Create(__instance).Field("m_Conditions").GetValue();
-                    SerializedProperty arrayElementAtIndex = conditions.GetArrayElementAtIndex(index);
-                    ConditionMode_pre = arrayElementAtIndex.FindPropertyRelative("m_ConditionMode").intValue;
-                    ConditionParam_pre = arrayElementAtIndex.FindPropertyRelative("m_ConditionEvent").stringValue;
-
-                    AnimatorController ctrl = Traverse.Create(__instance).Field("m_Controller").GetValue() as AnimatorController;
-                    if (ctrl)
+                    // Unity, why make IndexOfParameter(name) internal -_-
+                    foreach (var param in ctrl.parameters)
                     {
-                        // Unity, why make IndexOfParameter(name) internal -_-
-                        foreach (var param in ctrl.parameters)
+                        if (param.name.Equals(ConditionParam_pre))
                         {
-                            if (param.name.Equals(ConditionParam_pre))
-                            {
-                                ConditionParamType_pre = param.type;
-                                break;
-                            }
+                            ConditionParamType_pre = param.type;
+                            break;
                         }
                     }
                 }
+            }
 
-                [HarmonyPostfix]
-                static void Postfix(object __instance, Rect rect, int index, bool selected, bool focused)
+            [HarmonyPostfix]
+            static void Postfix(object __instance, Rect rect, int index, bool selected, bool focused)
+            {
+                if (ConditionIndex == index)
                 {
-                    if (ConditionIndex == index)
-                    {
-                        SerializedProperty conditions = (SerializedProperty)Traverse.Create(__instance).Field("m_Conditions").GetValue();
-                        SerializedProperty arrayElementAtIndex = conditions.GetArrayElementAtIndex(index);
-                        SerializedProperty m_ConditionMode = arrayElementAtIndex.FindPropertyRelative("m_ConditionMode");
-                        string conditionparam_post = arrayElementAtIndex.FindPropertyRelative("m_ConditionEvent").stringValue;
+                    SerializedProperty conditions = (SerializedProperty)Traverse.Create(__instance).Field("m_Conditions").GetValue();
+                    SerializedProperty arrayElementAtIndex = conditions.GetArrayElementAtIndex(index);
+                    SerializedProperty m_ConditionMode = arrayElementAtIndex.FindPropertyRelative("m_ConditionMode");
+                    string conditionparam_post = arrayElementAtIndex.FindPropertyRelative("m_ConditionEvent").stringValue;
 
-                        if (!conditionparam_post.Equals(ConditionParam_pre) && (m_ConditionMode.intValue != ConditionMode_pre))
+                    if (!conditionparam_post.Equals(ConditionParam_pre) && (m_ConditionMode.intValue != ConditionMode_pre))
+                    {
+                        // Parameter and condition changed, restore condition if parameter type is same
+                        AnimatorController ctrl = Traverse.Create(__instance).Field("m_Controller").GetValue() as AnimatorController;
+                        if (ctrl)
                         {
-                            // Parameter and condition changed, restore condition if parameter type is same
-                            AnimatorController ctrl = Traverse.Create(__instance).Field("m_Controller").GetValue() as AnimatorController;
-                            if (ctrl)
+                            // Unity, why make IndexOfParameter(name) internal -_-
+                            foreach (var param in ctrl.parameters)
                             {
-                                // Unity, why make IndexOfParameter(name) internal -_-
-                                foreach (var param in ctrl.parameters)
+                                if (param.name.Equals(conditionparam_post))
                                 {
-                                    if (param.name.Equals(conditionparam_post))
+                                    // same type or float->int, fully compatible
+                                    if ((param.type == ConditionParamType_pre)
+                                        || ((ConditionParamType_pre == AnimatorControllerParameterType.Float) && (param.type == AnimatorControllerParameterType.Int)))
                                     {
-                                        // same type or float->int, fully compatible
-                                        if ((param.type == ConditionParamType_pre)
-                                            || ((ConditionParamType_pre == AnimatorControllerParameterType.Float) && (param.type == AnimatorControllerParameterType.Int)))
+                                        m_ConditionMode.intValue = ConditionMode_pre;
+                                        Debug.Log("RATS: Restored transition condition mode");
+                                    }
+                                    // int->float has restrictions
+                                    else if ((ConditionParamType_pre == AnimatorControllerParameterType.Int) && (param.type == AnimatorControllerParameterType.Float))
+                                    {
+                                        AnimatorConditionMode premode = (AnimatorConditionMode)ConditionMode_pre;
+                                        if ((premode != AnimatorConditionMode.Equals) && (premode != AnimatorConditionMode.NotEqual))
                                         {
                                             m_ConditionMode.intValue = ConditionMode_pre;
-                                            Debug.Log("RATS: Restored transition condition mode");
+                                            Debug.Log("RATS: Restored transition condition mode 2");
                                         }
-                                        // int->float has restrictions
-                                        else if ((ConditionParamType_pre == AnimatorControllerParameterType.Int) && (param.type == AnimatorControllerParameterType.Float))
-                                        {
-                                            AnimatorConditionMode premode = (AnimatorConditionMode)ConditionMode_pre;
-                                            if ((premode != AnimatorConditionMode.Equals) && (premode != AnimatorConditionMode.NotEqual))
-                                            {
-                                                m_ConditionMode.intValue = ConditionMode_pre;
-                                                Debug.Log("RATS: Restored transition condition mode 2");
-                                            }
-                                        }
-                                        break;
                                     }
+                                    break;
                                 }
                             }
                         }
                     }
                 }
             }
+        }
 
         #endregion BugFixes
 
@@ -217,70 +217,70 @@ namespace Razgriz.RATS
         // Keyboard hooks for layer editing
         [HarmonyPatch]
         class PatchLayerCopyPasteKeyboardHooks
+        {
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(LayerControllerViewType, "OnGUI");
+
+            [HarmonyPrefix]
+            public static void Prefix(object __instance, Rect rect)
             {
-                [HarmonyTargetMethod]
-                static MethodBase TargetMethod() => AccessTools.Method(LayerControllerViewType, "OnGUI");
-
-                [HarmonyPrefix]
-                public static void Prefix(object __instance, Rect rect)
+                var rlist = (ReorderableList)LayerListField.GetValue(__instance);
+                if (rlist.HasKeyboardControl())
                 {
-                    var rlist = (ReorderableList)LayerListField.GetValue(__instance);
-                    if (rlist.HasKeyboardControl())
+                    Event current = Event.current;
+                    switch (current.type)
                     {
-                        Event current = Event.current;
-                        switch (current.type)
-                        {
-                            case EventType.ExecuteCommand:
-                                if (current.commandName == "Copy")
-                                {
-                                    current.Use();
-                                    CopyLayer(__instance);
-                                }
-                                else if (current.commandName == "Paste")
-                                {
-                                    current.Use();
-                                    PasteLayer(__instance);
-                                }
-                                else if (current.commandName == "Duplicate")
-                                {
-                                    current.Use();
-                                    CopyLayer(__instance);
-                                    PasteLayer(__instance);
-                                    // todo: dupe without polluting clipboard
-                                }
-                                break;
-
-                            case EventType.KeyDown:
+                        case EventType.ExecuteCommand:
+                            if (current.commandName == "Copy")
                             {
-                                KeyCode keyCode = Event.current.keyCode;
-                                if (keyCode == KeyCode.F2) // Rename
-                                {
-                                    current.Use();
-                                    _refocusSelectedLayer = true;
-                                    AnimatorControllerLayer layer = rlist.list[rlist.index] as AnimatorControllerLayer;
-                                    var rovl = Traverse.Create(__instance).Property("renameOverlay").GetValue();
-                                    BeginRenameMethod.Invoke(rovl, new object[] {layer.name, rlist.index, 0.1f});
-                                    break;
-                                }
+                                current.Use();
+                                CopyLayer(__instance);
+                            }
+                            else if (current.commandName == "Paste")
+                            {
+                                current.Use();
+                                PasteLayer(__instance);
+                            }
+                            else if (current.commandName == "Duplicate")
+                            {
+                                current.Use();
+                                CopyLayer(__instance);
+                                PasteLayer(__instance);
+                                // todo: dupe without polluting clipboard
+                            }
+                            break;
+
+                        case EventType.KeyDown:
+                        {
+                            KeyCode keyCode = Event.current.keyCode;
+                            if (keyCode == KeyCode.F2) // Rename
+                            {
+                                current.Use();
+                                _refocusSelectedLayer = true;
+                                AnimatorControllerLayer layer = rlist.list[rlist.index] as AnimatorControllerLayer;
+                                var rovl = Traverse.Create(__instance).Property("renameOverlay").GetValue();
+                                BeginRenameMethod.Invoke(rovl, new object[] {layer.name, rlist.index, 0.1f});
                                 break;
                             }
+                            break;
                         }
                     }
+                }
 
-                    // Adjust scroll to get selected layer visible
-                    if (_refocusSelectedLayer)
-                    {
-                        _refocusSelectedLayer = false;
-                        Vector2 curscroll = (Vector2)LayerScrollField.GetValue(__instance);
-                        float height = (float)GetElementHeightMethod.Invoke(rlist, new object[] {rlist.index}) + 20;
-                        float offs = (float)GetElementYOffsetMethod.Invoke(rlist, new object[] {rlist.index});
-                        if (offs < curscroll.y)
-                            LayerScrollField.SetValue(__instance, new Vector2(curscroll.x,offs));
-                        else if (offs+height > curscroll.y+rect.height)
-                            LayerScrollField.SetValue(__instance, new Vector2(curscroll.x,offs+height-rect.height));
-                    }
+                // Adjust scroll to get selected layer visible
+                if (_refocusSelectedLayer)
+                {
+                    _refocusSelectedLayer = false;
+                    Vector2 curscroll = (Vector2)LayerScrollField.GetValue(__instance);
+                    float height = (float)GetElementHeightMethod.Invoke(rlist, new object[] {rlist.index}) + 20;
+                    float offs = (float)GetElementYOffsetMethod.Invoke(rlist, new object[] {rlist.index});
+                    if (offs < curscroll.y)
+                        LayerScrollField.SetValue(__instance, new Vector2(curscroll.x,offs));
+                    else if (offs+height > curscroll.y+rect.height)
+                        LayerScrollField.SetValue(__instance, new Vector2(curscroll.x,offs+height-rect.height));
                 }
             }
+        }
 
         #endregion LayerFeatures
 
@@ -322,29 +322,29 @@ namespace Razgriz.RATS
         // Controller asset pinging/selection via bottom bar
         [HarmonyPatch]
         class PatchAnimatorBottomBarPingAsset
+        {
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(AnimatorWindowType, "DoGraphBottomBar");
+
+            [HarmonyPostfix]
+            static void Postfix(object __instance, Rect nameRect)
             {
-                [HarmonyTargetMethod]
-                static MethodBase TargetMethod() => AccessTools.Method(AnimatorWindowType, "DoGraphBottomBar");
-
-                [HarmonyPostfix]
-                static void Postfix(object __instance, Rect nameRect)
+                UnityEngine.Object ctrl = (UnityEngine.Object)AnimatorControllerGetter.Invoke(__instance, null);
+                if (ctrl != (UnityEngine.Object)null)
                 {
-                    UnityEngine.Object ctrl = (UnityEngine.Object)AnimatorControllerGetter.Invoke(__instance, null);
-                    if (ctrl != (UnityEngine.Object)null)
-                    {
-                        EditorGUIUtility.AddCursorRect(nameRect, MouseCursor.Link); // "I'm clickable!"
+                    EditorGUIUtility.AddCursorRect(nameRect, MouseCursor.Link); // "I'm clickable!"
 
-                        Event current = Event.current;
-                        if (((current.type == EventType.MouseDown) && (current.button == 0)) && nameRect.Contains(current.mousePosition))
-                        {
-                            EditorGUIUtility.PingObject(ctrl);
-                            if (current.clickCount == 2) // Adhere to the 'select only on double click' convention
-                                Selection.activeObject = ctrl;
-                            current.Use();
-                        }
+                    Event current = Event.current;
+                    if (((current.type == EventType.MouseDown) && (current.button == 0)) && nameRect.Contains(current.mousePosition))
+                    {
+                        EditorGUIUtility.PingObject(ctrl);
+                        if (current.clickCount == 2) // Adhere to the 'select only on double click' convention
+                            Selection.activeObject = ctrl;
+                        current.Use();
                     }
                 }
             }
+        }
 
         #endregion GraphFeatures
 
