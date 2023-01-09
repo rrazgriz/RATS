@@ -209,16 +209,11 @@ namespace Razgriz.RATS
                 SectionLabel(new GUIContent("  Animator Graph Defaults", EditorGUIUtility.IconContent("d_CreateAddNew").image));
                 EditorGUI.indentLevel += optionsIndentStep;
 
-                using (new GUILayout.HorizontalScope())
-                {
-                    ToggleButton(ref RATS.Prefs.NewStateWriteDefaults, "New States: WD Setting", "Enable or disable Write Defaults on new states");
-                    ToggleButton(ref RATS.Prefs.NewLayersWeight1, "New Layers: 1 Weight", "Set new layers to have 1 weight automatically");
-                }
-                using (new GUILayout.HorizontalScope())
-                {
-                    ToggleButton(ref RATS.Prefs.NewTransitionsExitTime, "New Transition: Has Exit Time", "Enable or Disable Has Exit Time on new transitions");
-                    ToggleButton(ref RATS.Prefs.NewTransitionsZeroTime, "New Transition: 0 Time", "Set new transitions to have 0 exit/transition time");
-                }
+                RATS.Prefs.NewStateWriteDefaults = BooleanDropdown(RATS.Prefs.NewStateWriteDefaults, "Write Defaults", "Off", "On");
+                RATS.Prefs.NewLayersWeight1 = BooleanDropdown(RATS.Prefs.NewLayersWeight1, "Layer Weight", "0", "1");
+                RATS.Prefs.NewTransitionsExitTime = BooleanDropdown(RATS.Prefs.NewTransitionsExitTime, "Has Exit Time", "Disabled", "Enabled");
+                RATS.Prefs.NewTransitionsZeroTime = BooleanDropdown(RATS.Prefs.NewTransitionsZeroTime, "Transition/Exit Time", "Default", "Zero");
+
                 EditorGUI.EndDisabledGroup(); // CEditor Compatibility 
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
@@ -241,11 +236,10 @@ namespace Razgriz.RATS
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.StateAnimIsEmptyLabel, new GUIContent("   Empty Anims/States", EditorGUIUtility.IconContent("Warning").image, "Display a warning if a state's animation is empty or if a state has no motion"));
-                    ToggleButton(ref RATS.Prefs.ShowWarningsTopLeft, "Warning Icons Top Left", "Show warnings in top left instead of next to name");
                 }
+                RATS.Prefs.ShowWarningsTopLeft = BooleanDropdown(RATS.Prefs.ShowWarningsTopLeft, "Warning Location", "Next To Motion Name", "Top Left");
 
                 EditorGUILayout.Space(8);
-                // DrawUILine(lightUILineColor);
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.StateExtraLabelsWD, "<b>WD</b>  Write Defaults", "Indicate whether a state has Write Defaults enabled");
@@ -259,12 +253,9 @@ namespace Razgriz.RATS
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.StateMotionLabels, "<b>Tt</b>    Motion Names", "Show the name of the state's clip/blendtree");
-                    using (new GUILayout.HorizontalScope())
-                    {
-                        EditorGUILayout.LabelField("Off Style", new GUILayoutOption[] {GUILayout.MinWidth(20f)});
-                        RATS.Prefs.HideOffLabels = EditorGUILayout.Popup(RATS.Prefs.HideOffLabels ? 1 : 0, new string[] {"Fade", "Hide"}, new GUILayoutOption[] {GUILayout.MinWidth(100f)}) == 1;
-                    }
                 }
+
+                RATS.Prefs.HideOffLabels = BooleanDropdown(RATS.Prefs.HideOffLabels, "Off Style", "Fade", "Hide");
 
                 using (new GUILayout.HorizontalScope())
                 {
@@ -471,6 +462,19 @@ namespace Razgriz.RATS
             }
 
             param = EditorGUILayout.ToggleLeft(label, param, ToggleButtonStyle);
+        }
+
+        public static bool BooleanDropdown(bool value, string label, string falseLabel, string trueLabel)
+        {
+            return Dropdown(value ? 1 : 0, label, new string[] {falseLabel, trueLabel}) == 1;
+        }
+        public static int Dropdown(int value, string label, string[] optionLabels)
+        {
+            using (new GUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(label, new GUILayoutOption[] {GUILayout.MinWidth(20f)});
+                return EditorGUILayout.Popup(value, optionLabels, new GUILayoutOption[] {GUILayout.MinWidth(100f)});
+            }
         }
 
         public static readonly Color lightUILineColor = new Color(0.5f, 0.5f, 0.5f, 0.2f);
