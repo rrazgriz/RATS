@@ -79,22 +79,14 @@ namespace Razgriz.RATS
 
     public class RATSGUI : EditorWindow
     {
-        public const string version = "2022.12.25";
+        public const string version = "2023.01.09";
+        const int optionsIndentStep = 2;
+
+        public static bool sectionExpandedBehavior = true;
+        public static bool sectionExpandedStyling = true;
 
         public static bool hasInitializedPreferences = false;
         public static bool updateNodeStyle = false;
-
-        public enum Tabs : int
-        {
-            Tweaks = 0,
-            Theming = 1,
-            AnimEditor = 2
-        }
-
-        string[] toolbarStrings = {"Tweaks", "Theming", "AnimEditor"};
-
-        static Tabs tab = Tabs.Tweaks;
-        static Tabs lastTab = Tabs.Tweaks;
 
         static GUIStyle ToggleButtonStyle;
         static Vector2 scrollPosition = Vector2.zero;
@@ -155,45 +147,37 @@ namespace Razgriz.RATS
         {
             if (!hasInitializedPreferences) HandlePreferences();
 
-            tab = (Tabs)GUILayout.Toolbar((int)tab, toolbarStrings);
-            if(lastTab != tab)
+            using (EditorGUILayout.ScrollViewScope scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
             {
-                scrollPosition = Vector2.zero;
+                scrollPosition = scrollView.scrollPosition;
+
+                sectionExpandedStyling = EditorGUILayout.BeginFoldoutHeaderGroup(sectionExpandedStyling, new GUIContent("  Appearance", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
+                if(sectionExpandedStyling)
+                {
+                    EditorGUI.indentLevel += 1;
+                    DrawGraphLabelsOptions();
+                    DrawGridStyleOptions();
+                    DrawNodeStyleOptions();
+                    DrawAnimationWindowAppearanceOptions();
+                    EditorGUI.indentLevel -= 1;
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
+
+                EditorGUILayout.Space(12);
+                DrawUILine();
+                sectionExpandedBehavior = EditorGUILayout.BeginFoldoutHeaderGroup(sectionExpandedBehavior, new GUIContent("  Behavior", EditorGUIUtility.IconContent("d_MoreOptions").image));
+                if(sectionExpandedBehavior)
+                {
+                    EditorGUI.indentLevel += 1;
+                    DrawNodeSnappingOptions();
+                    DrawGraphStateDefaultsOptions();
+                    DrawCompatibilityOptions();
+                    EditorGUI.indentLevel -= 1;
+                }
+                EditorGUILayout.EndFoldoutHeaderGroup();
             }
-            lastTab = tab;
 
-            switch (tab)
-            {
-                case Tabs.Tweaks:
-                    SectionLabel(new GUIContent("  General Tweaks", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
-                    // scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-                    using (EditorGUILayout.ScrollViewScope scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
-                    {
-                        DrawGraphStateDefaultsOptions();
-                        DrawGraphLabelsOptions();
-                        DrawAnimationWindowOptions();
-                        DrawCompatibilityOptions();
-                        scrollPosition = scrollView.scrollPosition;
-                    }
-                    DrawRATSOptionsFooter();
-                    break;
-
-                case Tabs.Theming:
-                    SectionLabel(new GUIContent("  Animator Graph Styling", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
-                    using (EditorGUILayout.ScrollViewScope scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
-                    {
-                        DrawGridStyleOptions();
-                        DrawNodeSnappingOptions();
-                        DrawNodeStyleOptions();
-                        DrawRATSOptionsFooter();
-                        scrollPosition = scrollView.scrollPosition;
-                    }
-                    break;
-
-                case Tabs.AnimEditor:
-                    DrawRATSOptionsFooter();
-                    break;
-            }            
+            DrawRATSOptionsFooter();
 
             if (GUI.changed) HandlePreferences();
         }
@@ -207,6 +191,8 @@ namespace Razgriz.RATS
                 DrawUILine(lightUILineColor);
                 EditorGUI.BeginDisabledGroup(RATS.Prefs.DisableAnimatorGraphFixes); // CEditor Compatibility
                 SectionLabel(new GUIContent("  Animator Graph Defaults", EditorGUIUtility.IconContent("d_CreateAddNew").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.NewStateWriteDefaults, "New States: WD Setting", "Enable or disable Write Defaults on new states");
@@ -218,6 +204,7 @@ namespace Razgriz.RATS
                     ToggleButton(ref RATS.Prefs.NewTransitionsZeroTime, "New Transition: 0 Time", "Set new transitions to have 0 exit/transition time");
                 }
                 EditorGUI.EndDisabledGroup(); // CEditor Compatibility 
+                EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
 
@@ -226,8 +213,9 @@ namespace Razgriz.RATS
             // Graph Labels
             using (new GUILayout.VerticalScope())
             {
-                DrawUILine();
+                DrawUILine(lightUILineColor);
                 SectionLabel(new GUIContent("  Animator Graph Labels", EditorGUIUtility.IconContent("d_AnimatorController Icon").image));
+                EditorGUI.indentLevel += optionsIndentStep;
 
                 using (new GUILayout.HorizontalScope())
                 {
@@ -240,7 +228,8 @@ namespace Razgriz.RATS
                     ToggleButton(ref RATS.Prefs.ShowWarningsTopLeft, "Warning Icons Top Left", "Show warnings in top left instead of next to name");
                 }
 
-                DrawUILine(lightUILineColor);
+                EditorGUILayout.Space(8);
+                // DrawUILine(lightUILineColor);
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.StateExtraLabelsWD, "<b>WD</b>  Write Defaults", "Indicate whether a state has Write Defaults enabled");
@@ -265,16 +254,18 @@ namespace Razgriz.RATS
                 {
                     EditorGUILayout.LabelField("Tip: Hold ALT to see all labels at any time", new GUIStyle("miniLabel"));
                 }
+                EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
 
-        private static void DrawAnimationWindowOptions()
+        private static void DrawAnimationWindowAppearanceOptions()
         {
             // Animation Window
             using (new GUILayout.VerticalScope())
             {
-                DrawUILine();
+                DrawUILine(lightUILineColor);
                 SectionLabel(new GUIContent("  Animation Window", EditorGUIUtility.IconContent("d_UnityEditor.AnimationWindow").image));
+                EditorGUI.indentLevel += optionsIndentStep;
 
                 using (new GUILayout.HorizontalScope())
                 {
@@ -286,10 +277,11 @@ namespace Razgriz.RATS
                     ToggleButton(ref RATS.Prefs.AnimationWindowTrimActualNames, "Trim m_ From Actual Names", "Trim the leading m_ from actual property names");
                 }
 
-                RATS.Prefs.AnimationWindowIndentScale = EditorGUILayout.Slider("Hierarchy Indent Scale", RATS.Prefs.AnimationWindowIndentScale, 0.0f, 1.0f);
+                RATS.Prefs.AnimationWindowIndentScale = EditorGUILayout.Slider("Indent Scale", RATS.Prefs.AnimationWindowIndentScale, 0.0f, 1.0f);
                 RATS.Prefs.AnimationWindowIndentScale = Mathf.Round(RATS.Prefs.AnimationWindowIndentScale * 20f) / 20f;
 
                 EditorGUILayout.LabelField("When disabling these options, click on a different animation to refresh", new GUIStyle("miniLabel"));
+                EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
 
@@ -298,8 +290,9 @@ namespace Razgriz.RATS
             // Disable Patch Categories
             using (new GUILayout.VerticalScope())
             {
-                DrawUILine();
+                DrawUILine(lightUILineColor);
                 SectionLabel(new GUIContent("  Compatibility", EditorGUIUtility.IconContent("d_UnityEditor.Graphs.AnimatorControllerTool").image));
+                EditorGUI.indentLevel += optionsIndentStep;
 
                 EditorGUI.BeginChangeCheck();
                 ToggleButton(ref RATS.Prefs.DisableAnimatorGraphFixes, "Disable Graph Window Patches (takes a few seconds)", "Allows other utilities to patch Controller editor window");
@@ -328,6 +321,7 @@ namespace Razgriz.RATS
                     UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
                     AssetDatabase.Refresh();
                 }
+                EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
 
@@ -336,7 +330,10 @@ namespace Razgriz.RATS
             using (new EditorGUILayout.VerticalScope())
             {
                 DrawUILine(lightUILineColor);
-                ToggleButton(ref RATS.Prefs.GraphGridOverride, "Override Grid Style");
+                SectionLabel(new GUIContent("  Grid", EditorGUIUtility.IconContent("GridBrush Icon").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+
+                ToggleButton(ref RATS.Prefs.GraphGridOverride, "Use Custom Grid");
                 RATS.Prefs.GraphGridBackgroundColor = EditorGUILayout.ColorField(new GUIContent("Background"), RATS.Prefs.GraphGridBackgroundColor, true, false, false);
 
                 RATS.Prefs.GraphGridScalingMajor = EditorGUILayout.Slider("Major Grid Spacing", RATS.Prefs.GraphGridScalingMajor, 0.0f, 5.0f);
@@ -345,6 +342,7 @@ namespace Razgriz.RATS
 
                 RATS.Prefs.GraphGridColorMajor = EditorGUILayout.ColorField("Major Grid", RATS.Prefs.GraphGridColorMajor);
                 RATS.Prefs.GraphGridColorMinor = EditorGUILayout.ColorField("Minor Grid", RATS.Prefs.GraphGridColorMinor);
+                EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
 
@@ -353,7 +351,10 @@ namespace Razgriz.RATS
             using (new EditorGUILayout.VerticalScope())
             {
                 DrawUILine(lightUILineColor);
-                ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Override Node Style");
+                SectionLabel(new GUIContent("  Nodes", EditorGUIUtility.IconContent("AnimatorState Icon").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+                
+                ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Use Custom Node Style");
                 RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("State Name Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
 
                 EditorGUI.BeginChangeCheck();
@@ -370,6 +371,7 @@ namespace Razgriz.RATS
                     RATS.UpdateGraphTextures();
                     updateNodeStyle = true;
                 }
+                EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
 
@@ -378,12 +380,16 @@ namespace Razgriz.RATS
             using (new EditorGUILayout.VerticalScope())
             {
                 DrawUILine(lightUILineColor);
+                SectionLabel(new GUIContent("  Node Snapping", EditorGUIUtility.IconContent("AnimatorStateTransition Icon").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.GraphDragNoSnap, "Disable Snapping by Default", "Disable grid snapping (hold Control while dragging for alternate mode)");
                     ToggleButton(ref RATS.Prefs.GraphDragSnapToModifiedGrid, "Snap to custom grid", "Snaps to user-specified grid");
                 }
                 EditorGUILayout.LabelField("Tip: hold Control while dragging for the opposite of this setting", new GUIStyle("miniLabel"));
+                EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
 
