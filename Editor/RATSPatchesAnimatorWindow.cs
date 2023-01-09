@@ -563,8 +563,6 @@ namespace Razgriz.RATS
                 prefs_DimOffLabels_last = RATS.Prefs.HideOffLabels;
                 Rect stateRect = GUILayoutUtility.GetLastRect();
 
-                
-
                 bool debugShowLabels = Event.current.alt;
 
                 var renameOverlay = Traverse.Create(RenameOverlayType);
@@ -597,7 +595,6 @@ namespace Razgriz.RATS
                         hasMotionTime = aState.timeParameterActive;
                         hasSpeedParam = aState.speedParameterActive;
                         
-
                         if(aState.motion != null) 
                         {
                             hasblendtree = aState.motion.GetType() == typeof(BlendTree);
@@ -621,7 +618,6 @@ namespace Razgriz.RATS
                         if (aStateMachine.behaviours != null) hasBehavior = aStateMachine.behaviours.Length > 0;
                     }
 
-
                     int iconOffset = 0;
 
                     // Loop time label
@@ -635,7 +631,6 @@ namespace Razgriz.RATS
                     // Empty Animation/State Warning, top left (option)
                     if(RATS.Prefs.ShowWarningsTopLeft)
                     {
-                        
                         Rect emptyWarningRect = new Rect(stateRect.x + iconOffset + 1, stateRect.y - 28, 14, 14);
                         if((debugShowLabels || RATS.Prefs.StateAnimIsEmptyLabel))
                         {
@@ -645,40 +640,39 @@ namespace Razgriz.RATS
                     }
 
                     #if !RATS_NO_ANIMATOR
-                        if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
+                        if(!hasStateMachine && (debugShowLabels || RATS.Prefs.StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
                         if(				(debugShowLabels || RATS.Prefs.StateExtraLabelsBehavior)) EditorGUI.LabelField(behaviorLabelRect, "B", (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive));
                         if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsMotionTime)) EditorGUI.LabelField(motionTimeLabelRect, "M", (hasMotionTime ? StateExtrasStyleActive : StateExtrasStyleInactive));
                         if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsSpeed)) EditorGUI.LabelField(speedLabelRect, "S", (hasSpeedParam ? StateExtrasStyleActive : StateExtrasStyleInactive));
 
                         if (hasMotion && (debugShowLabels || RATS.Prefs.StateMotionLabels))
                         {
-                            string motionName = "  [none]";
-                            if (aState.motion) motionName = "  " + aState.motion.name;
+                            // use the value of aState.motion.name if it's is not null, otherwise use a different value
+                            string motionName = aState?.motion?.name ?? "[none]";
 
                             float iconSize = 13f;
 
-                            Texture labelIcon = (Texture)(new Texture2D(1,1));
-                            string labelTooltip = "";
+                            GUIContent labelIconContent = new GUIContent();
                             if(hasblendtree)
                             {
-                                labelIcon = EditorGUIUtility.IconContent("d_BlendTree Icon").image;
-                                labelTooltip = "State contains a Blendtree";
+                                labelIconContent.image = EditorGUIUtility.IconContent("d_BlendTree Icon").image;
+                                labelIconContent.tooltip = "State contains a Blendtree";
                                 iconSize = 14;
                             }
                             else if(isEmptyAnim && !RATS.Prefs.ShowWarningsTopLeft)
                             {
-                                labelIcon = EditorGUIUtility.IconContent("Warning@2x").image;
-                                labelTooltip = "Animation Clip has no Keyframes";
+                                labelIconContent.image = EditorGUIUtility.IconContent("Warning@2x").image;
+                                labelIconContent.tooltip = "Animation Clip has no Keyframes";
                             }
                             else if(isEmptyState && !RATS.Prefs.ShowWarningsTopLeft)
                             {
-                                labelIcon = EditorGUIUtility.IconContent("Error@2x").image;
-                                labelTooltip = "State has no Motion assigned";
+                                labelIconContent.image = EditorGUIUtility.IconContent("Error@2x").image;
+                                labelIconContent.tooltip = "State has no Motion assigned";
                             }
                             else 
                             {
-                                labelIcon = EditorGUIUtility.IconContent("AnimationClip On Icon").image;
-                                labelTooltip = "State contains an Animation Clip";
+                                labelIconContent.image = EditorGUIUtility.IconContent("AnimationClip On Icon").image;
+                                labelIconContent.tooltip = "State contains an Animation Clip";
                                 iconSize = 16;
                             }
 
@@ -690,7 +684,7 @@ namespace Razgriz.RATS
                             Rect motionIconRect = new Rect(motionLabelRect.x - iconSize/2 - 0.5f, motionLabelRect.y + height/2 - iconSize/2, iconSize, iconSize);
 
                             EditorGUI.LabelField(motionLabelRect, motionLabel, StateMotionStyle);
-                            EditorGUI.LabelField(motionIconRect, new GUIContent(labelIcon, labelTooltip));
+                            EditorGUI.LabelField(motionIconRect, labelIconContent);
                         }
                     #endif //!RATS_NO_ANIMATOR
                 }
