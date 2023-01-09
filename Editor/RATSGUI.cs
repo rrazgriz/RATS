@@ -438,6 +438,18 @@ namespace Razgriz.RATS
                     {
                         EditorGUILayout.LabelField($"   RATS  v{version}   •   Razgriz", new GUIStyle("Label"));
                     }
+
+                    bool resetPrefsButton = GUILayout.Button(new GUIContent("  Reset Preferences", EditorGUIUtility.IconContent("CollabConflict").image), new GUIStyle("Button"));
+                    bool doResetPrefs = false;
+                    if(resetPrefsButton)
+                        doResetPrefs = EditorUtility.DisplayDialog("RATS: Reset Options", "This will reset all RATS options to defaults. Do you want to continue?", "Reset", "Cancel");
+                    
+                    if(doResetPrefs)
+                    {
+                        RATSPreferences defaultPrefsTemp = new RATSPreferences();
+                        RATSPreferenceHandler.Save(defaultPrefsTemp);
+                        RATSPreferenceHandler.Load(ref RATS.Prefs);
+                    }
                 }
             }
         }
