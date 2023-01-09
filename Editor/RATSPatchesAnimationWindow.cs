@@ -4,6 +4,7 @@
 // Copyright (c) 2023 Razgriz
 // SPDX-License-Identifier: MIT
 
+#if UNITY_EDITOR
 using System;
 using System.Reflection;
 using System.Linq;
@@ -68,3 +69,4 @@ namespace Razgriz.RATS
         }
     }
 }
+#endif

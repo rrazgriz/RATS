@@ -4,6 +4,7 @@
 // Copyright (c) 2023 Razgriz
 // SPDX-License-Identifier: MIT
 
+#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -700,3 +701,4 @@ namespace Razgriz.RATS
         #endregion GraphVisuals
     }
 }
+#endif
