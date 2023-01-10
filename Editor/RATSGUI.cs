@@ -101,7 +101,7 @@ namespace Razgriz.RATS
         public static void ShowWindow()
         {
             RATSGUI window = EditorWindow.GetWindow<RATSGUI>();
-            window.titleContent = new GUIContent("  RATS", (Texture2D)AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath("a5de26a705a067a4caed95b51ab10ea4")));
+            window.titleContent = new GUIContent("  RATS", GetRATSIcon());
         }
 
         void OnInspectorUpdate() 
@@ -426,8 +426,7 @@ namespace Razgriz.RATS
 
         private static void DrawRATSOptionsHeader()
         {
-            Texture ratsIcon = AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath("a5de26a705a067a4caed95b51ab10ea4"));
-            EditorGUILayout.LabelField(new GUIContent("  RATS", ratsIcon), new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter });
+            EditorGUILayout.LabelField(new GUIContent("  RATS", GetRATSIcon()), new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter });
             EditorGUILayout.LabelField(new GUIContent($"  Raz's Animator Tweaks 'n' Stuff   •   v{version}"), new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter });
             DrawUILine();
         }
@@ -442,8 +441,7 @@ namespace Razgriz.RATS
                     // Github link button
                     using (new GUILayout.HorizontalScope())
                     {
-                        Texture githubIcon = AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath("9cb81a504770b4943839f4d46d94208f"));
-                        bool githubLinkClicked = GUILayout.Button(new GUIContent("  View Repo on Github", githubIcon), new GUIStyle("Button"));
+                        bool githubLinkClicked = GUILayout.Button(new GUIContent("  View Repo on Github", GetGithubIcon()), new GUIStyle("Button"));
                         EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link); // Lights up button with link cursor
                         if (githubLinkClicked) Application.OpenURL(@"https://github.com/rrazgriz/RATS");
                     }
@@ -509,6 +507,9 @@ namespace Razgriz.RATS
             Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(padding+thickness));
             EditorGUI.DrawRect(new Rect(r.x - 2, r.y + padding/2, r.width + 6, thickness), color);
         }
+
+        public static Texture GetRATSIcon() => AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath("a5de26a705a067a4caed95b51ab10ea4"));
+        public static Texture GetGithubIcon() => AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath("9cb81a504770b4943839f4d46d94208f"));
 
         public static Texture2D TextureFromBase64PNG(string base64)
         {

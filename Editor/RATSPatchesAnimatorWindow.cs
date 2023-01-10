@@ -321,7 +321,7 @@ namespace Razgriz.RATS
 
         // Controller asset pinging/selection via bottom bar
         [HarmonyPatch]
-        class PatchAnimatorBottomBarPingAsset
+        class PatchAnimatorBottomBar
         {
             [HarmonyTargetMethod]
             static MethodBase TargetMethod() => AccessTools.Method(AnimatorWindowType, "DoGraphBottomBar");
@@ -332,16 +332,34 @@ namespace Razgriz.RATS
                 UnityEngine.Object ctrl = (UnityEngine.Object)AnimatorControllerGetter.Invoke(__instance, null);
                 if (ctrl != (UnityEngine.Object)null)
                 {
-                    EditorGUIUtility.AddCursorRect(nameRect, MouseCursor.Link); // "I'm clickable!"
+                    GUIContent RATSLabel = new GUIContent($"  RATS v{RATSGUI.version}", (Texture)RATSGUI.GetRATSIcon());
+                    GUILayout.BeginArea(nameRect);
+                    GUILayout.Label(RATSLabel, (GUIStyle)"miniLabel");
+                    float RATSLabelWidth = ((GUIStyle)"miniLabel").CalcSize(RATSLabel).x;
+                    float controllerNameWidth = ((GUIStyle)"miniLabel").CalcSize(new GUIContent(AssetDatabase.GetAssetPath(ctrl))).x;
+                    Rect RATSLabelrect = new Rect(nameRect.x, nameRect.y, RATSLabelWidth, nameRect.height);
+                    Rect pingControllerRect = new Rect(nameRect.x + nameRect.width - controllerNameWidth, nameRect.y, controllerNameWidth, nameRect.height);
+                    
+                    EditorGUIUtility.AddCursorRect(RATSLabelrect, MouseCursor.Link); // "I'm clickable!"
+                    EditorGUIUtility.AddCursorRect(pingControllerRect, MouseCursor.Link); // "I'm clickable!"
 
                     Event current = Event.current;
-                    if (((current.type == EventType.MouseDown) && (current.button == 0)) && nameRect.Contains(current.mousePosition))
+                    if ((current.type == EventType.MouseDown) && (current.button == 0))
                     {
-                        EditorGUIUtility.PingObject(ctrl);
-                        if (current.clickCount == 2) // Adhere to the 'select only on double click' convention
-                            Selection.activeObject = ctrl;
-                        current.Use();
-                    }
+                        if(RATSLabelrect.Contains(current.mousePosition))
+                        {
+                            RATSGUI.ShowWindow();
+                        }
+
+                        if(pingControllerRect.Contains(current.mousePosition))
+                        {
+                            EditorGUIUtility.PingObject(ctrl);
+                            if (current.clickCount == 2) // Adhere to the 'select only on double click' convention
+                                Selection.activeObject = ctrl;
+                            current.Use();
+                        }
+                    } 
+                    GUILayout.EndArea();
                 }
             }
         }
