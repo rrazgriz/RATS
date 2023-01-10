@@ -18,12 +18,13 @@ namespace Razgriz.RATS
 {
     public partial class RATS
     {
-#if !RATS_NO_ANIMATOR // CEditor Compatibility
+#if !RATS_NO_ANIMATOR // Compatibility
 
         #region BugFixes
         // Prevent scroll position reset when rearranging or editing layers
         private static Vector2 _layerScrollCache;
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchLayerScrollReset
         {
             [HarmonyTargetMethod]
@@ -47,6 +48,7 @@ namespace Razgriz.RATS
 
         // Scroll to parameter list bottom when adding a new one to see the rename field
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchNewParameterScroll
         {
             [HarmonyTargetMethod]
@@ -61,6 +63,7 @@ namespace Razgriz.RATS
 
         // Break 'undo' of sub-state machine pasting
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchBreakUndoSubStateMachinePaste
         {
             [HarmonyTargetMethod]
@@ -83,6 +86,7 @@ namespace Razgriz.RATS
         private static string ConditionParam_pre;
         private static AnimatorControllerParameterType ConditionParamType_pre;
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchTransitionConditionChangeBreakingCondition
         {
             [HarmonyTargetMethod]
@@ -179,6 +183,7 @@ namespace Razgriz.RATS
 
         // Layer copy-pasting
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchLayerCopyPaste
         {
             [HarmonyTargetMethod]
@@ -216,6 +221,7 @@ namespace Razgriz.RATS
         
         // Keyboard hooks for layer editing
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchLayerCopyPasteKeyboardHooks
         {
             [HarmonyTargetMethod]
@@ -287,6 +293,7 @@ namespace Razgriz.RATS
         #region GraphFeatures
         // Set Default Transition Duration/Exit Time
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchAnimatorNewTransitionDefaults
         {
             [HarmonyTargetMethod]
@@ -307,6 +314,7 @@ namespace Razgriz.RATS
 
         // Write Defaults Default State
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchAnimatorNewStateDefaults
         {
             [HarmonyTargetMethod]
@@ -319,8 +327,15 @@ namespace Razgriz.RATS
             }
         }
 
+        #endregion GraphFeatures
+
+#endif //!RATS_NO_ANIMATOR
+
+        #region GraphVisuals
+
         // Controller asset pinging/selection via bottom bar
         [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
         class PatchAnimatorBottomBar
         {
             static GUIStyle buttonStyle = EditorStyles.miniBoldLabel;
@@ -334,8 +349,12 @@ namespace Razgriz.RATS
                 UnityEngine.Object ctrl = (UnityEngine.Object)AnimatorControllerGetter.Invoke(__instance, null);
                 if (ctrl != (UnityEngine.Object)null)
                 {
+                    #if RATS_NO_ANIMATOR
+                    GUIContent RATSLabel = new GUIContent($"  RATS (Compatibility)", (Texture)RATSGUI.GetRATSIcon());
+                    #else
                     GUIContent RATSLabel = new GUIContent($"  RATS", (Texture)RATSGUI.GetRATSIcon());
-                    GUIContent ControllerLabel = new GUIContent($"  {AssetDatabase.GetAssetPath(ctrl)}", EditorGUIUtility.IconContent("AnimatorController On Icon").image);
+                    #endif
+                    GUIContent ControllerLabel = new GUIContent(AssetDatabase.GetAssetPath(ctrl));
                     float RATSLabelWidth = (buttonStyle).CalcSize(RATSLabel).x;
                     float controllerNameWidth = (EditorStyles.miniLabel).CalcSize(ControllerLabel).x;
                     Rect RATSLabelrect = new Rect(nameRect.x, nameRect.y - 2, RATSLabelWidth, nameRect.height);
@@ -368,12 +387,6 @@ namespace Razgriz.RATS
                 }
             }
         }
-
-        #endregion GraphFeatures
-
-#endif //RATS_NO_ANIMATOR
-
-        #region GraphVisuals
 
         // Background
         [HarmonyPatch]
@@ -471,7 +484,7 @@ namespace Razgriz.RATS
 
         // Node Icons
         [HarmonyPatch]
-        [HarmonyPriority(Priority.LowerThanNormal)]
+        [HarmonyPriority(Priority.Low)]
         class PatchAnimatorNodeStyles
         {
             [HarmonyTargetMethods]

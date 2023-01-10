@@ -211,7 +211,7 @@ namespace Razgriz.RATS
             using (new GUILayout.VerticalScope())
             {
                 DrawUILine(lightUILineColor);
-                EditorGUI.BeginDisabledGroup(RATS.Prefs.DisableAnimatorGraphFixes); // CEditor Compatibility
+                EditorGUI.BeginDisabledGroup(RATS.Prefs.DisableAnimatorGraphFixes); // Compatibility
                 SectionLabel(new GUIContent("  Animator Graph Defaults", EditorGUIUtility.IconContent("d_CreateAddNew").image));
                 EditorGUI.indentLevel += optionsIndentStep;
 
@@ -239,7 +239,7 @@ namespace Razgriz.RATS
                 RATS.Prefs.DefaultTransitionOrderedInterruption = EditorGUILayout.ToggleLeft(new GUIContent("Ordered Interruption"), RATS.Prefs.DefaultTransitionOrderedInterruption);
                 RATS.Prefs.DefaultTransitionCanTransitionToSelf = EditorGUILayout.ToggleLeft(new GUIContent("Can Transition To Self"), RATS.Prefs.DefaultTransitionCanTransitionToSelf);
 
-                EditorGUI.EndDisabledGroup(); // CEditor Compatibility 
+                EditorGUI.EndDisabledGroup(); // Compatibility 
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
@@ -336,7 +336,7 @@ namespace Razgriz.RATS
                 {
                     SetDefineSymbol("RATS_NO_ANIMATOR", RATS.Prefs.DisableAnimatorGraphFixes);
 
-                    // Disable Options that conflict with CEditor
+                    // Disable Options that conflict with other editor tools
                     if (RATS.Prefs.DisableAnimatorGraphFixes)
                     {
                         RATS.Prefs.StateLoopedLabels = false;
