@@ -323,6 +323,8 @@ namespace Razgriz.RATS
         [HarmonyPatch]
         class PatchAnimatorBottomBar
         {
+            static GUIStyle buttonStyle = EditorStyles.miniBoldLabel;
+
             [HarmonyTargetMethod]
             static MethodBase TargetMethod() => AccessTools.Method(AnimatorWindowType, "DoGraphBottomBar");
 
@@ -332,13 +334,16 @@ namespace Razgriz.RATS
                 UnityEngine.Object ctrl = (UnityEngine.Object)AnimatorControllerGetter.Invoke(__instance, null);
                 if (ctrl != (UnityEngine.Object)null)
                 {
-                    GUIContent RATSLabel = new GUIContent($"  RATS v{RATSGUI.version}", (Texture)RATSGUI.GetRATSIcon());
-                    GUILayout.BeginArea(nameRect);
-                    GUILayout.Label(RATSLabel, (GUIStyle)"miniLabel");
-                    float RATSLabelWidth = ((GUIStyle)"miniLabel").CalcSize(RATSLabel).x;
-                    float controllerNameWidth = ((GUIStyle)"miniLabel").CalcSize(new GUIContent(AssetDatabase.GetAssetPath(ctrl))).x;
-                    Rect RATSLabelrect = new Rect(nameRect.x, nameRect.y, RATSLabelWidth, nameRect.height);
+                    GUIContent RATSLabel = new GUIContent($"  RATS", (Texture)RATSGUI.GetRATSIcon());
+                    GUIContent ControllerLabel = new GUIContent($"  {AssetDatabase.GetAssetPath(ctrl)}", EditorGUIUtility.IconContent("AnimatorController On Icon").image);
+                    float RATSLabelWidth = (buttonStyle).CalcSize(RATSLabel).x;
+                    float controllerNameWidth = (EditorStyles.miniLabel).CalcSize(ControllerLabel).x;
+                    Rect RATSLabelrect = new Rect(nameRect.x, nameRect.y - 2, RATSLabelWidth, nameRect.height);
                     Rect pingControllerRect = new Rect(nameRect.x + nameRect.width - controllerNameWidth, nameRect.y, controllerNameWidth, nameRect.height);
+
+                    GUILayout.BeginArea(RATSLabelrect);
+                    GUILayout.Label(RATSLabel, buttonStyle);
+                    GUILayout.EndArea();
                     
                     EditorGUIUtility.AddCursorRect(RATSLabelrect, MouseCursor.Link); // "I'm clickable!"
                     EditorGUIUtility.AddCursorRect(pingControllerRect, MouseCursor.Link); // "I'm clickable!"
@@ -359,7 +364,7 @@ namespace Razgriz.RATS
                             current.Use();
                         }
                     } 
-                    GUILayout.EndArea();
+                    
                 }
             }
         }
