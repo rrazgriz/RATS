@@ -25,7 +25,8 @@ namespace Razgriz.RATS
         public bool StateBlendtreeLabels = true;
         public bool StateAnimIsEmptyLabel = true;
         public bool StateLoopedLabels = true;
-        public bool HideOffLabels = false;
+        public Color StateExtraLabelsColorEnabled = new Color(1.0f, 1.0f, 1.0f, 0.8f);
+        public Color StateExtraLabelsColorDisabled = new Color(1.0f, 1.0f, 1.0f, 0.05f);
         public bool ShowWarningsTopLeft = true;
         public bool StateExtraLabelsWD = true;
         public bool StateExtraLabelsBehavior = true;
@@ -279,7 +280,11 @@ namespace Razgriz.RATS
                     ToggleButton(ref RATS.Prefs.StateMotionLabels, "<b>Tt</b>    Motion Names", "Show the name of the state's clip/blendtree");
                 }
 
-                RATS.Prefs.HideOffLabels = BooleanDropdown(RATS.Prefs.HideOffLabels, "Off Style", "Fade", "Hide");
+                using (new GUILayout.HorizontalScope())
+                {
+                    RATS.Prefs.StateExtraLabelsColorEnabled = EditorGUILayout.ColorField("Extras Enabled", RATS.Prefs.StateExtraLabelsColorEnabled);
+                    RATS.Prefs.StateExtraLabelsColorDisabled = EditorGUILayout.ColorField("Extras Disabled", RATS.Prefs.StateExtraLabelsColorDisabled);
+                }
 
                 using (new GUILayout.HorizontalScope())
                 {
@@ -343,7 +348,6 @@ namespace Razgriz.RATS
                         RATS.Prefs.StateExtraLabelsSpeed = false;
                         RATS.Prefs.StateExtraLabelsMotionTime = false;
                         RATS.Prefs.StateMotionLabels = false;
-                        RATS.Prefs.HideOffLabels = false;
                         RATS.Prefs.GraphGridOverride = false;
                     }
                     HandlePreferences();

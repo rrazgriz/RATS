@@ -539,8 +539,9 @@ namespace Razgriz.RATS
         }
 
         // Show motion name and extra details on state graph nodes
-        static bool prefs_DimOffLabels_last = false;
         static Color lastTextColor = RATS.Prefs.StateTextColor;
+        static Color lastOnColor = RATS.Prefs.StateExtraLabelsColorEnabled;
+        static Color lastOffColor = RATS.Prefs.StateExtraLabelsColorDisabled;
         [HarmonyPatch]
         [HarmonyPriority(Priority.Low)]
         class PatchAnimatorLabels
@@ -562,7 +563,7 @@ namespace Razgriz.RATS
                 bool hasStateMachine = aStateMachine != null;
 
                 // Lazy-init styles because built-in ones not available during static init
-                if (StateMotionStyle == null || (prefs_DimOffLabels_last != RATS.Prefs.HideOffLabels) || lastTextColor != RATS.Prefs.StateTextColor)
+                if (StateMotionStyle == null || (lastOnColor != RATS.Prefs.StateExtraLabelsColorEnabled) || (lastOffColor != RATS.Prefs.StateExtraLabelsColorDisabled) || lastTextColor != RATS.Prefs.StateTextColor)
                 {
                     StateExtrasStyle = new GUIStyle(EditorStyles.label);
                     StateExtrasStyle.alignment = TextAnchor.UpperRight;
@@ -572,13 +573,12 @@ namespace Razgriz.RATS
                     StateExtrasStyleActive = new GUIStyle(EditorStyles.label);
                     StateExtrasStyleActive.alignment = TextAnchor.UpperRight;
                     StateExtrasStyleActive.fontStyle = FontStyle.Bold;
-                    StateExtrasStyleActive.normal.textColor = RATS.Prefs.StateTextColor;
+                    StateExtrasStyleActive.normal.textColor = RATS.Prefs.StateExtraLabelsColorEnabled;
 
                     StateExtrasStyleInactive = new GUIStyle(EditorStyles.label);
                     StateExtrasStyleInactive.alignment = TextAnchor.UpperRight;
                     StateExtrasStyleInactive.fontStyle = FontStyle.Bold;
-                    float inactiveExtrasTextAlpha = RATS.Prefs.HideOffLabels ? 0.0f : 0.2f;
-                    StateExtrasStyleInactive.normal.textColor = new Color(RATS.Prefs.StateTextColor.r, RATS.Prefs.StateTextColor.g, RATS.Prefs.StateTextColor.b, inactiveExtrasTextAlpha);
+                    StateExtrasStyleInactive.normal.textColor = RATS.Prefs.StateExtraLabelsColorDisabled;
 
                     StateMotionStyle = new GUIStyle(EditorStyles.miniBoldLabel);
                     StateMotionStyle.fontSize = 9;
@@ -590,13 +590,11 @@ namespace Razgriz.RATS
                     StateBlendtreeStyle.fontStyle = FontStyle.Bold;
                 }
 
-                prefs_DimOffLabels_last = RATS.Prefs.HideOffLabels;
+                lastOnColor = RATS.Prefs.StateExtraLabelsColorEnabled;
+                lastOffColor = RATS.Prefs.StateExtraLabelsColorDisabled;
                 Rect stateRect = GUILayoutUtility.GetLastRect();
 
                 bool debugShowLabels = Event.current.alt;
-
-                var renameOverlay = Traverse.Create(RenameOverlayType);
-                renameOverlay.Field("editFieldRect").SetValue(stateRect);
 
                 // Tags in corner, similar to what layer editor does
                 if ((hasMotion || hasStateMachine))
@@ -610,14 +608,16 @@ namespace Razgriz.RATS
                     bool isEmptyAnim = false;
                     bool isEmptyState = false;
 
-                    int off1 = (debugShowLabels || (RATS.Prefs.StateExtraLabelsWD && RATS.Prefs.StateExtraLabelsBehavior)) ? 15 : 0;
-                    int off2 = (debugShowLabels || (RATS.Prefs.StateExtraLabelsMotionTime && RATS.Prefs.StateExtraLabelsSpeed)) ? 15 : 0;
+                    int baseSize = 14;
 
-                    Rect wdLabelRect 			= new Rect(stateRect.x - off1, stateRect.y - 30, stateRect.width, 15);
-                    Rect behaviorLabelRect 		= new Rect(stateRect.x, 	   stateRect.y - 30, stateRect.width, 15);
+                    int off1 = (debugShowLabels || (RATS.Prefs.StateExtraLabelsWD && RATS.Prefs.StateExtraLabelsBehavior)) ? baseSize : 0;
+                    int off2 = (debugShowLabels || (RATS.Prefs.StateExtraLabelsMotionTime && RATS.Prefs.StateExtraLabelsSpeed)) ? baseSize : 0;
 
-                    Rect motionTimeLabelRect 	= new Rect(stateRect.x, 	   stateRect.y - 15, stateRect.width, 15);
-                    Rect speedLabelRect 		= new Rect(stateRect.x - off2, stateRect.y - 15, stateRect.width, 15);
+                    Rect wdLabelRect 			= new Rect(stateRect.x - off1, stateRect.y - baseSize * 2, stateRect.width, baseSize);
+                    Rect behaviorLabelRect 		= new Rect(stateRect.x, 	   stateRect.y - baseSize * 2, stateRect.width, baseSize);
+
+                    Rect motionTimeLabelRect 	= new Rect(stateRect.x, 	   stateRect.y - baseSize, stateRect.width, baseSize);
+                    Rect speedLabelRect 		= new Rect(stateRect.x - off2, stateRect.y - baseSize, stateRect.width, baseSize);
 
                     if (hasMotion) // Animation/Blendtree
                     {
