@@ -42,7 +42,9 @@ namespace Razgriz.RATS
         public Color GraphGridColorMinor = new Color(0f, 0f, 0f, 0.28f);
         public bool NodeStyleOverride = true;
         public Color StateTextColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        public Color StateGlowColor = new Color(44/255f, 119/255f, 212/255f, 1f);
         public Color StateColorGray = new Color(0.3f, 0.3f, 0.3f, 1f);
+        public Color SubStateMachineColor = new Color(0.05f, 0.25f, 0.5f, 1f);
         public Color StateColorOrange = new Color(0.78f, 0.38f, 0.15f, 1f);
         public Color StateColorAqua = new Color(0.22f, 0.58f, 0.59f, 1f);
         public Color StateColorGreen = new Color(0.07f, 0.47f, 0.20f, 1f);
@@ -77,7 +79,7 @@ namespace Razgriz.RATS
         {
             string prefsJson = EditorPrefs.GetString(key, "{}");
             JsonUtility.FromJsonOverwrite(prefsJson, prefs);
-            Debug.Log($"Loaded RATS prefs from EditorPrefs Key: {key}");
+            Debug.Log($"[RATS] Loaded prefs from EditorPrefs Key: {key}");
             // Update our prefs in case the user has upgraded or something
             Save(prefs, key);
         }
@@ -93,7 +95,6 @@ namespace Razgriz.RATS
         public static bool sectionExpandedInfo = true;
 
         public static bool hasInitializedPreferences = false;
-        public static bool updateNodeStyle = false;
 
         static GUIStyle ToggleButtonStyle;
         static Vector2 scrollPosition = Vector2.zero;
@@ -394,17 +395,18 @@ namespace Razgriz.RATS
 
                 EditorGUI.BeginChangeCheck();
                 RATS.Prefs.StateTextColor = EditorGUILayout.ColorField("Text Color", RATS.Prefs.StateTextColor);
+                RATS.Prefs.StateGlowColor = EditorGUILayout.ColorField("Highlight", RATS.Prefs.StateGlowColor);
                 RATS.Prefs.StateColorGray = EditorGUILayout.ColorField("Normal State", RATS.Prefs.StateColorGray);
+                RATS.Prefs.SubStateMachineColor = EditorGUILayout.ColorField("SubStateMachines", RATS.Prefs.SubStateMachineColor);
                 RATS.Prefs.StateColorOrange = EditorGUILayout.ColorField("Default State", RATS.Prefs.StateColorOrange);
                 RATS.Prefs.StateColorAqua = EditorGUILayout.ColorField("Any State", RATS.Prefs.StateColorAqua);
                 RATS.Prefs.StateColorGreen = EditorGUILayout.ColorField("Entry State", RATS.Prefs.StateColorGreen);
                 RATS.Prefs.StateColorRed = EditorGUILayout.ColorField("Exit State", RATS.Prefs.StateColorRed);
                 
-                updateNodeStyle = false;
                 if (EditorGUI.EndChangeCheck())
                 {
                     RATS.UpdateGraphTextures();
-                    updateNodeStyle = true;
+                    RATS.updateNodeStyle = true;
                 }
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
@@ -466,6 +468,8 @@ namespace Razgriz.RATS
                         RATSPreferences defaultPrefsTemp = new RATSPreferences();
                         RATSPreferenceHandler.Save(defaultPrefsTemp);
                         RATSPreferenceHandler.Load(ref RATS.Prefs);
+                        RATS.UpdateGraphTextures();
+                        RATS.updateNodeStyle = true;
                     }
                 }
             }

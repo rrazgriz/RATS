@@ -142,7 +142,7 @@ namespace Razgriz.RATS
                                         || ((ConditionParamType_pre == AnimatorControllerParameterType.Float) && (param.type == AnimatorControllerParameterType.Int)))
                                     {
                                         m_ConditionMode.intValue = ConditionMode_pre;
-                                        Debug.Log("RATS: Restored transition condition mode");
+                                        // Debug.Log("[RATS] Restored transition condition mode");
                                     }
                                     // int->float has restrictions
                                     else if ((ConditionParamType_pre == AnimatorControllerParameterType.Int) && (param.type == AnimatorControllerParameterType.Float))
@@ -151,7 +151,7 @@ namespace Razgriz.RATS
                                         if ((premode != AnimatorConditionMode.Equals) && (premode != AnimatorConditionMode.NotEqual))
                                         {
                                             m_ConditionMode.intValue = ConditionMode_pre;
-                                            Debug.Log("RATS: Restored transition condition mode 2");
+                                            // Debug.Log("[RATS] Restored transition condition mode 2");
                                         }
                                     }
                                     break;
@@ -482,6 +482,8 @@ namespace Razgriz.RATS
 
         static Color defaultTextColor = new Color(0.922f, 0.922f, 0.922f, 1.0f);
 
+        public static bool updateNodeStyle = false;
+
         // Node Icons
         [HarmonyPatch]
         [HarmonyPriority(Priority.Low)]
@@ -503,8 +505,9 @@ namespace Razgriz.RATS
                     bool isPatched = false;
                     bool wasPatchedAtSomePoint = nodeBackgroundPatched.TryGetValue(styleHash, out isPatched);
                     
-                    if(true || RATSGUI.updateNodeStyle || !wasPatchedAtSomePoint || !isPatched)
+                    if(true || updateNodeStyle || !wasPatchedAtSomePoint || !isPatched)
                     {
+                        updateNodeStyle = false;
                         nodeBackgroundPatched[styleHash] = true;
 
                         if(styleName == "node") // Regular state node

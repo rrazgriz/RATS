@@ -27,7 +27,7 @@ namespace Razgriz.RATS
 
         static RATS()
         {
-            Debug.Log("RATS v" + RATSGUI.version);
+            Debug.Log($"[RATS v{RATSGUI.version}]");
             RATSGUI.HandlePreferences();
             // Register our patch delegate
             EditorApplication.update += DoPatches;
@@ -222,7 +222,7 @@ namespace Razgriz.RATS
                     string pname = param.name;
                     if (!destparams.ContainsKey(pname))
                     {
-                        Debug.Log("Transferring parameter "+pname); // TODO: count or concatenate names?
+                        // Debug.Log("Transferring parameter "+pname); // TODO: count or concatenate names?
                         ctrl.AddParameter(param);
                         // note: queuedparams should not have duplicates so don't need to append to destparams
                     }
@@ -384,13 +384,12 @@ namespace Razgriz.RATS
         {
             try
             {
-                Color glowTint = new Color(44/255f, 119/255f, 212/255f, 1f);
                 Texture2D glowState = new Texture2D(nodeBackgroundImageActive.width, nodeBackgroundImageActive.height);
                 Texture2D glowStateMachine = new Texture2D(stateMachineBackgroundImageActive.width, stateMachineBackgroundImageActive.height);
                 glowState.SetPixels(nodeBackgroundActivePixels);
                 glowStateMachine.SetPixels(stateMachineBackgroundPixelsActive);
-                TintTexture2D(ref glowState, glowTint);
-                TintTexture2D(ref glowStateMachine, glowTint);
+                TintTexture2D(ref glowState, RATS.Prefs.StateGlowColor);
+                TintTexture2D(ref glowStateMachine, RATS.Prefs.StateGlowColor);
                 Color[] glowData = glowState.GetPixels();
                 Color[] glowStateMachineData = glowStateMachine.GetPixels();
 
@@ -415,7 +414,7 @@ namespace Razgriz.RATS
                 nodeBackgroundImageRedActive.SetPixels(glowData);
 
                 // Main color tint
-                TintTexture2D(ref stateMachineBackgroundImage, RATS.Prefs.StateColorGray);
+                TintTexture2D(ref stateMachineBackgroundImage, RATS.Prefs.SubStateMachineColor);
                 TintTexture2D(ref nodeBackgroundImage, RATS.Prefs.StateColorGray);
                 TintTexture2D(ref nodeBackgroundImageAqua, RATS.Prefs.StateColorAqua);
                 TintTexture2D(ref nodeBackgroundImageGreen, RATS.Prefs.StateColorGreen);
@@ -434,7 +433,7 @@ namespace Razgriz.RATS
             }
             catch(MissingReferenceException e)
             {
-                Debug.Log("Texture Update Exception Caught: " + e.ToString());
+                Debug.LogWarning("[RATS] Texture Update Exception Caught: " + e.ToString());
             }
         }
 
@@ -506,7 +505,7 @@ namespace Razgriz.RATS
         {
             Color[] pixels = texture.GetPixels();
             Color[] pixelsToAdd = textureToAdd.GetPixels();
-            Parallel.For(0, pixels.Length, (j, state) => { pixels[j] += pixelsToAdd[j];});
+            Parallel.For(0, pixels.Length, (j, state) => { pixels[j] += (pixelsToAdd[j] * pixelsToAdd[j].a);});
 
             texture.SetPixels(pixels); 
             texture.Apply(recalculateMips, makeNoLongerReadable);
