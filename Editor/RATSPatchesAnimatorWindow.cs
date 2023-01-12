@@ -554,6 +554,27 @@ namespace Razgriz.RATS
 
         }
 
+        static Material lineMaterial;
+        static void CreateLineMaterial()
+        {
+            if (!lineMaterial)
+            {
+                // Unity has a built-in shader that is useful for drawing
+                // simple colored things.
+                Shader shader = Shader.Find("Hidden/RATS-Node");
+                lineMaterial = new Material(shader);
+                lineMaterial.hideFlags = HideFlags.HideAndDontSave;
+                // Turn on alpha blending
+                lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                // Turn backface culling off
+                lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+                lineMaterial.SetFloat("_Roundness", 0.05f);
+                // Turn off depth writes
+                lineMaterial.SetInt("_ZWrite", 0);
+            }
+        }
+
         // Show motion name and extra details on state graph nodes
         static Color lastTextColor = RATS.Prefs.StateTextColor;
         static Color lastOnColor = RATS.Prefs.StateExtraLabelsColorEnabled;
@@ -609,6 +630,52 @@ namespace Razgriz.RATS
                 lastOnColor = RATS.Prefs.StateExtraLabelsColorEnabled;
                 lastOffColor = RATS.Prefs.StateExtraLabelsColorDisabled;
                 Rect stateRect = GUILayoutUtility.GetLastRect();
+
+                CreateLineMaterial();
+                // Apply the line material
+                lineMaterial.SetPass(0);
+
+
+                GL.PushMatrix();
+
+                // Draw Background
+                GL.Begin(GL.QUADS);
+
+                float dropShadowOffset = 2;
+                Rect area = host.m_GraphClientArea;
+                Vector4 cullArea = new Vector4(area.xMin, area.xMax, area.yMin, area.yMax);
+                lineMaterial.SetVector("_CullArea", cullArea);
+
+                Color backgroundColor = Color.black;
+                // use alpha values to build UV
+                backgroundColor.a = 0.1f;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(stateRect.xMin + dropShadowOffset, stateRect.yMax + dropShadowOffset, 0.0f));
+                backgroundColor.a = 0.2f;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(stateRect.xMin + dropShadowOffset, stateRect.yMin - stateRect.height * 3 + dropShadowOffset, 0.0f));
+                backgroundColor.a = 0.3f;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(stateRect.xMax + dropShadowOffset, stateRect.yMin - stateRect.height * 3 + dropShadowOffset, 0.0f));
+                backgroundColor.a = 0.4f;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(stateRect.xMax + dropShadowOffset, stateRect.yMax + dropShadowOffset, 0.0f));
+
+                backgroundColor = RATS.Prefs.StateColorGray;
+                backgroundColor.a = 0.1f;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(stateRect.xMin, stateRect.yMax, 0.1f));
+                backgroundColor.a = 0.2f;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(stateRect.xMin, stateRect.yMin - stateRect.height * 3, 0.1f));
+                backgroundColor.a = 0.3f;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(stateRect.xMax, stateRect.yMin - stateRect.height * 3, 0.1f));
+                backgroundColor.a = 0.4f;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(stateRect.xMax, stateRect.yMax, 0.1f));
+                GL.End();
+                GL.PopMatrix();
 
                 bool debugShowLabels = Event.current.alt;
 
