@@ -34,7 +34,6 @@ namespace Razgriz.RATS
             EditorApplication.update += DoPatches;
             EditorApplication.update -= TextureWatchdog;
             EditorApplication.update += TextureWatchdog;
-            HandleTextures();
         }
 
         static void DoPatches()
@@ -43,8 +42,8 @@ namespace Razgriz.RATS
             wait++;
             if(wait > 2)
             {
-                HandleTextures();
                 harmonyInstance.PatchAll();
+                HandleTextures();
                 // Unregister our delegate so it doesn't run again
                 EditorApplication.update -= DoPatches;
                 Debug.Log("[Rats] Running Patches");
