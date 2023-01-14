@@ -30,9 +30,11 @@ namespace Razgriz.RATS
             Debug.Log($"[RATS v{RATSGUI.version}]");
             RATSGUI.HandlePreferences();
             // Register our patch delegate
+            EditorApplication.update -= DoPatches;
             EditorApplication.update += DoPatches;
+            EditorApplication.update -= TextureWatchdog;
+            EditorApplication.update += TextureWatchdog;
             HandleTextures();
-            EditorApplication.playModeStateChanged += PlayModeChanged;
         }
 
         static void DoPatches()
@@ -49,21 +51,13 @@ namespace Razgriz.RATS
             }
         }
 
-        [InitializeOnLoadMethod]
-        private static void OnProjectLoadedInEditor()
+        // Try to keep textures around as much as possible
+        private static void TextureWatchdog()
         {
-            HandleTextures();
-        }
-
-        [UnityEditor.Callbacks.DidReloadScripts]
-        private static void DidReloadScripts()
-        {
-            HandleTextures();
-        }
-
-        private static void PlayModeChanged(PlayModeStateChange state)
-        {
-            HandleTextures();
+            if(nodeBackgroundImage == (Texture2D) null)
+            {
+                HandleTextures();
+            }
         }
         
         #region Helpers
