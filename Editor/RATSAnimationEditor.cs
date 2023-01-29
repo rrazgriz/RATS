@@ -382,5 +382,5 @@ namespace Razgriz.RATS
         }
     }
 
-    #endif
 }
+#endif
