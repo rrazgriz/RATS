@@ -59,6 +59,8 @@ namespace Razgriz.RATS
         public int DefaultTransitionInterruptionSource = 0;
         public bool DefaultTransitionOrderedInterruption = true;
         public bool DefaultTransitionCanTransitionToSelf = true;
+        public bool LayerListShowWD = true;
+        public bool LayerListShowMixedWD = true;
         public bool AnimationWindowShowActualPropertyNames = false;
         public bool AnimationWindowShowFullPath = false;
         public bool AnimationWindowTrimActualNames = false;
@@ -87,7 +89,7 @@ namespace Razgriz.RATS
 
     public class RATSGUI : EditorWindow
     {
-        public const string version = "2023.01.09";
+        public const string version = "2023.02.01";
         const int optionsIndentStep = 2;
 
         public static bool sectionExpandedBehavior = true;
@@ -190,6 +192,7 @@ namespace Razgriz.RATS
             EditorGUILayout.LabelField(
             " •  Options for changing default Write Defaults setting, forcing default layer weight to 1, etc \n" +
             " •  Copy and Paste layers using keyboard shorcuts or by right clicking \n" +
+            " •  Show Layer WD Status \n" +
             " •  Press F2 to rename selected layer \n" +
             " •  Highlight/Select active animator controller by clicking its path in the bottom bar \n" +
             " •  Custom Node/Grid Styling \n" +

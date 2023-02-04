@@ -288,6 +288,109 @@ namespace Razgriz.RATS
             }
         }
 
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchLayerWriteDefaultsIndicator
+        {
+            private static readonly Type IAnimatorControllerEditorType = AccessTools.TypeByName("UnityEditor.Graphs.IAnimatorControllerEditor");
+            private static readonly FieldInfo IAnimatorControllerEditorField = AccessTools.Field(LayerControllerViewType, "m_Host");
+            private static readonly Type AnimatorControllerViewType = AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool");
+            private static readonly FieldInfo AnimatorControllerField = AccessTools.Field(AnimatorControllerViewType, "m_AnimatorController");
+            private static GUIStyle LayerWDStyle = EditorStyles.boldLabel;
+
+            static PatchLayerWriteDefaultsIndicator()
+            {
+                LayerWDStyle.fontSize = 9;
+            }
+
+            public static void RecursivelyDetermineStateMachineWDStatus(AnimatorStateMachine stateMachine, ref int wdOnStateCount, ref int wdOffStateCount, int recursionDepth = 0)
+            {
+                if(stateMachine == null || recursionDepth > 10)
+                    return;
+
+                foreach(var childState in stateMachine.states)
+                {
+                    if(childState.state.writeDefaultValues)
+                        wdOnStateCount++;
+                    else
+                        wdOffStateCount++;
+                }
+
+                foreach(var subStateMachine in stateMachine.stateMachines)
+                {
+                    RecursivelyDetermineStateMachineWDStatus(subStateMachine.stateMachine, ref wdOnStateCount, ref wdOffStateCount, recursionDepth + 1);
+                }
+            }
+
+            public static void RecursivelyDetermineControllerWDStatus(AnimatorController controller, ref int layerCountWDOn, ref int layerCountWDOff)
+            {
+                foreach(var layer in controller.layers)
+                {
+                    int wdOnStateCount = 0;
+                    int wdOffStateCount = 0;
+                    RecursivelyDetermineStateMachineWDStatus(layer.stateMachine, ref wdOnStateCount, ref wdOffStateCount);
+
+                    if(wdOnStateCount > 0 && wdOffStateCount > 0)
+                    {
+                        layerCountWDOn++;
+                        layerCountWDOff++;
+                    }
+                    else
+                    {
+                        if(wdOnStateCount > 0)
+                            layerCountWDOn++;
+                        else
+                            layerCountWDOff++;
+                    }
+                }
+            }
+
+            // TODO: Not sure if this should be done for every layer but gonna stick with it for now
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(LayerControllerViewType, "OnDrawLayer");
+
+            [HarmonyPrefix]
+            static void Prefix(object __instance, Rect rect, int index, bool selected, bool focused)
+            {
+                if(!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD))
+                    return;
+
+                AnimatorController controller = (AnimatorController)AnimatorControllerField.GetValue(IAnimatorControllerEditorField.GetValue(__instance));
+
+                var layerStateMachine = controller.layers[index].stateMachine;
+
+                // Adjust position to be off to the left
+                Rect layerLabelRect = rect;
+                layerLabelRect.width = 18;
+                layerLabelRect.height = 18;
+                layerLabelRect.x -= 19;
+                layerLabelRect.y += 15;
+
+                if(layerStateMachine.states.Length == 0)
+                {
+                    EditorGUI.LabelField(layerLabelRect, "  E", LayerWDStyle);
+                    return; 
+                }
+
+                int layerWDOnCount = 0;
+                int layerWDOffCount = 0;
+
+                RecursivelyDetermineStateMachineWDStatus(layerStateMachine, ref layerWDOnCount, ref layerWDOffCount);
+
+                if(Prefs.LayerListShowMixedWD && layerWDOnCount > 0 && layerWDOffCount > 0)
+                {
+                    layerLabelRect.width = 16;
+                    layerLabelRect.height = 16;
+                    layerLabelRect.x += 2;
+                    EditorGUI.LabelField(layerLabelRect, new GUIContent(EditorGUIUtility.IconContent("Error").image, "Layer has mixed Write Defaults settings"));
+                }
+                else if(Prefs.LayerListShowWD)
+                {
+                    EditorGUI.LabelField(layerLabelRect, (layerWDOnCount > 0 ? "WD" : ""), LayerWDStyle);
+                }
+            }
+        }
+
         #endregion LayerFeatures
 
         #region GraphFeatures
@@ -349,10 +452,29 @@ namespace Razgriz.RATS
                 UnityEngine.Object ctrl = (UnityEngine.Object)AnimatorControllerGetter.Invoke(__instance, null);
                 if (ctrl != (UnityEngine.Object)null)
                 {
+                    if(!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD))
+                        return;
+
+                    AnimatorController controller = (AnimatorController)ctrl;
+
+                    int layerCountWDOn = 0;
+                    int layerCountWDOff = 0;
+
+                    PatchLayerWriteDefaultsIndicator.RecursivelyDetermineControllerWDStatus(controller, ref layerCountWDOn, ref layerCountWDOff);
+
+                    string WDStatus = "";
+
+                    if(layerCountWDOn == 0)
+                        WDStatus = "Off";
+                    else if(layerCountWDOff == 0)
+                        WDStatus = "On";
+                    else
+                        WDStatus = "Mixed";
+
                     #if RATS_NO_ANIMATOR
-                    GUIContent RATSLabel = new GUIContent($"  RATS (Compatibility)", (Texture)RATSGUI.GetRATSIcon());
+                    GUIContent RATSLabel = new GUIContent($"  RATS (Compatibility)  |  WD: {WDStatus}  ", (Texture)RATSGUI.GetRATSIcon());
                     #else
-                    GUIContent RATSLabel = new GUIContent($"  RATS", (Texture)RATSGUI.GetRATSIcon());
+                    GUIContent RATSLabel = new GUIContent($"  RATS  |  WD: {WDStatus}  ", (Texture)RATSGUI.GetRATSIcon());
                     #endif
                     GUIContent ControllerLabel = new GUIContent(AssetDatabase.GetAssetPath(ctrl));
                     float RATSLabelWidth = (buttonStyle).CalcSize(RATSLabel).x;
