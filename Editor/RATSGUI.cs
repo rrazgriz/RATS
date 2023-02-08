@@ -408,7 +408,7 @@ namespace Razgriz.RATS
                 
                 if (EditorGUI.EndChangeCheck())
                 {
-                    RATS.AnimatorWindowState.patchedNodeBackgrounds.Clear();
+                    RATS.AnimatorWindowState.handledNodeStyles.Clear();
                     RATS.UpdateGraphTextures();
                 }
                 EditorGUI.indentLevel -= optionsIndentStep;
@@ -471,7 +471,7 @@ namespace Razgriz.RATS
                         RATSPreferences defaultPrefsTemp = new RATSPreferences();
                         RATSPreferenceHandler.Save(defaultPrefsTemp);
                         RATSPreferenceHandler.Load(ref RATS.Prefs);
-                        RATS.AnimatorWindowState.patchedNodeBackgrounds.Clear();
+                        RATS.AnimatorWindowState.handledNodeStyles.Clear();
                         RATS.UpdateGraphTextures();
                     }
                 }

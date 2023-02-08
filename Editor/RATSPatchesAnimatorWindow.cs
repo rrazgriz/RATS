@@ -33,7 +33,7 @@ namespace Razgriz.RATS
             internal static AnimatorControllerParameterType ConditionParamType_pre;
 
             // Node Background Patching
-            internal static HashSet<string> patchedNodeBackgrounds = new HashSet<string>();
+            internal static HashSet<string> handledNodeStyles = new HashSet<string>();
             internal static Dictionary<string, bool> nodeBackgroundPatched = new Dictionary<string, bool>();
         }
 
@@ -632,30 +632,31 @@ namespace Razgriz.RATS
             {
                 string styleCacheKey = GetStyleCacheKey(styleName, color, on);
 
+                // Only modify style if we haven't done so yet
+                if(!AnimatorWindowState.handledNodeStyles.Add(styleCacheKey))
+                    return;
+
                 if(RATS.Prefs.NodeStyleOverride)
                 {
-                    if(AnimatorWindowState.patchedNodeBackgrounds.Add(styleCacheKey))
-                    {
-                        if(styleName == "node") // Regular state node
-                        {
-                            switch(color)
-                            {
-                                case 6: __result.normal.background = on ? nodeBackgroundImageRedActive : nodeBackgroundImageRed; break; // Red 
-                                case 5: __result.normal.background = on ? nodeBackgroundImageOrangeActive : nodeBackgroundImageOrange; break; // Orange
-                                case 4: __result.normal.background = on ? nodeBackgroundImageYellowActive : nodeBackgroundImageYellow; break; // Yellow
-                                case 3: __result.normal.background = on ? nodeBackgroundImageGreenActive : nodeBackgroundImageGreen; break; // Green
-                                case 2: __result.normal.background = on ? nodeBackgroundImageAquaActive : nodeBackgroundImageAqua; break; // Aqua
-                                case 1: __result.normal.background = on ? nodeBackgroundImageBlueActive : nodeBackgroundImageBlue; break; // Blue
-                                default:__result.normal.background = on ? nodeBackgroundImageActive : nodeBackgroundImage; break; // Anything Else
-                            }
-                        }
-                        else if(styleName == "node hex") // SubStateMachine node
-                        {
-                            __result.normal.background = on ? stateMachineBackgroundImageActive : stateMachineBackgroundImage;
-                        }
+                    __result.normal.textColor = RATS.Prefs.StateTextColor;
+                    __result.fontSize = RATS.Prefs.StateLabelFontSize;
 
-                        __result.normal.textColor = RATS.Prefs.StateTextColor;
-                        __result.fontSize = RATS.Prefs.StateLabelFontSize;
+                    if(styleName == "node") // Regular state node
+                    {
+                        switch(color)
+                        {
+                            case 6: __result.normal.background = on ? nodeBackgroundImageRedActive : nodeBackgroundImageRed; break; // Red 
+                            case 5: __result.normal.background = on ? nodeBackgroundImageOrangeActive : nodeBackgroundImageOrange; break; // Orange
+                            case 4: __result.normal.background = on ? nodeBackgroundImageYellowActive : nodeBackgroundImageYellow; break; // Yellow
+                            case 3: __result.normal.background = on ? nodeBackgroundImageGreenActive : nodeBackgroundImageGreen; break; // Green
+                            case 2: __result.normal.background = on ? nodeBackgroundImageAquaActive : nodeBackgroundImageAqua; break; // Aqua
+                            case 1: __result.normal.background = on ? nodeBackgroundImageBlueActive : nodeBackgroundImageBlue; break; // Blue
+                            default:__result.normal.background = on ? nodeBackgroundImageActive : nodeBackgroundImage; break; // Anything Else
+                        }
+                    }
+                    else if(styleName == "node hex") // SubStateMachine node
+                    {
+                        __result.normal.background = on ? stateMachineBackgroundImageActive : stateMachineBackgroundImage;
                     }
                 }
                 else
