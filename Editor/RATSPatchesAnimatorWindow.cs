@@ -522,7 +522,7 @@ namespace Razgriz.RATS
             }
         }
 
-        // Background
+        // Graph Background
         [HarmonyPatch]
         [HarmonyPriority(Priority.Low)]
         class PatchAnimatorGridBackground
@@ -533,54 +533,51 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             static void Postfix(object __instance, Rect gridRect, float zoomLevel)
             {
+                if(!RATS.Prefs.GraphGridOverride || Event.current.type != UnityEngine.EventType.Repaint)
+                    return;
+
                 // Overwrite the whole grid drawing lol 
-                if(RATS.Prefs.GraphGridOverride)
+                GL.PushMatrix();
+
+                // Draw Background
+                GL.Begin(GL.QUADS);
+                Color backgroundColor = RATS.Prefs.GraphGridBackgroundColor;
+                backgroundColor.a = 1;
+                GL.Color(backgroundColor);
+                GL.Vertex(new Vector3(gridRect.xMin, gridRect.yMin));
+                GL.Vertex(new Vector3(gridRect.xMin, gridRect.yMax));
+                GL.Vertex(new Vector3(gridRect.xMax, gridRect.yMax));
+                GL.Vertex(new Vector3(gridRect.xMax, gridRect.yMin));
+                GL.End();
+
+                // Draw Grid
+                GL.Begin(GL.LINES);
+                float tMajor = Mathf.InverseLerp(0.25f, 1f, zoomLevel);
+                float tMinor = Mathf.InverseLerp(0.0f, 1f, zoomLevel * 0.5f);
+                
+                // Major
+                GL.Color(Color.Lerp(Color.clear, RATS.Prefs.GraphGridColorMajor, tMajor));
+                DrawGridLines(gridRect, RATS.Prefs.GraphGridScalingMajor * 100f);
+
+                // Minor
+                GL.Color(Color.Lerp(Color.clear, RATS.Prefs.GraphGridColorMinor, tMinor));
+                DrawGridLines(gridRect, RATS.Prefs.GraphGridScalingMajor * (100f / RATS.Prefs.GraphGridDivisorMinor));
+
+                GL.End();
+                GL.PopMatrix();
+            }
+
+            static void DrawGridLines(Rect gridRect, float gridSize)
+            {
+                for(float x = gridRect.xMin - (gridRect.xMin % gridSize); x < gridRect.xMax; x += gridSize)
                 {
-                    GL.PushMatrix();
-
-                    // Draw Background
-                    GL.Begin(GL.QUADS);
-                    Color backgroundColor = RATS.Prefs.GraphGridBackgroundColor;
-                    backgroundColor.a = 1;
-                    GL.Color(backgroundColor);
-                    GL.Vertex(new Vector3(gridRect.xMin, gridRect.yMin, 0f));
-                    GL.Vertex(new Vector3(gridRect.xMin, gridRect.yMax, 0f));
-                    GL.Vertex(new Vector3(gridRect.xMax, gridRect.yMax, 0f));
-                    GL.Vertex(new Vector3(gridRect.xMax, gridRect.yMin, 0f));
-                    GL.End();
-
-                    // Draw Grid
-                    GL.Begin(GL.LINES);
-                    float tMajor = Mathf.InverseLerp(0.25f, 1f, zoomLevel);
-                    float tMinor = Mathf.InverseLerp(0.0f, 1f, zoomLevel * 0.5f);
-                    
-                    float gridSize;
-                    // Major
-                    GL.Color(Color.Lerp(Color.clear, RATS.Prefs.GraphGridColorMajor, tMajor));
-                    gridSize = RATS.Prefs.GraphGridScalingMajor * 100f;
-                    for (float x = gridRect.xMin - gridRect.xMin % gridSize; x < gridRect.xMax; x += gridSize)
-                    {
-                        GL.Vertex(new Vector3(x, gridRect.yMin)); GL.Vertex(new Vector3(x, gridRect.yMax));
-                    }
-                    for (float y = gridRect.yMin - gridRect.yMin % gridSize; y < gridRect.yMax; y += gridSize)
-                    {
-                        GL.Vertex(new Vector3(gridRect.xMin, y)); GL.Vertex(new Vector3(gridRect.xMax, y));
-                    }
-
-                    // Minor
-                    GL.Color(Color.Lerp(Color.clear, RATS.Prefs.GraphGridColorMinor, tMinor));
-                    gridSize = RATS.Prefs.GraphGridScalingMajor * (100f / RATS.Prefs.GraphGridDivisorMinor);
-                    for (float x = gridRect.xMin - gridRect.xMin % gridSize; x < gridRect.xMax; x += gridSize)
-                    {
-                        GL.Vertex(new Vector3(x, gridRect.yMin)); GL.Vertex(new Vector3(x, gridRect.yMax));
-                    }
-                    for (float y = gridRect.yMin - gridRect.yMin % gridSize; y < gridRect.yMax; y += gridSize)
-                    {
-                        GL.Vertex(new Vector3(gridRect.xMin, y)); GL.Vertex(new Vector3(gridRect.xMax, y));
-                    }
-
-                    GL.End();
-                    GL.PopMatrix();
+                    GL.Vertex(new Vector3(x, gridRect.yMin)); 
+                    GL.Vertex(new Vector3(x, gridRect.yMax));
+                }
+                for(float y = gridRect.yMin - (gridRect.yMin % gridSize); y < gridRect.yMax; y += gridSize)
+                {
+                    GL.Vertex(new Vector3(gridRect.xMin, y)); 
+                    GL.Vertex(new Vector3(gridRect.xMax, y));
                 }
             }
         }
