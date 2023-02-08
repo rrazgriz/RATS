@@ -35,6 +35,10 @@ namespace Razgriz.RATS
             // Node Background Patching
             internal static HashSet<string> handledNodeStyles = new HashSet<string>();
             internal static Dictionary<string, bool> nodeBackgroundPatched = new Dictionary<string, bool>();
+
+            // Layer copy/paste
+           internal static AnimatorControllerLayer layerClipboard = null;
+           internal static AnimatorController controllerClipboard = null;
         }
 
         #region BugFixes
@@ -198,6 +202,10 @@ namespace Razgriz.RATS
         [HarmonyPriority(Priority.Low)]
         class PatchLayerCopyPaste
         {
+            static void CopyLayerMenuOption(object layerControllerView) => CopyLayer(layerControllerView, ref AnimatorWindowState.layerClipboard, ref AnimatorWindowState.controllerClipboard);
+            static void PasteLayerMenuOption(object layerControllerView) => PasteLayer(layerControllerView, ref AnimatorWindowState.layerClipboard, ref AnimatorWindowState.controllerClipboard);
+            static void PasteLayerSettingsMenuOption(object layerControllerView) => PasteLayerSettings(layerControllerView, ref AnimatorWindowState.layerClipboard);
+
             [HarmonyTargetMethod]
             static MethodBase TargetMethod() => AccessTools.Method(LayerControllerViewType,	"OnDrawLayer");
 
@@ -210,13 +218,13 @@ namespace Razgriz.RATS
                     current.Use();
                     GenericMenu menu = new GenericMenu();
                     menu.AddItem(EditorGUIUtility.TrTextContent("Copy layer", null, (Texture) null), false,
-                        new GenericMenu.MenuFunction2(RATS.CopyLayer), __instance);
-                    if (_layerClipboard != null)
+                        new GenericMenu.MenuFunction2(CopyLayerMenuOption), __instance);
+                    if (AnimatorWindowState.layerClipboard != null)
                     {
                         menu.AddItem(EditorGUIUtility.TrTextContent("Paste layer", null, (Texture) null), false,
-                            new GenericMenu.MenuFunction2(RATS.PasteLayer), __instance);
+                            new GenericMenu.MenuFunction2(PasteLayerMenuOption), __instance);
                         menu.AddItem(EditorGUIUtility.TrTextContent("Paste layer settings", null, (Texture) null), false,
-                            new GenericMenu.MenuFunction2(RATS.PasteLayerSettings), __instance);
+                            new GenericMenu.MenuFunction2(PasteLayerSettingsMenuOption), __instance);
                     }
                     else
                     {
@@ -252,19 +260,18 @@ namespace Razgriz.RATS
                             if (current.commandName == "Copy")
                             {
                                 current.Use();
-                                CopyLayer(__instance);
+                                CopyLayer(__instance, ref AnimatorWindowState.layerClipboard, ref AnimatorWindowState.controllerClipboard);
                             }
                             else if (current.commandName == "Paste")
                             {
                                 current.Use();
-                                PasteLayer(__instance);
+                                PasteLayer(__instance, ref AnimatorWindowState.layerClipboard, ref AnimatorWindowState.controllerClipboard);
                             }
                             else if (current.commandName == "Duplicate")
                             {
                                 current.Use();
-                                CopyLayer(__instance);
-                                PasteLayer(__instance);
-                                // todo: dupe without polluting clipboard
+                                CopyLayer(__instance, ref AnimatorWindowState.layerClipboard, ref AnimatorWindowState.controllerClipboard);
+                                PasteLayer(__instance, ref AnimatorWindowState.layerClipboard, ref AnimatorWindowState.controllerClipboard);
                             }
                             break;
 

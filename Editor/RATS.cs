@@ -137,30 +137,27 @@ namespace Razgriz.RATS
             foreach (var csm in sm.stateMachines)
                 GatherSmParams(csm.stateMachine, ref srcParams, ref queuedParams);
         }
-        
-        // Layer Copy/Paste Functions
-        private static AnimatorControllerLayer _layerClipboard = null;
-        private static AnimatorController _controllerClipboard = null;
 
-        private static void CopyLayer(object layerControllerView)
+        // Layer Copy/Paste Functions
+        private static void CopyLayer(object layerControllerView, ref AnimatorControllerLayer layerClipboard, ref AnimatorController controllerClipboard)
         {
             var rlist = (ReorderableList)LayerListField.GetValue(layerControllerView);
             var ctrl = Traverse.Create(layerControllerView).Field("m_Host").Property("animatorController").GetValue<AnimatorController>();
-            _layerClipboard = rlist.list[rlist.index] as AnimatorControllerLayer;
-            _controllerClipboard = ctrl;
-            Unsupported.CopyStateMachineDataToPasteboard(_layerClipboard.stateMachine, ctrl, rlist.index);
+            layerClipboard = rlist.list[rlist.index] as AnimatorControllerLayer;
+            controllerClipboard = ctrl;
+            Unsupported.CopyStateMachineDataToPasteboard(layerClipboard.stateMachine, ctrl, rlist.index);
         }
 
-        public static void PasteLayer(object layerControllerView)
+        public static void PasteLayer(object layerControllerView, ref AnimatorControllerLayer layerClipboard, ref AnimatorController controllerClipboard)
         {
-            if (_layerClipboard == null)
+            if (layerClipboard == null)
                 return;
             var rlist = (ReorderableList)LayerListField.GetValue(layerControllerView);
             var ctrl = Traverse.Create(layerControllerView).Field("m_Host").Property("animatorController").GetValue<AnimatorController>();
 
             // Will paste layer right below selected one
             int targetindex = rlist.index + 1;
-            string newname = ctrl.MakeUniqueLayerName(_layerClipboard.name);
+            string newname = ctrl.MakeUniqueLayerName(layerClipboard.name);
             Undo.FlushUndoRecordObjects();
 
             // Use unity built-in function to clone state machine
@@ -176,7 +173,7 @@ namespace Razgriz.RATS
             pastedlayer.stateMachine.stateMachines = new ChildAnimatorStateMachine[0];
             UnityEngine.Object.DestroyImmediate(pastedlayer.stateMachine, true);
             pastedlayer.stateMachine = pastedsm;
-            PasteLayerProperties(pastedlayer, _layerClipboard);
+            PasteLayerProperties(pastedlayer, layerClipboard);
 
             // Move up to desired spot
             for (int i = layers.Length-1; i > targetindex; i--)
@@ -188,7 +185,7 @@ namespace Razgriz.RATS
             Undo.ClearUndo(ctrl);
 
             // Pasting to different controller, sync parameters
-            if (ctrl != _controllerClipboard)
+            if (ctrl != controllerClipboard)
             {
                 Undo.IncrementCurrentGroup();
                 int curgroup = Undo.GetCurrentGroup();
@@ -200,11 +197,11 @@ namespace Razgriz.RATS
                 foreach (var param in ctrl.parameters)
                     destparams[param.name] = param;
 
-                var srcparams = new Dictionary<string, AnimatorControllerParameter>(_controllerClipboard.parameters.Length);
-                foreach (var param in _controllerClipboard.parameters)
+                var srcparams = new Dictionary<string, AnimatorControllerParameter>(controllerClipboard.parameters.Length);
+                foreach (var param in controllerClipboard.parameters)
                     srcparams[param.name] = param;
 
-                var queuedparams = new Dictionary<string, AnimatorControllerParameter>(_controllerClipboard.parameters.Length);
+                var queuedparams = new Dictionary<string, AnimatorControllerParameter>(controllerClipboard.parameters.Length);
 
                 // Recursively loop over all nested state machines
                 GatherSmParams(pastedsm, ref srcparams, ref queuedparams);
@@ -231,14 +228,14 @@ namespace Razgriz.RATS
             Traverse.Create(layerControllerView).Property("selectedLayerIndex").SetValue(targetindex);
         }
 
-        public static void PasteLayerSettings(object layerControllerView)
+        public static void PasteLayerSettings(object layerControllerView, ref AnimatorControllerLayer layerClipboard)
         {
             var rlist = (ReorderableList)LayerListField.GetValue(layerControllerView);
             AnimatorController ctrl = Traverse.Create(layerControllerView).Field("m_Host").Property("animatorController").GetValue<AnimatorController>();
 
             var layers = ctrl.layers;
             var targetlayer = layers[rlist.index];
-            PasteLayerProperties(targetlayer, _layerClipboard);
+            PasteLayerProperties(targetlayer, layerClipboard);
             ctrl.layers = layers; // needed for edits to apply
         }
 
