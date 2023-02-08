@@ -392,11 +392,11 @@ namespace Razgriz.RATS
                 DrawUILine(lightUILineColor);
                 SectionLabel(new GUIContent("  Nodes", EditorGUIUtility.IconContent("AnimatorState Icon").image));
                 EditorGUI.indentLevel += optionsIndentStep;
-                
+
+                EditorGUI.BeginChangeCheck();
                 ToggleButton(ref RATS.Prefs.NodeStyleOverride, "Use Custom Node Style");
                 RATS.Prefs.StateLabelFontSize = EditorGUILayout.IntSlider("Font Size", RATS.Prefs.StateLabelFontSize, 5, 20);
 
-                EditorGUI.BeginChangeCheck();
                 RATS.Prefs.StateTextColor = EditorGUILayout.ColorField("Text Color", RATS.Prefs.StateTextColor);
                 RATS.Prefs.StateGlowColor = EditorGUILayout.ColorField("Highlight", RATS.Prefs.StateGlowColor);
                 RATS.Prefs.StateColorGray = EditorGUILayout.ColorField("Normal State", RATS.Prefs.StateColorGray);
@@ -408,8 +408,8 @@ namespace Razgriz.RATS
                 
                 if (EditorGUI.EndChangeCheck())
                 {
+                    RATS.AnimatorWindowState.patchedNodeBackgrounds.Clear();
                     RATS.UpdateGraphTextures();
-                    RATS.updateNodeStyle = true;
                 }
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
@@ -471,8 +471,8 @@ namespace Razgriz.RATS
                         RATSPreferences defaultPrefsTemp = new RATSPreferences();
                         RATSPreferenceHandler.Save(defaultPrefsTemp);
                         RATSPreferenceHandler.Load(ref RATS.Prefs);
+                        RATS.AnimatorWindowState.patchedNodeBackgrounds.Clear();
                         RATS.UpdateGraphTextures();
-                        RATS.updateNodeStyle = true;
                     }
                 }
             }

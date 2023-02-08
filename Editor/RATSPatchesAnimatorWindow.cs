@@ -20,9 +20,25 @@ namespace Razgriz.RATS
     {
 #if !RATS_NO_ANIMATOR // Compatibility
 
+        internal static class AnimatorWindowState
+        {
+            // Layer scroll fixes
+            internal static bool refocusSelectedLayer = false;
+            internal static Vector2 layerScrollCache;
+
+            // Transition condition parameter handling
+            internal static int ConditionIndex;
+            internal static int ConditionMode_pre;
+            internal static string ConditionParam_pre;
+            internal static AnimatorControllerParameterType ConditionParamType_pre;
+
+            // Node Background Patching
+            internal static HashSet<string> patchedNodeBackgrounds = new HashSet<string>();
+            internal static Dictionary<string, bool> nodeBackgroundPatched = new Dictionary<string, bool>();
+        }
+
         #region BugFixes
         // Prevent scroll position reset when rearranging or editing layers
-        private static Vector2 _layerScrollCache;
         [HarmonyPatch]
         [HarmonyPriority(Priority.Low)]
         class PatchLayerScrollReset
@@ -33,7 +49,7 @@ namespace Razgriz.RATS
             [HarmonyPrefix]
             static void Prefix(object __instance)
             {
-                _layerScrollCache = (Vector2)LayerScrollField.GetValue(__instance);
+                AnimatorWindowState.layerScrollCache = (Vector2)LayerScrollField.GetValue(__instance);
             }
 
             [HarmonyPostfix]
@@ -41,8 +57,8 @@ namespace Razgriz.RATS
             {
                 Vector2 scrollpos = (Vector2)LayerScrollField.GetValue(__instance);
                 if (scrollpos.y == 0)
-                    LayerScrollField.SetValue(__instance, _layerScrollCache);
-                _refocusSelectedLayer = true; // Defer focusing to OnGUI to get latest list size and window rect
+                    LayerScrollField.SetValue(__instance, AnimatorWindowState.layerScrollCache);
+                AnimatorWindowState.refocusSelectedLayer = true; // Defer focusing to OnGUI to get latest list size and window rect
             }
         }
 
@@ -81,10 +97,6 @@ namespace Razgriz.RATS
         }
 
         // Prevent transition condition parameter change from altering the condition function
-        private static int ConditionIndex;
-        private static int ConditionMode_pre;
-        private static string ConditionParam_pre;
-        private static AnimatorControllerParameterType ConditionParamType_pre;
         [HarmonyPatch]
         [HarmonyPriority(Priority.Low)]
         class PatchTransitionConditionChangeBreakingCondition
@@ -95,11 +107,11 @@ namespace Razgriz.RATS
             [HarmonyPrefix]
             static void Prefix(object __instance, Rect rect, int index, bool selected, bool focused)
             {
-                ConditionIndex = index;
+                AnimatorWindowState.ConditionIndex = index;
                 SerializedProperty conditions = (SerializedProperty)Traverse.Create(__instance).Field("m_Conditions").GetValue();
                 SerializedProperty arrayElementAtIndex = conditions.GetArrayElementAtIndex(index);
-                ConditionMode_pre = arrayElementAtIndex.FindPropertyRelative("m_ConditionMode").intValue;
-                ConditionParam_pre = arrayElementAtIndex.FindPropertyRelative("m_ConditionEvent").stringValue;
+                AnimatorWindowState.ConditionMode_pre = arrayElementAtIndex.FindPropertyRelative("m_ConditionMode").intValue;
+                AnimatorWindowState.ConditionParam_pre = arrayElementAtIndex.FindPropertyRelative("m_ConditionEvent").stringValue;
 
                 AnimatorController ctrl = Traverse.Create(__instance).Field("m_Controller").GetValue() as AnimatorController;
                 if (ctrl)
@@ -107,9 +119,9 @@ namespace Razgriz.RATS
                     // Unity, why make IndexOfParameter(name) internal -_-
                     foreach (var param in ctrl.parameters)
                     {
-                        if (param.name.Equals(ConditionParam_pre))
+                        if (param.name.Equals(AnimatorWindowState.ConditionParam_pre))
                         {
-                            ConditionParamType_pre = param.type;
+                            AnimatorWindowState.ConditionParamType_pre = param.type;
                             break;
                         }
                     }
@@ -119,14 +131,14 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             static void Postfix(object __instance, Rect rect, int index, bool selected, bool focused)
             {
-                if (ConditionIndex == index)
+                if (AnimatorWindowState.ConditionIndex == index)
                 {
                     SerializedProperty conditions = (SerializedProperty)Traverse.Create(__instance).Field("m_Conditions").GetValue();
                     SerializedProperty arrayElementAtIndex = conditions.GetArrayElementAtIndex(index);
                     SerializedProperty m_ConditionMode = arrayElementAtIndex.FindPropertyRelative("m_ConditionMode");
                     string conditionparam_post = arrayElementAtIndex.FindPropertyRelative("m_ConditionEvent").stringValue;
 
-                    if (!conditionparam_post.Equals(ConditionParam_pre) && (m_ConditionMode.intValue != ConditionMode_pre))
+                    if (!conditionparam_post.Equals(AnimatorWindowState.ConditionParam_pre) && (m_ConditionMode.intValue != AnimatorWindowState.ConditionMode_pre))
                     {
                         // Parameter and condition changed, restore condition if parameter type is same
                         AnimatorController ctrl = Traverse.Create(__instance).Field("m_Controller").GetValue() as AnimatorController;
@@ -138,19 +150,19 @@ namespace Razgriz.RATS
                                 if (param.name.Equals(conditionparam_post))
                                 {
                                     // same type or float->int, fully compatible
-                                    if ((param.type == ConditionParamType_pre)
-                                        || ((ConditionParamType_pre == AnimatorControllerParameterType.Float) && (param.type == AnimatorControllerParameterType.Int)))
+                                    if ((param.type == AnimatorWindowState.ConditionParamType_pre)
+                                        || ((AnimatorWindowState.ConditionParamType_pre == AnimatorControllerParameterType.Float) && (param.type == AnimatorControllerParameterType.Int)))
                                     {
-                                        m_ConditionMode.intValue = ConditionMode_pre;
+                                        m_ConditionMode.intValue = AnimatorWindowState.ConditionMode_pre;
                                         // Debug.Log("[RATS] Restored transition condition mode");
                                     }
                                     // int->float has restrictions
-                                    else if ((ConditionParamType_pre == AnimatorControllerParameterType.Int) && (param.type == AnimatorControllerParameterType.Float))
+                                    else if ((AnimatorWindowState.ConditionParamType_pre == AnimatorControllerParameterType.Int) && (param.type == AnimatorControllerParameterType.Float))
                                     {
-                                        AnimatorConditionMode premode = (AnimatorConditionMode)ConditionMode_pre;
+                                        AnimatorConditionMode premode = (AnimatorConditionMode)AnimatorWindowState.ConditionMode_pre;
                                         if ((premode != AnimatorConditionMode.Equals) && (premode != AnimatorConditionMode.NotEqual))
                                         {
-                                            m_ConditionMode.intValue = ConditionMode_pre;
+                                            m_ConditionMode.intValue = AnimatorWindowState.ConditionMode_pre;
                                             // Debug.Log("[RATS] Restored transition condition mode 2");
                                         }
                                     }
@@ -172,7 +184,7 @@ namespace Razgriz.RATS
         class PatchLayerWeightDefault
         {
             [HarmonyTargetMethod]
-            static MethodBase TargetMethod() => AccessTools.Method(AnimatorControllerType, "AddLayer", new Type[] {typeof(AnimatorControllerLayer)});
+            static MethodBase TargetMethod() => AccessTools.Method(typeof(UnityEditor.Animations.AnimatorController), "AddLayer", new Type[] {typeof(AnimatorControllerLayer)});
 
             [HarmonyPrefix]
             static void Prefix(ref AnimatorControllerLayer layer)
@@ -262,7 +274,7 @@ namespace Razgriz.RATS
                             if (keyCode == KeyCode.F2) // Rename
                             {
                                 current.Use();
-                                _refocusSelectedLayer = true;
+                                AnimatorWindowState.refocusSelectedLayer = true;
                                 AnimatorControllerLayer layer = rlist.list[rlist.index] as AnimatorControllerLayer;
                                 var rovl = Traverse.Create(__instance).Property("renameOverlay").GetValue();
                                 BeginRenameMethod.Invoke(rovl, new object[] {layer.name, rlist.index, 0.1f});
@@ -274,9 +286,9 @@ namespace Razgriz.RATS
                 }
 
                 // Adjust scroll to get selected layer visible
-                if (_refocusSelectedLayer)
+                if (AnimatorWindowState.refocusSelectedLayer)
                 {
-                    _refocusSelectedLayer = false;
+                    AnimatorWindowState.refocusSelectedLayer = false;
                     Vector2 curscroll = (Vector2)LayerScrollField.GetValue(__instance);
                     float height = (float)GetElementHeightMethod.Invoke(rlist, new object[] {rlist.index}) + 20;
                     float offs = (float)GetElementYOffsetMethod.Invoke(rlist, new object[] {rlist.index});
@@ -400,7 +412,7 @@ namespace Razgriz.RATS
         class PatchAnimatorNewTransitionDefaults
         {
             [HarmonyTargetMethod]
-            static MethodBase TargetMethod() => AccessTools.Method(AnimatorStateType, "CreateTransition");
+            static MethodBase TargetMethod() => AccessTools.Method(typeof(UnityEditor.Animations.AnimatorState), "CreateTransition");
 
             [HarmonyPostfix]
             static void Postfix(ref AnimatorStateTransition __result)
@@ -421,7 +433,7 @@ namespace Razgriz.RATS
         class PatchAnimatorNewStateDefaults
         {
             [HarmonyTargetMethod]
-            static MethodBase TargetMethod() => AccessTools.Method(AnimatorStateMachineType, "AddState", new Type[] {typeof(AnimatorState), typeof(Vector3)});
+            static MethodBase TargetMethod() => AccessTools.Method(typeof(UnityEditor.Animations.AnimatorStateMachine), "AddState", new Type[] {typeof(AnimatorState), typeof(Vector3)});
 
             [HarmonyPrefix]
             static void Prefix(ref AnimatorState state, Vector3 position)
@@ -602,15 +614,13 @@ namespace Razgriz.RATS
             }
         }
 
-        static Color defaultTextColor = new Color(0.922f, 0.922f, 0.922f, 1.0f);
-
-        public static bool updateNodeStyle = false;
-
         // Node Icons
         [HarmonyPatch]
         [HarmonyPriority(Priority.Low)]
         class PatchAnimatorNodeStyles
         {
+            static Color defaultTextColor = new Color(0.922f, 0.922f, 0.922f, 1.0f);
+
             [HarmonyTargetMethods]
             static IEnumerable<MethodBase> TargetMethods()
             {
@@ -620,18 +630,12 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             public static void Postfix(object __instance, ref GUIStyle __result, string styleName, int color, bool on)
             {
-                string styleHash = GetStyleCacheKey(styleName, color, on);
+                string styleCacheKey = GetStyleCacheKey(styleName, color, on);
 
                 if(RATS.Prefs.NodeStyleOverride)
                 {
-                    bool isPatched = false;
-                    bool wasPatchedAtSomePoint = nodeBackgroundPatched.TryGetValue(styleHash, out isPatched);
-                    
-                    if(true || updateNodeStyle || !wasPatchedAtSomePoint || !isPatched)
+                    if(AnimatorWindowState.patchedNodeBackgrounds.Add(styleCacheKey))
                     {
-                        updateNodeStyle = false;
-                        nodeBackgroundPatched[styleHash] = true;
-
                         if(styleName == "node") // Regular state node
                         {
                             switch(color)
@@ -656,13 +660,11 @@ namespace Razgriz.RATS
                 }
                 else
                 {
-                    __result.normal.background = EditorGUIUtility.Load(styleHash) as Texture2D; 
+                    __result.normal.background = EditorGUIUtility.Load(styleCacheKey) as Texture2D; 
                     __result.normal.textColor = defaultTextColor;
                     __result.fontSize = 12;
                 }
             }
-
-            private static Dictionary<string, bool> nodeBackgroundPatched = new Dictionary<string, bool>();
 
             public static string GetStyleCacheKey(string styleName, int color, bool on)
             {
@@ -673,7 +675,6 @@ namespace Razgriz.RATS
                 else
                     return String.Format("{0}{1}{2}", styleName, color.ToString(), on ? " on" : "");
             }
-
         }
 
         // Show motion name and extra details on state graph nodes
@@ -684,6 +685,12 @@ namespace Razgriz.RATS
         [HarmonyPriority(Priority.Low)]
         class PatchAnimatorLabels
         {
+            private static GUIStyle StateMotionStyle = null;
+            private static GUIStyle StateExtrasStyle = null;
+            private static GUIStyle StateExtrasStyleActive = null;
+            private static GUIStyle StateExtrasStyleInactive = null;
+            private static GUIStyle StateBlendtreeStyle = null;
+
             [HarmonyTargetMethods]
             static IEnumerable<MethodBase> TargetMethods()
             {

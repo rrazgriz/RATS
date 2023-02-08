@@ -259,21 +259,6 @@ namespace Razgriz.RATS
         private static readonly Type AnimatorWindowType = AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool");
         private static readonly MethodInfo AnimatorControllerGetter = AccessTools.PropertyGetter(AnimatorWindowType, "animatorController");
 
-        private static readonly Type AnimatorWindowGraphGUIType = AccessTools.TypeByName("UnityEditor.Graphs.GraphGUI");
-        private static readonly FieldInfo AnimatorWindowGraphGridColorMajor = AccessTools.Field(AnimatorWindowGraphGUIType, "gridMajorColor");
-        private static readonly FieldInfo AnimatorWindowGraphGridColorMinor = AccessTools.Field(AnimatorWindowGraphGUIType, "gridMinorColor");
-        private static readonly Type AnimatorWindowStylesType = AccessTools.TypeByName("UnityEditor.Graphs.Styles");
-        private static readonly FieldInfo AnimatorWindowGraphStyleBackground = AccessTools.Field(AnimatorWindowStylesType, "graphBackground");
-
-        private static readonly FieldInfo AnimatorWindowGraphGraph = AccessTools.Field(AnimatorWindowGraphGUIType, "m_Graph");
-
-        private static readonly Type GraphStylesType = AccessTools.TypeByName("UnityEditor.Graphs.Styles");
-
-        private static readonly Type AnimatorControllerType = AccessTools.TypeByName("UnityEditor.Animations.AnimatorController");
-        private static readonly Type AnimatorStateMachineType = AccessTools.TypeByName("UnityEditor.Animations.AnimatorStateMachine");
-        private static readonly Type AnimatorStateType = AccessTools.TypeByName("UnityEditor.Animations.AnimatorState");
-        private static readonly Type ParameterControllerViewType = AccessTools.TypeByName("UnityEditor.Graphs.ParameterControllerView");
-
         private static readonly Type LayerControllerViewType = AccessTools.TypeByName("UnityEditor.Graphs.LayerControllerView");
         private static readonly FieldInfo LayerScrollField = AccessTools.Field(LayerControllerViewType, "m_LayerScroll");
         private static readonly FieldInfo LayerListField = AccessTools.Field(LayerControllerViewType, "m_LayerList");
@@ -281,22 +266,18 @@ namespace Razgriz.RATS
         private static readonly Type RenameOverlayType = AccessTools.TypeByName("UnityEditor.RenameOverlay");
         private static readonly MethodInfo BeginRenameMethod = AccessTools.Method(RenameOverlayType, "BeginRename");
 
+        private static readonly Type AnimatorWindowGraphGUIType = AccessTools.TypeByName("UnityEditor.Graphs.GraphGUI");
+        private static readonly Type GraphStylesType = AccessTools.TypeByName("UnityEditor.Graphs.Styles");
+        private static readonly Type ParameterControllerViewType = AccessTools.TypeByName("UnityEditor.Graphs.ParameterControllerView");
         private static readonly Type AnimatorTransitionInspectorBaseType = AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.AnimatorTransitionInspectorBase");
+
         private static readonly MethodInfo GetElementHeightMethod = AccessTools.Method(typeof(ReorderableList), "GetElementHeight", new Type[]{typeof(int)});
         private static readonly MethodInfo GetElementYOffsetMethod = AccessTools.Method(typeof(ReorderableList), "GetElementYOffset", new Type[]{typeof(int)});
         
-        private static GUIStyle StateMotionStyle = null;
-        private static GUIStyle StateExtrasStyle = null;
-        private static GUIStyle StateExtrasStyleActive = null;
-        private static GUIStyle StateExtrasStyleInactive = null;
-        private static GUIStyle StateBlendtreeStyle = null;
-        private static bool _refocusSelectedLayer = false;
-
         // Animation Window
-        static readonly Assembly EditorAssembly = typeof(Editor).Assembly;
-        static readonly Type AnimationWindowHierarchyGUIType = EditorAssembly.GetType("UnityEditorInternal.AnimationWindowHierarchyGUI");
-        static readonly Type AnimationWindowHierarchyNodeType = EditorAssembly.GetType("UnityEditorInternal.AnimationWindowHierarchyNode");
-        static readonly Type AnimationWindowUtilityType = EditorAssembly.GetType("UnityEditorInternal.AnimationWindowUtility");
+        static readonly Type AnimationWindowHierarchyGUIType = AccessTools.TypeByName("UnityEditorInternal.AnimationWindowHierarchyGUI");
+        static readonly Type AnimationWindowHierarchyNodeType = AccessTools.TypeByName("UnityEditorInternal.AnimationWindowHierarchyNode");
+        static readonly Type AnimationWindowUtilityType = AccessTools.TypeByName("UnityEditorInternal.AnimationWindowUtility");
 
         static readonly Type AnimEditorType = AccessTools.TypeByName("UnityEditor.AnimEditor");
 
@@ -338,6 +319,12 @@ namespace Razgriz.RATS
         // TODO: This texture handling code feels pretty inefficient but it only runs when adjusting so I'm not too concerned
         static void HandleTextures()
         {
+            LoadGraphTextures();
+            UpdateGraphTextures();
+        }
+
+        static void LoadGraphTextures()
+        {
             byte[] nodeBackgroundBytes = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("780a9e3efb8a1ca42b44c98c5e972f2d")).Replace("/", "\\"));
             byte[] nodeBackgroundActiveBytes = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("4fb6ef4881973e24cbcf73cff14ae0c8")).Replace("/", "\\"));
             nodeBackgroundImageMask = LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("81dcb3a363364ea4f9a475b4cebb0eaf")).Replace("/", "\\"));
@@ -369,8 +356,6 @@ namespace Razgriz.RATS
             // These aren't really used as far as I can tell, so no user customization needed
             TintTexture2D(ref nodeBackgroundImageBlue, nodeBackgroundImageMask, new Color(27/255f, 27/255f, 150/255f, 1f));
             TintTexture2D(ref nodeBackgroundImageYellow, nodeBackgroundImageMask, new Color(204/255f, 165/255f, 39/255f, 1f));
-
-            UpdateGraphTextures();
         }
 
         public static void UpdateGraphTextures()
