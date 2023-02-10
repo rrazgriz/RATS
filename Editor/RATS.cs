@@ -42,11 +42,12 @@ namespace Razgriz.RATS
             wait++;
             if(wait > 2)
             {
-                harmonyInstance.PatchAll();
-                HandleTextures();
                 // Unregister our delegate so it doesn't run again
                 EditorApplication.update -= DoPatches;
-                Debug.Log("[Rats] Running Patches");
+
+                Debug.Log("[RATS] Running Patches");
+                harmonyInstance.PatchAll();
+                HandleTextures();
             }
         }
 
