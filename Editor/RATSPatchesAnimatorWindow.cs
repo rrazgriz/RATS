@@ -315,7 +315,7 @@ namespace Razgriz.RATS
             private static readonly FieldInfo IAnimatorControllerEditorField = AccessTools.Field(LayerControllerViewType, "m_Host");
             private static readonly Type AnimatorControllerViewType = AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool");
             private static readonly FieldInfo AnimatorControllerField = AccessTools.Field(AnimatorControllerViewType, "m_AnimatorController");
-            private static GUIStyle LayerWDStyle = EditorStyles.boldLabel;
+            private static GUIStyle LayerWDStyle = new GUIStyle(EditorStyles.boldLabel);
 
             static PatchLayerWriteDefaultsIndicator()
             {
