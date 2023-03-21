@@ -1,8 +1,6 @@
 {
-    "name": "one.razgriz.rats.Editor",
-    "references": [
-        "one.razgriz.rats"
-    ],
+    "name": "one.razgriz.rats",
+    "references": [],
     "includePlatforms": [
         "Editor"
     ],
