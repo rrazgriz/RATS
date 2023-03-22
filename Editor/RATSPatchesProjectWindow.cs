@@ -45,7 +45,7 @@ namespace Razgriz.RATS
         [HarmonyPatch]
         class PatchProjectWindowDrawItem
         {
-            static GUIStyle extensionLabelStyle = EditorStyles.miniLabel;
+            static GUIStyle extensionLabelStyle = new GUIStyle(EditorStyles.miniLabel);
 
             static PatchProjectWindowDrawItem()
             {
