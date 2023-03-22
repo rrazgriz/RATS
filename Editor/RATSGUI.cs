@@ -65,6 +65,9 @@ namespace Razgriz.RATS
         public bool AnimationWindowShowFullPath = false;
         public bool AnimationWindowTrimActualNames = false;
         public float AnimationWindowIndentScale = 1.0f;
+        public bool ProjectWindowExtensions = false;
+        public bool ProjectWindowFilesize = false;
+        public Color ProjectWindowLabelTextColor = new Color(1.0f, 1.0f, 1.0f, 0.3f);
     }
 
     public static class RATSPreferenceHandler
@@ -173,6 +176,7 @@ namespace Razgriz.RATS
                     DrawGridStyleOptions();
                     DrawNodeStyleOptions();
                     DrawAnimationWindowAppearanceOptions();
+                    DrawProjectWindowOptions();
                     EditorGUI.indentLevel -= 1;
                 }
                 EditorGUILayout.EndFoldoutHeaderGroup();
@@ -429,6 +433,24 @@ namespace Razgriz.RATS
                     ToggleButton(ref RATS.Prefs.GraphDragSnapToModifiedGrid, "Snap to custom grid", "Snaps to user-specified grid");
                 }
                 EditorGUILayout.LabelField("Tip: hold Control while dragging for the opposite of this setting", new GUIStyle("miniLabel"));
+                EditorGUI.indentLevel -= optionsIndentStep;
+            }
+        }
+
+        private static void DrawProjectWindowOptions()
+        {
+            using (new EditorGUILayout.VerticalScope())
+            {
+                DrawUILine(lightUILineColor);
+                SectionLabel(new GUIContent("  Project Window (Experimental)", EditorGUIUtility.IconContent("d_Project").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.ProjectWindowExtensions, "Show file extensions", "Show file extension (list view only)");
+                    ToggleButton(ref RATS.Prefs.ProjectWindowFilesize, "Show file size", "Show filesize (list view only)");
+                }
+                RATS.Prefs.ProjectWindowLabelTextColor = EditorGUILayout.ColorField(new GUIContent("Label Text Color"), RATS.Prefs.ProjectWindowLabelTextColor, true, true, false);
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
         }

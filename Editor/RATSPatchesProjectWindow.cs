@@ -47,21 +47,14 @@ namespace Razgriz.RATS
         {
             static GUIStyle extensionLabelStyle = new GUIStyle(EditorStyles.miniLabel);
 
-            static PatchProjectWindowDrawItem()
-            {
-                Color extensionLabelTextColor = extensionLabelStyle.normal.textColor;
-                extensionLabelTextColor.a = 0.3f;
-                extensionLabelStyle.normal.textColor = extensionLabelTextColor;
-            }
-
             [HarmonyTargetMethod]
             static MethodBase TargetMethod() => AccessTools.Method(ObjectListAreaLocalGroupType, "DrawItem");
 
             [HarmonyPostfix]
             static void Postfix(object __instance, Rect position, object filterItem)
             {
-                // Don't try to label built-in items
-                if(filterItem == null)
+                // Don't try to label built-in items, and respect configuration
+                if(filterItem == null || (!RATS.Prefs.ProjectWindowExtensions && !RATS.Prefs.ProjectWindowFilesize))
                     return;
 
                 bool listMode = (bool)ObjectListAreaLocalGroupListModeField.GetValue(__instance);
@@ -83,8 +76,15 @@ namespace Razgriz.RATS
                 if(fileNameWithoutFirstExtension.Contains("."))
                     extension = Path.GetExtension(fileNameWithoutFirstExtension) + extension;
 
-                string label = extension;
-                label += "  " + FormatSizeBytes(new System.IO.FileInfo(path).Length);
+                extensionLabelStyle.normal.textColor = RATS.Prefs.ProjectWindowLabelTextColor;
+
+                string labelText = "";
+                
+                if(RATS.Prefs.ProjectWindowExtensions)
+                    labelText += extension + "  ";
+                
+                if(RATS.Prefs.ProjectWindowFilesize)
+                    labelText = labelText + FormatSizeBytes(new System.IO.FileInfo(path).Length);
 
                 float offsetX = position.x + EditorStyles.foldout.margin.left + EditorStyles.foldout.padding.left;
                 offsetX += EditorStyles.label.CalcSize(new GUIContent(name)).x + 16 + 6;
@@ -92,7 +92,7 @@ namespace Razgriz.RATS
                 labelRect.x += offsetX;
                 labelRect.width -= offsetX;
 
-                GUI.Label(labelRect, label, extensionLabelStyle);
+                GUI.Label(labelRect, labelText, extensionLabelStyle);
             }
         }
     }
