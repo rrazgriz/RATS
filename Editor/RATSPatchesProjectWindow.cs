@@ -63,8 +63,8 @@ namespace Razgriz.RATS
                 bool isFolder = (bool)FilterResultIsFolderField.GetValue(filterItem);
                 int instanceID = (int)FilterResultInstanceIDField.GetValue(filterItem);
 
-                // Don't try to label if it's not list mode, is a subasset or a folder, or doesn't have a valid instance ID
-                if(!listMode || !isMainRepresentation || isFolder || instanceID <= 0)
+                // Don't try to label if it's not list mode, is a subasset, or is a folder
+                if(!listMode || !isMainRepresentation || isFolder)
                     return;
 
                 string name = (string)FilterResultNameField.GetValue(filterItem);
@@ -72,7 +72,6 @@ namespace Razgriz.RATS
 
                 string labelText = ProjectItemCache.GetLabel(instanceID, guid);
                 extensionLabelStyle.normal.textColor = RATS.Prefs.ProjectWindowLabelTextColor;
-
                 extensionLabelStyle.alignment = RATS.Prefs.ProjectWindowLabelAlignment;
 
                 float offsetX = position.x + EditorStyles.foldout.margin.left + EditorStyles.foldout.padding.left;
@@ -123,12 +122,20 @@ namespace Razgriz.RATS
 
             public static void FetchAndCacheItemInfo(int instanceID, string guid)
             {
-                string itemPath = Path.GetFullPath(AssetDatabase.GetAssetPath(instanceID));
-                string itemExtension = Path.GetExtension(itemPath);
-                long fileSizeBytes = new System.IO.FileInfo(itemPath).Length;
-                string itemFileSizeFormatted = FormatSizeBytes(fileSizeBytes);
+                string assetPath = AssetDatabase.GetAssetPath(instanceID);
+                if(String.IsNullOrEmpty(assetPath))
+                {
+                    cache[guid] = new ProjectItemData {FullPath = "", FileSize = 0, Extension = "", FileSizeLabel = ""};
+                }
+                else
+                {
+                    string itemPath = Path.GetFullPath(assetPath);
+                    string itemExtension = Path.GetExtension(itemPath);
+                    long fileSizeBytes = new System.IO.FileInfo(itemPath).Length;
+                    string itemFileSizeFormatted = FormatSizeBytes(fileSizeBytes);
 
-                cache[guid] = new ProjectItemData {FullPath = itemPath, FileSize = fileSizeBytes, Extension = itemExtension, FileSizeLabel = itemFileSizeFormatted};
+                    cache[guid] = new ProjectItemData {FullPath = itemPath, FileSize = fileSizeBytes, Extension = itemExtension, FileSizeLabel = itemFileSizeFormatted};
+                }
             }
         }
     }
