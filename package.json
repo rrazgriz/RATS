@@ -3,15 +3,13 @@
   "displayName": "RATS",
   "version": "0.0.1",
   "description": "RATS - Raz's Animator Tweaks 'n' Such. Unity Animator and Animation window bugfixes and tweaks.",
-  "url" : "",
-	"author" : {
-		"name" : "razgriz",
-		"url" : "https://github.com/rrazgriz/RATS"
-	},
+  "url" : "https://github.com/rrazgriz/RATS",
+  "author" : "Raz",
   "gitDependencies": {},
   "vpmDependencies": {},
   "legacyFolders": {},
   "legacyFiles": {},
   "hideInEditor": false,
+  "license": "MIT",
   "unity": "2019.4"
 }
