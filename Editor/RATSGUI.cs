@@ -455,6 +455,7 @@ namespace Razgriz.RATS
                 ToggleButton(ref RATS.Prefs.ProjectWindowFolderChildren, "Show Folder Children Count");
                 RATS.Prefs.ProjectWindowLabelAlignment = (TextAnchor)EditorGUILayout.EnumPopup("Alignment", RATS.Prefs.ProjectWindowLabelAlignment);
                 RATS.Prefs.ProjectWindowLabelTextColor = EditorGUILayout.ColorField(new GUIContent("Label Text Color"), RATS.Prefs.ProjectWindowLabelTextColor, true, true, false);
+                EditorGUILayout.LabelField("Note: these options currently only apply in list mode in the project/asset selection views.", new GUIStyle("miniLabel"));
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
