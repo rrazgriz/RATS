@@ -2,9 +2,6 @@ name: Build Release
 
 on:
   workflow_dispatch:
-  push:
-    branches: main
-    paths: ./
 
 env:
   packageName: "one.razgriz.rats"
@@ -17,14 +14,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: get version
+      - name: Get version number from package manifest
         id: version
         uses: notiz-dev/github-action-json-property@7c8cf5cc36eb85d8d287a8086a39dac59628eb31
         with:
           path: "./package.json"
           prop_path: "version"
 
-      - name: Set Environment Variables
+      - name: Set Environment Variables to our target files
         run: |
           echo "zipFile=${{ env.packageName }}-${{ steps.version.outputs.prop }}".zip >> $GITHUB_ENV
           echo "unityPackage=${{ env.packageName }}-${{ steps.version.outputs.prop }}.unitypackage" >> $GITHUB_ENV
@@ -38,7 +35,7 @@ jobs:
         uses: thedoctor0/zip-release@09336613be18a8208dfa66bd57efafd9e2685657
         with:
           type: "zip"
-          directory: "Packages/${{env.packageName}}/"
+          directory: "${{ env.packagePath }}/"
           filename: "../../${{env.zipFile}}" # make the zip file two directories up, since we start two directories in above
 
       - run: find "${{env.packagePath}}" -name \*.meta >> metaList
