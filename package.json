@@ -4,7 +4,9 @@
   "version": "0.0.1",
   "description": "RATS - Raz's Animator Tweaks 'n' Such. Unity Animator and Animation window bugfixes and tweaks.",
   "url" : "https://github.com/rrazgriz/RATS",
-  "author" : "Raz",
+  "author" : {
+    "name": "Raz"
+  },
   "gitDependencies": {},
   "vpmDependencies": {},
   "legacyFolders": {},
