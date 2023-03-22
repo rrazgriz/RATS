@@ -85,6 +85,7 @@ namespace Razgriz.RATS
                 
                 if(RATS.Prefs.ProjectWindowFilesize)
                     labelText = labelText + FormatSizeBytes(new System.IO.FileInfo(path).Length);
+                extensionLabelStyle.alignment = RATS.Prefs.ProjectWindowLabelAlignment;
 
                 float offsetX = position.x + EditorStyles.foldout.margin.left + EditorStyles.foldout.padding.left;
                 offsetX += EditorStyles.label.CalcSize(new GUIContent(name)).x + 16 + 6;
