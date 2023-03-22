@@ -88,7 +88,10 @@ namespace Razgriz.RATS
         // Cache item data, so we don't have to recalculate on each draw
         class ProjectItemCache : AssetPostprocessor
         {
-            void OnPreprocessAsset() => cache.Remove(AssetDatabase.AssetPathToGUID(assetPath));
+            static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
+            {
+                importedAssets.Do(assetPath => cache.Remove(AssetDatabase.AssetPathToGUID(assetPath)));
+            }
 
             static Dictionary<string, ProjectItemData> cache = new Dictionary<string, ProjectItemData>();
             internal struct ProjectItemData
