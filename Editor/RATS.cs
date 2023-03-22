@@ -27,7 +27,7 @@ namespace Razgriz.RATS
 
         static RATS()
         {
-            Debug.Log($"[RATS v{RATSGUI.version}]");
+            // Debug.Log($"[RATS ]");
             RATSGUI.HandlePreferences();
             // Register our patch delegate
             EditorApplication.update -= DoPatches;
@@ -45,8 +45,8 @@ namespace Razgriz.RATS
                 // Unregister our delegate so it doesn't run again
                 EditorApplication.update -= DoPatches;
 
-                Debug.Log("[RATS] Running Patches");
                 harmonyInstance.PatchAll();
+                Debug.Log($"[RATS v{RATS.Version}] Patches Applied!");
                 HandleTextures();
             }
         }
@@ -60,6 +60,31 @@ namespace Razgriz.RATS
             }
         }
         
+        const string packageJsonGUID = "752640b8a8602f74e940d13a53c5fdae";  
+        static string version;
+        public static string Version
+        {
+            get
+            {
+                if(String.IsNullOrEmpty(version))
+                {
+                    string assetPath = AssetDatabase.GUIDToAssetPath(packageJsonGUID);
+                    if(String.IsNullOrEmpty(assetPath))
+                        version = "0.0.0";
+                    else
+                        version = JsonUtility.FromJson<RATSPackageProxy>(File.ReadAllText(Path.GetFullPath(assetPath))).version;
+                }
+
+                return version;
+            }
+
+            private set {}
+        }
+        public class RATSPackageProxy
+        {
+            public string version;
+        }
+
         #region Helpers
 
         private struct InternalTextureInfo

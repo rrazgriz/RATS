@@ -86,7 +86,7 @@ namespace Razgriz.RATS
         {
             string prefsJson = EditorPrefs.GetString(key, "{}");
             JsonUtility.FromJsonOverwrite(prefsJson, prefs);
-            Debug.Log($"[RATS] Loaded prefs from EditorPrefs Key: {key}");
+            // Debug.Log($"[RATS] Loaded prefs from EditorPrefs Key: {key}");
             // Update our prefs in case the user has upgraded or something
             Save(prefs, key);
         }
@@ -94,7 +94,6 @@ namespace Razgriz.RATS
 
     public class RATSGUI : EditorWindow
     {
-        public const string version = "2023.02.01";
         const int optionsIndentStep = 2;
 
         public static bool sectionExpandedBehavior = true;
@@ -463,7 +462,7 @@ namespace Razgriz.RATS
         private static void DrawRATSOptionsHeader()
         {
             EditorGUILayout.LabelField(new GUIContent("  RATS", GetRATSIcon()), new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter });
-            EditorGUILayout.LabelField(new GUIContent($"  Raz's Animator Tweaks 'n' Stuff   •   v{version}"), new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter });
+            EditorGUILayout.LabelField(new GUIContent($"  Raz's Animator Tweaks 'n' Stuff   •   v{RATS.Version}"), new GUIStyle(GUI.skin.label) { fontSize = 12, alignment = TextAnchor.MiddleCenter });
             DrawUILine();
         }
 
@@ -485,7 +484,7 @@ namespace Razgriz.RATS
                     // Version & Name
                     using (new GUILayout.HorizontalScope())
                     {
-                        EditorGUILayout.LabelField($"   RATS  v{version}   •   Razgriz", new GUIStyle("Label"));
+                        EditorGUILayout.LabelField($"   RATS  v{RATS.Version}   •   Razgriz", new GUIStyle("Label"));
                     }
 
                     bool resetPrefsButton = GUILayout.Button(new GUIContent("  Reset Preferences", EditorGUIUtility.IconContent("CollabConflict").image), new GUIStyle("Button"));
