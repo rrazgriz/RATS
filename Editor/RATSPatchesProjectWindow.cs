@@ -7,6 +7,7 @@
 #if UNITY_EDITOR
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
@@ -54,8 +55,8 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             static void Postfix(object __instance, Rect position, object filterItem)
             {
-                // Don't try to label built-in items, and respect configuration
-                if(filterItem == null || (!RATS.Prefs.ProjectWindowExtensions && !RATS.Prefs.ProjectWindowFilesize))
+                // Don't try to label built-in items
+                if(filterItem == null)
                     return;
 
                 bool listMode = (bool)ObjectListAreaLocalGroupListModeField.GetValue(__instance);
@@ -63,14 +64,19 @@ namespace Razgriz.RATS
                 bool isFolder = (bool)FilterResultIsFolderField.GetValue(filterItem);
                 int instanceID = (int)FilterResultInstanceIDField.GetValue(filterItem);
 
-                // Don't try to label if it's not list mode, is a subasset, or is a folder
-                if(!listMode || !isMainRepresentation || isFolder)
+                // Don't try to label if it's not list mode, is a subasset, or we're configured not to label
+                if (!listMode 
+                    || !isMainRepresentation 
+                    || (isFolder && !RATS.Prefs.ProjectWindowFolderChildren) 
+                    || (!isFolder && !RATS.Prefs.ProjectWindowExtensions && !RATS.Prefs.ProjectWindowFilesize)
+                    )
                     return;
 
                 string name = (string)FilterResultNameField.GetValue(filterItem);
                 string guid = (string)FilterResultGuidProperty.GetValue(filterItem);
 
-                string labelText = ProjectItemCache.GetLabel(instanceID, guid);
+                string labelText = ProjectItemCache.GetLabel(instanceID, guid, isFolder);
+
                 extensionLabelStyle.normal.textColor = RATS.Prefs.ProjectWindowLabelTextColor;
                 extensionLabelStyle.alignment = RATS.Prefs.ProjectWindowLabelAlignment;
 
@@ -89,11 +95,15 @@ namespace Razgriz.RATS
         {
             static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
             {
-                importedAssets.Do(assetPath => cache.Remove(AssetDatabase.AssetPathToGUID(assetPath)));
+                importedAssets.Do(assetPath => fileCache.Remove(AssetDatabase.AssetPathToGUID(assetPath)));
+                // Not sure how to elegantly determine folders that need updated, and updating folders seems fast, so just clear the entire cache
+                folderCache.Clear();
             }
 
-            static Dictionary<string, ProjectItemData> cache = new Dictionary<string, ProjectItemData>();
-            internal struct ProjectItemData
+            static Dictionary<string, FileData> fileCache = new Dictionary<string, FileData>();
+            static Dictionary<string, int> folderCache = new Dictionary<string, int>();
+
+            internal struct FileData
             {
                 public string FullPath;
                 public string Extension;
@@ -101,31 +111,44 @@ namespace Razgriz.RATS
                 public string FileSizeLabel;
             }
 
-            public static string GetLabel(int instanceID, string guid)
+            public static string GetLabel(int instanceID, string guid, bool isFolder)
             {
-                if(!cache.ContainsKey(guid))
-                    FetchAndCacheItemInfo(instanceID, guid);
+                if(isFolder)
+                {
+                    if(!folderCache.ContainsKey(guid))
+                        FetchAndCacheFolderInfo(instanceID, guid);
+
+                    return folderCache[guid].ToString();
+                }
+
+                if(!fileCache.ContainsKey(guid))
+                    FetchAndCacheFileInfo(instanceID, guid);
 
                 string labelText = "";
-                
+
                 if(RATS.Prefs.ProjectWindowExtensions)
-                    labelText += cache[guid].Extension;
+                    labelText += fileCache[guid].Extension;
                 
                 if(RATS.Prefs.ProjectWindowFilesize)
                 {
                     if(labelText.Length > 0) labelText += "  ";
-                    labelText += cache[guid].FileSizeLabel;
+                    labelText += fileCache[guid].FileSizeLabel;
                 }
 
                 return labelText;
             }
 
-            public static void FetchAndCacheItemInfo(int instanceID, string guid)
+            public static void FetchAndCacheFolderInfo(int instanceID, string guid)
+            {
+                folderCache[guid] = Directory.EnumerateFiles(AssetDatabase.GetAssetPath(instanceID), "*.meta", SearchOption.AllDirectories).Count();
+            }
+
+            public static void FetchAndCacheFileInfo(int instanceID, string guid)
             {
                 string assetPath = AssetDatabase.GetAssetPath(instanceID);
                 if(String.IsNullOrEmpty(assetPath))
                 {
-                    cache[guid] = new ProjectItemData {FullPath = "", FileSize = 0, Extension = "", FileSizeLabel = ""};
+                    fileCache[guid] = new FileData {FullPath = "", FileSize = 0, Extension = "", FileSizeLabel = ""};
                 }
                 else
                 {
@@ -134,7 +157,7 @@ namespace Razgriz.RATS
                     long fileSizeBytes = new System.IO.FileInfo(itemPath).Length;
                     string itemFileSizeFormatted = FormatSizeBytes(fileSizeBytes);
 
-                    cache[guid] = new ProjectItemData {FullPath = itemPath, FileSize = fileSizeBytes, Extension = itemExtension, FileSizeLabel = itemFileSizeFormatted};
+                    fileCache[guid] = new FileData {FullPath = itemPath, FileSize = fileSizeBytes, Extension = itemExtension, FileSizeLabel = itemFileSizeFormatted};
                 }
             }
         }

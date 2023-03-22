@@ -67,6 +67,7 @@ namespace Razgriz.RATS
         public float AnimationWindowIndentScale = 1.0f;
         public bool ProjectWindowExtensions = false;
         public bool ProjectWindowFilesize = false;
+        public bool ProjectWindowFolderChildren = false;
         public Color ProjectWindowLabelTextColor = new Color(1.0f, 1.0f, 1.0f, 0.3f);
         public TextAnchor ProjectWindowLabelAlignment = TextAnchor.MiddleRight;
     }
@@ -451,6 +452,7 @@ namespace Razgriz.RATS
                     ToggleButton(ref RATS.Prefs.ProjectWindowExtensions, "Show file extensions", "Show file extension (list view only)");
                     ToggleButton(ref RATS.Prefs.ProjectWindowFilesize, "Show file size", "Show filesize (list view only)");
                 }
+                ToggleButton(ref RATS.Prefs.ProjectWindowFolderChildren, "Show Folder Children Count");
                 RATS.Prefs.ProjectWindowLabelAlignment = (TextAnchor)EditorGUILayout.EnumPopup("Alignment", RATS.Prefs.ProjectWindowLabelAlignment);
                 RATS.Prefs.ProjectWindowLabelTextColor = EditorGUILayout.ColorField(new GUIContent("Label Text Color"), RATS.Prefs.ProjectWindowLabelTextColor, true, true, false);
                 EditorGUI.indentLevel -= optionsIndentStep;
