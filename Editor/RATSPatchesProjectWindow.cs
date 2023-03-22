@@ -8,6 +8,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using HarmonyLib;
@@ -69,22 +70,9 @@ namespace Razgriz.RATS
                 string name = (string)FilterResultNameField.GetValue(filterItem);
                 string guid = (string)FilterResultGuidProperty.GetValue(filterItem);
 
-                string path = Path.GetFullPath(AssetDatabase.GetAssetPath(instanceID));
-                string extension = Path.GetExtension(path);
-                // Handle double extensions, like .tar.gz 
-                string fileNameWithoutFirstExtension = Path.GetFileNameWithoutExtension(path);
-                if(fileNameWithoutFirstExtension.Contains("."))
-                    extension = Path.GetExtension(fileNameWithoutFirstExtension) + extension;
-
+                string labelText = ProjectItemCache.GetLabel(instanceID, guid);
                 extensionLabelStyle.normal.textColor = RATS.Prefs.ProjectWindowLabelTextColor;
 
-                string labelText = "";
-                
-                if(RATS.Prefs.ProjectWindowExtensions)
-                    labelText += extension + "  ";
-                
-                if(RATS.Prefs.ProjectWindowFilesize)
-                    labelText = labelText + FormatSizeBytes(new System.IO.FileInfo(path).Length);
                 extensionLabelStyle.alignment = RATS.Prefs.ProjectWindowLabelAlignment;
 
                 float offsetX = position.x + EditorStyles.foldout.margin.left + EditorStyles.foldout.padding.left;
@@ -94,6 +82,50 @@ namespace Razgriz.RATS
                 labelRect.width -= offsetX;
 
                 GUI.Label(labelRect, labelText, extensionLabelStyle);
+            }
+        }
+
+        // Cache item data, so we don't have to recalculate on each draw
+        class ProjectItemCache : AssetPostprocessor
+        {
+            void OnPreprocessAsset() => cache.Remove(AssetDatabase.AssetPathToGUID(assetPath));
+
+            static Dictionary<string, ProjectItemData> cache = new Dictionary<string, ProjectItemData>();
+            internal struct ProjectItemData
+            {
+                public string FullPath;
+                public string Extension;
+                public long FileSize;
+                public string FileSizeLabel;
+            }
+
+            public static string GetLabel(int instanceID, string guid)
+            {
+                if(!cache.ContainsKey(guid))
+                    FetchAndCacheItemInfo(instanceID, guid);
+
+                string labelText = "";
+                
+                if(RATS.Prefs.ProjectWindowExtensions)
+                    labelText += cache[guid].Extension;
+                
+                if(RATS.Prefs.ProjectWindowFilesize)
+                {
+                    if(labelText.Length > 0) labelText += "  ";
+                    labelText += cache[guid].FileSizeLabel;
+                }
+
+                return labelText;
+            }
+
+            public static void FetchAndCacheItemInfo(int instanceID, string guid)
+            {
+                string itemPath = Path.GetFullPath(AssetDatabase.GetAssetPath(instanceID));
+                string itemExtension = Path.GetExtension(itemPath);
+                long fileSizeBytes = new System.IO.FileInfo(itemPath).Length;
+                string itemFileSizeFormatted = FormatSizeBytes(fileSizeBytes);
+
+                cache[guid] = new ProjectItemData {FullPath = itemPath, FileSize = fileSizeBytes, Extension = itemExtension, FileSizeLabel = itemFileSizeFormatted};
             }
         }
     }
