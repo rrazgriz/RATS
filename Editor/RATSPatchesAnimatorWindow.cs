@@ -461,7 +461,6 @@ namespace Razgriz.RATS
                     GUILayout.BeginArea(RATSLabelrect);
                     GUILayout.Label(RATSLabel, buttonStyle);
                     GUILayout.EndArea();
-                    
                     EditorGUIUtility.AddCursorRect(RATSLabelrect, MouseCursor.Link); // "I'm clickable!"
                     EditorGUIUtility.AddCursorRect(pingControllerRect, MouseCursor.Link); // "I'm clickable!"
 
@@ -470,7 +469,13 @@ namespace Razgriz.RATS
                     {
                         if(RATSLabelrect.Contains(current.mousePosition))
                         {
-                            RATSGUI.ShowWindow();
+                            current.Use();
+                            GenericMenu menu = new GenericMenu();
+                            menu.AddItem(EditorGUIUtility.TrTextContent("RATS Options", null, (Texture) null), false,
+                                new GenericMenu.MenuFunction2((object obj) => RATSGUI.ShowWindow()), null);
+                            menu.AddItem(EditorGUIUtility.TrTextContent("Refresh Textures", null, (Texture) null), false,
+                                new GenericMenu.MenuFunction2((object obj) => RATS.HandleTextures()), null);
+                            menu.ShowAsContext();
                         }
 
                         if(pingControllerRect.Contains(current.mousePosition))

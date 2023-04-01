@@ -393,6 +393,7 @@ namespace Razgriz.RATS
         // TODO: This texture handling code feels pretty inefficient but it only runs when adjusting so I'm not too concerned
         static void HandleTextures()
         {
+            RATS.AnimatorWindowState.handledNodeStyles.Clear();
             LoadGraphTextures();
             UpdateGraphTextures();
         }
