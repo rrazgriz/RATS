@@ -99,9 +99,9 @@ namespace Razgriz.RATS
         public bool AnimationWindowShowFullPath = false;
         public bool AnimationWindowTrimActualNames = false;
         public float AnimationWindowIndentScale = 1.0f;
-        public bool ProjectWindowExtensions = false;
-        public bool ProjectWindowFilesize = false;
-        public bool ProjectWindowFolderChildren = false;
+        public bool ProjectWindowExtensions = true;
+        public bool ProjectWindowFilesize = true;
+        public bool ProjectWindowFolderChildren = true;
         public Color ProjectWindowLabelTextColor = new Color(1.0f, 1.0f, 1.0f, 0.3f);
         public TextAnchor ProjectWindowLabelAlignment = TextAnchor.MiddleRight;
     }
