@@ -328,7 +328,8 @@ namespace Razgriz.RATS
             [HarmonyPrefix]
             static void Prefix(object __instance, Rect rect, int index, bool selected, bool focused)
             {
-                if(!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD))
+                // Don't show if not configured, or if playing (prevents indicator from getting pushed off screen)
+                if(!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD) || EditorApplication.isPlaying)
                     return;
 
                 AnimatorController controller = (AnimatorController)AnimatorControllerField.GetValue(IAnimatorControllerEditorField.GetValue(__instance));
