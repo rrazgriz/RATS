@@ -17,6 +17,40 @@ using UnityEngine;
 
 namespace Razgriz.RATS
 {
+    [InitializeOnLoad]
+    internal class RATSDefineHandler
+    {
+        static bool DoesAssemblyExist(string assemblyName)
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assembly.FullName.StartsWith(assemblyName))
+                    return true;
+            }
+            return false;
+        }
+
+        static RATSDefineHandler()
+        {
+            if(!DoesAssemblyExist("0Harmony"))
+            {
+                RATSGUI.SetDefineSymbol("RATS_HARMONY", false);
+
+                if(!SessionState.GetBool("RATSHarmonyWarning", false))
+                {
+                    EditorUtility.DisplayDialog("RATS: Harmony not found", 
+                        "RATS requires Harmony to function. Please provide 0Harmony.dll somewhere in the project.\nA Harmony distribution is available via VPM.", 
+                        "OK" );
+                    SessionState.SetBool("RATSHarmonyWarning", true);
+                }
+            }
+            else
+            {
+                RATSGUI.SetDefineSymbol("RATS_HARMONY", true);
+            }
+        }
+    }
+
     [Serializable]
     public class RATSPreferences
     {
@@ -94,6 +128,12 @@ namespace Razgriz.RATS
 
     public class RATSGUI : EditorWindow
     {
+#if RATS_HARMONY
+        const bool hasHarmony = true;
+#else
+        const bool hasHarmony = false;
+#endif
+
         const int optionsIndentStep = 2;
 
         public static bool sectionExpandedBehavior = true;
@@ -141,6 +181,11 @@ namespace Razgriz.RATS
 
             DrawRATSOptionsHeader();
 
+            if (!hasHarmony)
+            {
+                EditorGUILayout.HelpBox(" RATS requires Harmony to function. Please install Harmony via VPM, or provide 0Harmony.dll somewhere in the project.", MessageType.Error);
+            }
+
             using (EditorGUILayout.ScrollViewScope scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
             {
                 scrollPosition = scrollView.scrollPosition;
@@ -157,6 +202,7 @@ namespace Razgriz.RATS
                 EditorGUILayout.Space(8);
                 DrawUILine();
                 sectionExpandedBehavior = EditorGUILayout.BeginFoldoutHeaderGroup(sectionExpandedBehavior, new GUIContent("  Behavior", EditorGUIUtility.IconContent("d_MoreOptions").image));
+                EditorGUI.BeginDisabledGroup(!hasHarmony);
                 if(sectionExpandedBehavior)
                 {
                     EditorGUI.indentLevel += 1;
@@ -165,11 +211,13 @@ namespace Razgriz.RATS
                     DrawCompatibilityOptions();
                     EditorGUI.indentLevel -= 1;
                 }
+                EditorGUI.EndDisabledGroup();
                 EditorGUILayout.EndFoldoutHeaderGroup();
 
                 EditorGUILayout.Space(8);
                 DrawUILine();
                 sectionExpandedStyling = EditorGUILayout.BeginFoldoutHeaderGroup(sectionExpandedStyling, new GUIContent("  Appearance", EditorGUIUtility.IconContent("d_ColorPicker.CycleSlider").image));
+                EditorGUI.BeginDisabledGroup(!hasHarmony);
                 if(sectionExpandedStyling)
                 {
                     EditorGUI.indentLevel += 1;
@@ -180,8 +228,10 @@ namespace Razgriz.RATS
                     DrawProjectWindowOptions();
                     EditorGUI.indentLevel -= 1;
                 }
+                EditorGUI.EndDisabledGroup();
                 EditorGUILayout.EndFoldoutHeaderGroup();
             }
+            EditorGUI.EndDisabledGroup();
 
             DrawRATSOptionsFooter();
 
@@ -413,7 +463,9 @@ namespace Razgriz.RATS
                 
                 if (EditorGUI.EndChangeCheck())
                 {
+#if RATS_HARMONY
                     RATS.AnimatorWindowState.handledNodeStyles.Clear();
+#endif
                     RATS.UpdateGraphTextures();
                 }
                 EditorGUI.indentLevel -= optionsIndentStep;
@@ -497,7 +549,9 @@ namespace Razgriz.RATS
                         RATSPreferences defaultPrefsTemp = new RATSPreferences();
                         RATSPreferenceHandler.Save(defaultPrefsTemp);
                         RATSPreferenceHandler.Load(ref RATS.Prefs);
+#if RATS_HARMONY
                         RATS.AnimatorWindowState.handledNodeStyles.Clear();
+#endif
                         RATS.UpdateGraphTextures();
                     }
                 }

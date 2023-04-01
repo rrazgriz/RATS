@@ -4,7 +4,7 @@
 // Copyright (c) 2023 Razgriz
 // SPDX-License-Identifier: MIT
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR && RATS_HARMONY
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -18,8 +18,6 @@ namespace Razgriz.RATS
 {
     public partial class RATS
     {
-#if !RATS_NO_ANIMATOR // Compatibility
-
         internal static class AnimatorWindowState
         {
             // Layer scroll fixes
@@ -41,6 +39,7 @@ namespace Razgriz.RATS
            internal static AnimatorController controllerClipboard = null;
         }
 
+#if !RATS_NO_ANIMATOR // Compatibility
         #region BugFixes
         // Prevent scroll position reset when rearranging or editing layers
         [HarmonyPatch]
@@ -322,48 +321,6 @@ namespace Razgriz.RATS
                 LayerWDStyle.fontSize = 9;
             }
 
-            public static void RecursivelyDetermineStateMachineWDStatus(AnimatorStateMachine stateMachine, ref int wdOnStateCount, ref int wdOffStateCount, int recursionDepth = 0)
-            {
-                if(stateMachine == null || recursionDepth > 10)
-                    return;
-
-                foreach(var childState in stateMachine.states)
-                {
-                    if(childState.state.writeDefaultValues)
-                        wdOnStateCount++;
-                    else
-                        wdOffStateCount++;
-                }
-
-                foreach(var subStateMachine in stateMachine.stateMachines)
-                {
-                    RecursivelyDetermineStateMachineWDStatus(subStateMachine.stateMachine, ref wdOnStateCount, ref wdOffStateCount, recursionDepth + 1);
-                }
-            }
-
-            public static void RecursivelyDetermineControllerWDStatus(AnimatorController controller, ref int layerCountWDOn, ref int layerCountWDOff)
-            {
-                foreach(var layer in controller.layers)
-                {
-                    int wdOnStateCount = 0;
-                    int wdOffStateCount = 0;
-                    RecursivelyDetermineStateMachineWDStatus(layer.stateMachine, ref wdOnStateCount, ref wdOffStateCount);
-
-                    if(wdOnStateCount > 0 && wdOffStateCount > 0)
-                    {
-                        layerCountWDOn++;
-                        layerCountWDOff++;
-                    }
-                    else
-                    {
-                        if(wdOnStateCount > 0)
-                            layerCountWDOn++;
-                        else
-                            layerCountWDOff++;
-                    }
-                }
-            }
-
             // TODO: Not sure if this should be done for every layer but gonna stick with it for now
             [HarmonyTargetMethod]
             static MethodBase TargetMethod() => AccessTools.Method(LayerControllerViewType, "OnDrawLayer");
@@ -394,7 +351,7 @@ namespace Razgriz.RATS
                 int layerWDOnCount = 0;
                 int layerWDOffCount = 0;
 
-                RecursivelyDetermineStateMachineWDStatus(layerStateMachine, ref layerWDOnCount, ref layerWDOffCount);
+                RATS.RecursivelyDetermineStateMachineWDStatus(layerStateMachine, ref layerWDOnCount, ref layerWDOffCount);
 
                 if(Prefs.LayerListShowMixedWD && layerWDOnCount > 0 && layerWDOffCount > 0)
                 {
@@ -479,7 +436,7 @@ namespace Razgriz.RATS
                     int layerCountWDOn = 0;
                     int layerCountWDOff = 0;
 
-                    PatchLayerWriteDefaultsIndicator.RecursivelyDetermineControllerWDStatus(controller, ref layerCountWDOn, ref layerCountWDOff);
+                    RATS.RecursivelyDetermineControllerWDStatus(controller, ref layerCountWDOn, ref layerCountWDOff);
 
                     string WDStatus = "";
 
@@ -874,4 +831,4 @@ namespace Razgriz.RATS
         #endregion GraphVisuals
     }
 }
-#endif
+#endif // UNITY_EDITOR && RATS_HARMONY

@@ -14,14 +14,15 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using ReorderableList = UnityEditorInternal.ReorderableList;
+#if RATS_HARMONY
 using HarmonyLib;
+#endif
 
 namespace Razgriz.RATS
 {
     [InitializeOnLoad]
     public partial class RATS
     {
-        public static Harmony harmonyInstance = new Harmony("Razgriz.RATS");
         private static int wait = 0;
         public static RATSPreferences Prefs = new RATSPreferences();
 
@@ -36,6 +37,9 @@ namespace Razgriz.RATS
             EditorApplication.update += TextureWatchdog;
         }
 
+#if RATS_HARMONY
+        public static Harmony harmonyInstance = new Harmony("Razgriz.RATS");
+#endif
         static void DoPatches()
         {
             // Wait a couple cycles to patch to let static initializers run
@@ -45,8 +49,12 @@ namespace Razgriz.RATS
                 // Unregister our delegate so it doesn't run again
                 EditorApplication.update -= DoPatches;
 
+#if RATS_HARMONY
                 harmonyInstance.PatchAll();
                 Debug.Log($"[RATS v{RATS.Version}] Patches Applied!");
+#else
+                Debug.LogWarning($"[RATS v{RATS.Version}] 0Harmony.dll not found - Patches Skipped!");
+#endif
                 HandleTextures();
             }
         }
@@ -85,7 +93,50 @@ namespace Razgriz.RATS
             public string version;
         }
 
+#if RATS_HARMONY
         #region Helpers
+
+        public static void RecursivelyDetermineStateMachineWDStatus(AnimatorStateMachine stateMachine, ref int wdOnStateCount, ref int wdOffStateCount, int recursionDepth = 0)
+        {
+            if(stateMachine == null || recursionDepth > 10)
+                return;
+
+            foreach(var childState in stateMachine.states)
+            {
+                if(childState.state.writeDefaultValues)
+                    wdOnStateCount++;
+                else
+                    wdOffStateCount++;
+            }
+
+            foreach(var subStateMachine in stateMachine.stateMachines)
+            {
+                RecursivelyDetermineStateMachineWDStatus(subStateMachine.stateMachine, ref wdOnStateCount, ref wdOffStateCount, recursionDepth + 1);
+            }
+        }
+
+        public static void RecursivelyDetermineControllerWDStatus(AnimatorController controller, ref int layerCountWDOn, ref int layerCountWDOff)
+        {
+            foreach(var layer in controller.layers)
+            {
+                int wdOnStateCount = 0;
+                int wdOffStateCount = 0;
+                RecursivelyDetermineStateMachineWDStatus(layer.stateMachine, ref wdOnStateCount, ref wdOffStateCount);
+
+                if(wdOnStateCount > 0 && wdOffStateCount > 0)
+                {
+                    layerCountWDOn++;
+                    layerCountWDOff++;
+                }
+                else
+                {
+                    if(wdOnStateCount > 0)
+                        layerCountWDOn++;
+                    else
+                        layerCountWDOff++;
+                }
+            }
+        }
 
         private struct InternalTextureInfo
         {
@@ -310,8 +361,8 @@ namespace Razgriz.RATS
         static readonly FieldInfo NodeTypeIndent = AnimationWindowHierarchyNodeType.GetField("indent", BindingFlags.Instance | BindingFlags.Public);
 
         static readonly PropertyInfo NodeDisplayNameProp = AnimationWindowHierarchyNodeType.GetProperty("displayName", BindingFlags.Instance | BindingFlags.Public);
-
         #endregion ReflectionCache
+#endif
 
         #region TextureHandling
 

@@ -4,7 +4,7 @@
 // Copyright (c) 2023 Razgriz
 // SPDX-License-Identifier: MIT
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR && RATS_HARMONY
 using System;
 using System.Reflection;
 using System.Linq;
