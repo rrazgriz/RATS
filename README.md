@@ -1,32 +1,42 @@
-# 🐀 RATS 🧀
+# 🐀 RATS - Raz's Animator Tweaks 'n' Stuff 🧀
 
-⚠ This is experimental! It's doing a lot, so it might break things. Hopefully not, but please let me know if it does 💕
+![GitHub deployments](https://img.shields.io/github/actions/workflow/status/rrazgriz/RATS/build-listing.yml?label=Build%20Package%20Listing)
 
-Some [Harmony](https://github.com/pardeike/Harmony)-based patches to Unity's Animator and Animation windows. Also includes s-m-k's [Unity Animation Hierarchy Editor](https://github.com/s-m-k/Unity-Animation-Hierarchy-Editor).
+![Animator Window](.github/img/RATS-Animator.png)
 
-Originally forked from https://github.com/lukis101/VRCUnityStuffs/tree/master/Scripts/Editor
+### ⚠ RATS is changing things that the Unity editor doesn't normally allow changing! It's doing a lot, so it might break things. Hopefully not, but please [file an issue](https://github.com/rrazgriz/RATS/issues) if it does 💕
 
-Tested on Unity versions:
+Some [Harmony](https://github.com/pardeike/Harmony)-based patches to Unity's Animator and Animation windows. It fixes some bugs, adds customization, and generally removes some of the annoyances of working with animators.
 
-- `2019.4.31f1`
+Also includes s-m-k's [Unity Animation Hierarchy Editor](https://github.com/s-m-k/Unity-Animation-Hierarchy-Editor). Originally forked from [DJ Lukis' AnimatorExtensions](https://github.com/lukis101/VRCUnityStuffs/tree/master/Scripts/Editor)
 
 ## Usage
 
-Add folder to project, either as a package or in a subfolder of Assets.
+Tested on Unity versions:
+- `2019.4.31f1`
+- `2021.3.22f1`
 
-Configure at `Tools -> RATS -> Options`. Settings are saved in EditorPrefs, so they persist across any projects that have AnimatorExtensions installed.
+### VRChat Creator Companion
+
+Visit https://github.com/rrazgriz/raz-vpm/blob/main/README.md and follow the instructions to add my Repository to VPM. You'll need to add the Harmony package if you don't already have Harmony in your Unity project.
+
+### Manual
+
+Download the latest release package from the [Releases](https://github.com/rrazgriz/RATS/releases/) page, and add to your project. You'll need Harmony, which you can get in package form from https://github.com/rrazgriz/harmony-vpm or from the source at https://github.com/pardeike/Harmony.
 
 ## Features
 
-Compatibility: Disable all Animator window patches
+Configure at `Tools -> RATS -> Options`. Settings are saved in [EditorPrefs](https://docs.unity3d.com/ScriptReference/EditorPrefs.html), so they persist across any projects that have RATS installed.
+
+Compatibility: Disable certain Animator window fixes/behaviors to avoid conflicts with other tools. Not comprehensive, but should cover most common cases.
 
 ### New Options
 
-- Customize Animator graph grid background
+- Customize Animator appearance! Node colors, text size, background color, grid size, and more!
 - Hold Ctrl to disable state snapping (or disable snapping by default)
 - Change Write Defaults setting for new states
 - Change Layer Weight to 1 on new layers
-- Change Transition Exit/Transition time to 0 on new transitions
+- Change Transition Settings for new states
 - Show extra labels on animation states
   - Animation clip/BlendTree name
   - `B` if a state has State Behaviors
@@ -39,6 +49,7 @@ Compatibility: Disable all Animator window patches
 - Animation Window: Show actual property name instead of "Display Name" in animation hierarchy
 - Animation Window: Show full path of keyframes
 - Animation Window: Reduce/Disable Indentation
+- Project Window: Show filesize, extension, and folder children in list mode
 
 ### Tweaks/Fixes
 
@@ -60,7 +71,13 @@ Compatibility: Disable all Animator window patches
 - State node motion label overlaps progress bar in "Live Link" mode
 - Animation Window "Show Actual Names" requires selecting a different animation/object with animator to disable
 
-## TODO
+## Screenshots
+
+![Animation Window](.github/img/RATS-Animation.png)
+![Project Window](.github/img/RATS-Project.png)
+![Settings Window](.github/img/RATS-Settings.png)
+
+## Future Ideas
 
 - Animation: Option to rename property names
 - Animation: Property name search (with "Add Property")
@@ -68,19 +85,16 @@ Compatibility: Disable all Animator window patches
 - Animator: Option to quickly disable loop time on states (right click?)
 - Animator: Add F2-to-rename on states
 - Right click: enable/disable loop time on selected animation clips
-
-Maybe:
-
 - Utility window: Retarget animation paths for selected animation clips
 - Utility window: Multi-editing of states/transitions/state behaviors
 - Utility window: show list of all animations categorized by folder
-- Animation: Implement needle tools drag-to-retarget on Animation paths
+- Animation: Implement needle-tools-style drag-to-retarget on Animation paths
 - Animator: Add undo callback handler to delete sub-state machines properly
 - Animator: Clean up layer copy/paste (don't take up clipboard)
-- Project Window: show multiple columns of data about assets? asset type, filetype
 
 ## Credits
 
 - [DJ Lukis.LT](https://github.com/lukis101/) for the original utility script (MIT-licensed!)
 - [Andreas Pardeike](https://github.com/pardeike/Harmony) for the fantastic Harmony library (MIT-licensed!)
-- [Pumkin](https://github.com/rurre/) for lots of help with figuring out Harmony (and Reflection in general)
+- [Pumkin](https://github.com/rurre/) and [ScruffyRules](https://github.com/ScruffyRules) for lots of help with figuring out Harmony (and Reflection in general)
+- Everyone else that helped test and give feedback!
