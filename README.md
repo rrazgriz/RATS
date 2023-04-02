@@ -2,7 +2,7 @@
 
 ![GitHub deployments](https://img.shields.io/github/actions/workflow/status/rrazgriz/RATS/release.yml?label=Build%20Release)
 
-## Get it from VPM! https://github.com/rrazgriz/raz-vpm/blob/main/README.md
+## 📥 Get it from VPM! https://vpm.razgriz.one/ (make sure to install Harmony as well!)
 
 ![Animator Window](.github/img/RATS-Animator.png)
 
