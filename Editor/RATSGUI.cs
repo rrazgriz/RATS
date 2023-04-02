@@ -58,6 +58,7 @@ namespace Razgriz.RATS
         public bool StateMotionLabels = true;
         public bool StateBlendtreeLabels = true;
         public bool StateAnimIsEmptyLabel = true;
+        public bool StateColoredAnimIcon = false; 
         public bool StateLoopedLabels = true;
         public float StateGraphIconScale = 1.0f;
         public float StateMotionIconOffset = 5.0f;
@@ -323,6 +324,7 @@ namespace Razgriz.RATS
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.StateAnimIsEmptyLabel, new GUIContent("   Empty Anims/States", EditorGUIUtility.IconContent("Warning").image, "Display a warning if a state's animation is empty or if a state has no motion"));
+                    ToggleButton(ref RATS.Prefs.StateColoredAnimIcon, new GUIContent("   Colored Anim Icon", EditorGUIUtility.IconContent("d_AnimationClip Icon").image, "Should the Animation clip icon be monochrome or colored?"));
                 }
                 RATS.Prefs.ShowWarningsTopLeft = BooleanDropdown(RATS.Prefs.ShowWarningsTopLeft, "Warning Location", "Next To Motion Name", "Top Left");
 

@@ -814,7 +814,15 @@ namespace Razgriz.RATS
                             }
                             else 
                             {
-                                labelIconContent.image = EditorGUIUtility.IconContent("AnimationClip On Icon").image;
+                                if(RATS.Prefs.StateColoredAnimIcon)
+                                {
+                                    labelIconContent.image = EditorGUIUtility.IconContent("d_AnimationClip Icon").image;  
+                                }
+                                else
+                                {
+                                    labelIconContent.image = EditorGUIUtility.IconContent("AnimationClip On Icon").image;
+                                }
+                    
                                 labelIconContent.tooltip = "State contains an Animation Clip";
                                 iconSize = (16f *  RATS.Prefs.StateGraphIconScale);
                             }
