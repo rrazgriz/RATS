@@ -1,6 +1,8 @@
 # 🐀 RATS - Raz's Animator Tweaks 'n' Stuff 🧀
 
-![GitHub deployments](https://img.shields.io/github/actions/workflow/status/rrazgriz/RATS/build-listing.yml?label=Build%20Package%20Listing)
+![GitHub deployments](https://img.shields.io/github/actions/workflow/status/rrazgriz/RATS/release.yml?label=Build%20Release)
+
+## Get it from VPM! https://github.com/rrazgriz/raz-vpm/blob/main/README.md
 
 ![Animator Window](.github/img/RATS-Animator.png)
 
@@ -10,7 +12,7 @@ Some [Harmony](https://github.com/pardeike/Harmony)-based patches to Unity's Ani
 
 Also includes s-m-k's [Unity Animation Hierarchy Editor](https://github.com/s-m-k/Unity-Animation-Hierarchy-Editor). Originally forked from [DJ Lukis' AnimatorExtensions](https://github.com/lukis101/VRCUnityStuffs/tree/master/Scripts/Editor)
 
-## Usage
+## Installation
 
 Tested on Unity versions:
 - `2019.4.31f1`
@@ -79,6 +81,7 @@ Compatibility: Disable certain Animator window fixes/behaviors to avoid conflict
 
 ## Future Ideas
 
+- Update CI to produce a proper listing of releases
 - Animation: Option to rename property names
 - Animation: Property name search (with "Add Property")
 - Animator: Drag animation onto State to change
