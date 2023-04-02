@@ -409,6 +409,39 @@ namespace Razgriz.RATS
 
         #endregion GraphFeatures
 
+        #region ParametersFeatures
+
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchAnimatorParameterVisuals
+        {
+            private static readonly Type ParameterControllerViewElementType = AccessTools.Inner(ParameterControllerViewType, "Element");
+            private static readonly GUIStyle AnimatorParameterTypeLabel = new GUIStyle(EditorStyles.miniLabel);
+            
+            static PatchAnimatorParameterVisuals()
+            {
+                AnimatorParameterTypeLabel.alignment = TextAnchor.MiddleRight;
+                Color animatorParameterTypeLabelTextColor = AnimatorParameterTypeLabel.normal.textColor;
+                animatorParameterTypeLabelTextColor.a = 0.4f;
+                AnimatorParameterTypeLabel.normal.textColor = animatorParameterTypeLabelTextColor;
+            }
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(ParameterControllerViewElementType, "OnGUI");
+
+            [HarmonyPostfix]
+            static void Postfix(object __instance, Rect rect, int index, bool selected, bool focused)
+            {
+                AnimatorControllerParameter animatorControllerParameter = Traverse.Create(__instance).Field("m_Parameter").GetValue<AnimatorControllerParameter>();
+                // Label width is 66 wide, x position is 1 width before the parameter value
+                // Minus 6f on the width to create spacing/padding on parameter value
+                Rect labelTypeRect = new Rect(rect.xMax - 66f * 2f, rect.y, 66f - 6f, rect.height);
+
+                GUI.Label(labelTypeRect, animatorControllerParameter.type.ToString(), AnimatorParameterTypeLabel);
+            }
+        }
+
+        #endregion ParametersFeatures
+
 #endif //!RATS_NO_ANIMATOR
 
         #region GraphVisuals
