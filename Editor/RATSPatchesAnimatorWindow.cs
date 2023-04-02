@@ -761,14 +761,14 @@ namespace Razgriz.RATS
                         if (aStateMachine.behaviours != null) hasBehavior = aStateMachine.behaviours.Length > 0;
                     }
 
-                    int iconOffset = 0;
+                    float iconOffset = 0;
 
                     // Loop time label
                     if(isLoopTime && (debugShowLabels || RATS.Prefs.StateLoopedLabels))
                     {
                         Rect loopingLabelRect = new Rect(stateRect.x + 1, stateRect.y - 29, 16, 16);
                         EditorGUI.LabelField(loopingLabelRect, new GUIContent(EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Animation Clip is Looping"));
-                        iconOffset += 14;
+                        iconOffset += (14f *  RATS.Prefs.StateGraphIconScale);
                     }
                     
                     // Empty Animation/State Warning, top left (option)
@@ -793,14 +793,14 @@ namespace Razgriz.RATS
                             // use the value of aState.motion.name if it's is not null, otherwise use a different value
                             string motionName = aState?.motion?.name ?? "[none]";
 
-                            float iconSize = 13f;
+                            float iconSize = (13f *  RATS.Prefs.StateGraphIconScale);
 
                             GUIContent labelIconContent = new GUIContent();
                             if(hasblendtree)
                             {
                                 labelIconContent.image = EditorGUIUtility.IconContent("d_BlendTree Icon").image;
                                 labelIconContent.tooltip = "State contains a Blendtree";
-                                iconSize = 14;
+                                iconSize = (14f *  RATS.Prefs.StateGraphIconScale);
                             }
                             else if(isEmptyAnim && !RATS.Prefs.ShowWarningsTopLeft)
                             {
@@ -816,7 +816,7 @@ namespace Razgriz.RATS
                             {
                                 labelIconContent.image = EditorGUIUtility.IconContent("AnimationClip On Icon").image;
                                 labelIconContent.tooltip = "State contains an Animation Clip";
-                                iconSize = 16;
+                                iconSize = (16f *  RATS.Prefs.StateGraphIconScale);
                             }
 
                             GUIContent motionLabel = new GUIContent(motionName);
@@ -824,7 +824,22 @@ namespace Razgriz.RATS
                             float height = EditorStyles.label.CalcSize(motionLabel).y;
 
                             Rect motionLabelRect = new Rect(stateRect.x + stateRect.width/2 - width/2, stateRect.y - height/2, width, height);
-                            Rect motionIconRect = new Rect(motionLabelRect.x - iconSize/2 - 0.5f, motionLabelRect.y + height/2 - iconSize/2, iconSize, iconSize);
+
+                            float _MotionIconOffsetX = 0.0f;
+                            float _MotionIconOffsetY = 0.0f;
+
+                            if(RATS.Prefs.StateGraphIconLocation)
+                            {
+                                _MotionIconOffsetX = -0.25f + iconSize/8f + RATS.Prefs.StateMotionIconOffset;
+                                _MotionIconOffsetY = motionLabelRect.y + height/1.35f - iconSize/1.4f;
+                            } 
+                            else
+                            {
+                                _MotionIconOffsetX = Mathf.Clamp(((motionLabelRect.x - iconSize/2) - RATS.Prefs.StateMotionIconOffset),-0.5f, 250.0f);
+                                _MotionIconOffsetY = motionLabelRect.y + height/2 - iconSize/2;
+                            }
+
+                            Rect motionIconRect = new Rect(_MotionIconOffsetX, _MotionIconOffsetY, iconSize, iconSize);
 
                             EditorGUI.LabelField(motionLabelRect, motionLabel, StateMotionStyle);
                             EditorGUI.LabelField(motionIconRect, labelIconContent);
