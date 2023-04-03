@@ -95,6 +95,8 @@ namespace Razgriz.RATS
         public bool DefaultTransitionCanTransitionToSelf = true;
         public bool LayerListShowWD = true;
         public bool LayerListShowMixedWD = true;
+        public bool ParameterListShowParameterTypeLabels = true;
+        public bool ParameterListShowParameterTypeLabelShorten = false;
         public bool AnimationWindowShowActualPropertyNames = false;
         public bool AnimationWindowShowFullPath = false;
         public bool AnimationWindowTrimActualNames = false;
@@ -223,6 +225,7 @@ namespace Razgriz.RATS
                     DrawGraphLabelsOptions();
                     DrawGridStyleOptions();
                     DrawNodeStyleOptions();
+                    DrawAnimatorParameterOptions();
                     DrawAnimationWindowAppearanceOptions();
                     DrawProjectWindowOptions();
                     EditorGUI.indentLevel -= 1;
@@ -348,6 +351,25 @@ namespace Razgriz.RATS
                 {
                     EditorGUILayout.LabelField("Tip: Hold ALT to see all labels at any time", new GUIStyle("miniLabel"));
                 }
+                EditorGUI.indentLevel -= optionsIndentStep;
+            }
+        }
+
+        private static void DrawAnimatorParameterOptions()
+        {
+            // Parameter List
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine(lightUILineColor);
+                SectionLabel(new GUIContent("  Parameters List", EditorGUIUtility.IconContent("d_VerticalLayoutGroup Icon").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.ParameterListShowParameterTypeLabels, "Show Parameter Type Labels", "Show the type of parameter being animated next to its value");
+                    ToggleButton(ref RATS.Prefs.ParameterListShowParameterTypeLabelShorten, "Shorten Label", "Shorten the label to just the first letter");
+                }
+
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
