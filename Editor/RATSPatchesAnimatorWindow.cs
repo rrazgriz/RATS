@@ -421,22 +421,30 @@ namespace Razgriz.RATS
             static PatchAnimatorParameterVisuals()
             {
                 AnimatorParameterTypeLabel.alignment = TextAnchor.MiddleRight;
+                AnimatorParameterTypeLabel.fontStyle = FontStyle.Bold;
                 Color animatorParameterTypeLabelTextColor = AnimatorParameterTypeLabel.normal.textColor;
                 animatorParameterTypeLabelTextColor.a = 0.4f;
                 AnimatorParameterTypeLabel.normal.textColor = animatorParameterTypeLabelTextColor;
             }
+
             [HarmonyTargetMethod]
             static MethodBase TargetMethod() => AccessTools.Method(ParameterControllerViewElementType, "OnGUI");
 
             [HarmonyPostfix]
             static void Postfix(object __instance, Rect rect, int index, bool selected, bool focused)
             {
+                if(!Prefs.ParameterListShowParameterTypeLabels)
+                    return;
+
                 AnimatorControllerParameter animatorControllerParameter = Traverse.Create(__instance).Field("m_Parameter").GetValue<AnimatorControllerParameter>();
+                string parameterTypeLabel = animatorControllerParameter.type.ToString();
+                if(Prefs.ParameterListShowParameterTypeLabelShorten) parameterTypeLabel = parameterTypeLabel.Substring(0, 1); // Shorten to first letter
+
                 // Label width is 66 wide, x position is 1 width before the parameter value
                 // Minus 6f on the width to create spacing/padding on parameter value
-                Rect labelTypeRect = new Rect(rect.xMax - 66f * 2f, rect.y, 66f - 6f, rect.height);
-
-                GUI.Label(labelTypeRect, animatorControllerParameter.type.ToString(), AnimatorParameterTypeLabel);
+                const float labelWidth = 66f;
+                Rect labelTypeRect = new Rect(rect.xMax - labelWidth * 2f, rect.y, labelWidth - 6f, rect.height);
+                GUI.Label(labelTypeRect, parameterTypeLabel, AnimatorParameterTypeLabel);
             }
         }
 
