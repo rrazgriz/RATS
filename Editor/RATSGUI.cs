@@ -181,10 +181,9 @@ namespace Razgriz.RATS
 
             DrawRATSOptionsHeader();
 
-            if (!hasHarmony)
-            {
+#if !RATS_HARMONY
                 EditorGUILayout.HelpBox(" RATS requires Harmony to function. Please install Harmony via VPM, or provide 0Harmony.dll somewhere in the project.", MessageType.Error);
-            }
+#endif
 
             using (EditorGUILayout.ScrollViewScope scrollView = new EditorGUILayout.ScrollViewScope(scrollPosition))
             {
