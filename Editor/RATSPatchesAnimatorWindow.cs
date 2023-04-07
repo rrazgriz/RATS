@@ -6,6 +6,7 @@
 
 #if UNITY_EDITOR && RATS_HARMONY
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
@@ -13,6 +14,9 @@ using UnityEditor.Animations;
 using UnityEngine;
 using ReorderableList = UnityEditorInternal.ReorderableList;
 using HarmonyLib;
+#if VRC_SDK_VRCSDK3 && !UDON
+using VRC.SDK3.Avatars.Components;
+#endif
 
 namespace Razgriz.RATS
 {
@@ -310,10 +314,6 @@ namespace Razgriz.RATS
         [HarmonyPriority(Priority.Low)]
         class PatchLayerWriteDefaultsIndicator
         {
-            private static readonly Type IAnimatorControllerEditorType = AccessTools.TypeByName("UnityEditor.Graphs.IAnimatorControllerEditor");
-            private static readonly FieldInfo IAnimatorControllerEditorField = AccessTools.Field(LayerControllerViewType, "m_Host");
-            private static readonly Type AnimatorControllerViewType = AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool");
-            private static readonly FieldInfo AnimatorControllerField = AccessTools.Field(AnimatorControllerViewType, "m_AnimatorController");
             private static GUIStyle LayerWDStyle = new GUIStyle(EditorStyles.boldLabel);
 
             static PatchLayerWriteDefaultsIndicator()
@@ -447,6 +447,91 @@ namespace Razgriz.RATS
                 GUI.Label(labelTypeRect, parameterTypeLabel, AnimatorParameterTypeLabel);
             }
         }
+
+        // Check if parameter is being used in an entry transition or in parameter drivers and warn if so (unity doesn't do this)
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchAnimatorParameterDelete
+        {
+            private static readonly FieldInfo IAnimatorControllerEditorField = AccessTools.Field(ParameterControllerViewType, "m_Host");
+            private static readonly PropertyInfo ParameterControllerViewLiveLinkField = AccessTools.Property(IAnimatorControllerEditorType, "liveLink");
+
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(ParameterControllerViewType, "OnRemoveParameter");
+
+            [HarmonyPrefix]
+            static bool Prefix(object __instance, int index)
+            {
+                object iAnimatorControllerEditor = IAnimatorControllerEditorField.GetValue(__instance);
+                object liveLinkValue = ParameterControllerViewLiveLinkField.GetValue(iAnimatorControllerEditor);
+                bool liveLink = liveLinkValue != null && (bool)liveLinkValue;
+
+                if(liveLink) return false;
+
+                AnimatorController controller = (AnimatorController)AnimatorControllerField.GetValue(IAnimatorControllerEditorField.GetValue(__instance));
+                AnimatorControllerParameter parameter = controller.parameters[index];
+                
+                List<AnimatorTransition> entryTransitions = new List<AnimatorTransition>();
+                List<AnimatorState> statesWithParameterDrivers = new List<AnimatorState>();
+
+                foreach(var layer in controller.layers)
+                {
+                    foreach(var entryTransition in layer.stateMachine.entryTransitions)
+                    {
+                        if(entryTransition.conditions.Any(condition => condition.parameter == parameter.name))
+                        {
+                            entryTransitions.Add(entryTransition);
+                        }
+                    }
+
+#if VRC_SDK_VRCSDK3 && !UDON
+                    foreach(var behavior in layer.stateMachine.behaviours)
+                    {
+                        if (behavior is VRC.SDK3.Avatars.Components.VRCAvatarParameterDriver parameterDriver)
+                        {
+                            if (parameterDriver.parameters.Any(param => param.name == parameter.name))
+                            {
+                                statesWithParameterDrivers.Add(layer.stateMachine.defaultState);
+                            }
+                        }
+                    }
+
+                    foreach(var childState in layer.stateMachine.states)
+                    {
+                        foreach(var behavior in childState.state.behaviours)
+                        {
+                            if (behavior is VRC.SDK3.Avatars.Components.VRCAvatarParameterDriver parameterDriver)
+                            {
+                                if (parameterDriver.parameters.Any(param => param.name == parameter.name))
+                                {
+                                    statesWithParameterDrivers.Add(layer.stateMachine.defaultState);
+                                }
+                            }
+                        }
+                    }
+#endif
+                }
+
+                if(entryTransitions.Count > 0)
+                {
+                    string text = "Delete parameter " + parameter.name + "?";
+                    string text2 = "It is used by : \n";
+                    foreach(var transition in entryTransitions)
+                    {
+                        text2 += "Transition from entry to " + transition.destinationState.name + "\n";
+                    }
+                    foreach(var state in statesWithParameterDrivers)
+                    {
+                        text2 += "Parameter Driver on " + state.name + "\n";
+                    }
+                    // string message = $"Parameter '{parameter.name}' is being used in entry transitions. Are you sure you want to delete it?";
+                    return EditorUtility.DisplayDialog("Delete Parameter", text2, "Yes", "No");
+                }
+
+                return true;
+            }
+        }
+
 
         #endregion ParametersFeatures
 

@@ -337,6 +337,11 @@ namespace Razgriz.RATS
         private static readonly FieldInfo LayerScrollField = AccessTools.Field(LayerControllerViewType, "m_LayerScroll");
         private static readonly FieldInfo LayerListField = AccessTools.Field(LayerControllerViewType, "m_LayerList");
 
+        private static readonly Type IAnimatorControllerEditorType = AccessTools.TypeByName("UnityEditor.Graphs.IAnimatorControllerEditor");
+        private static readonly FieldInfo IAnimatorControllerEditorField = AccessTools.Field(LayerControllerViewType, "m_Host");
+        private static readonly Type AnimatorControllerViewType = AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool");
+        private static readonly FieldInfo AnimatorControllerField = AccessTools.Field(AnimatorControllerViewType, "m_AnimatorController");
+
         private static readonly Type RenameOverlayType = AccessTools.TypeByName("UnityEditor.RenameOverlay");
         private static readonly MethodInfo BeginRenameMethod = AccessTools.Method(RenameOverlayType, "BeginRename");
 
