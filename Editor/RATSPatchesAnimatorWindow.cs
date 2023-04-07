@@ -544,7 +544,7 @@ namespace Razgriz.RATS
         [HarmonyPriority(Priority.Low)]
         class PatchAnimatorBottomBar
         {
-            static GUIStyle buttonStyle = EditorStyles.miniBoldLabel;
+            static GUIStyle buttonStyle = new GUIStyle(EditorStyles.miniBoldLabel);
 
             [HarmonyTargetMethod]
             static MethodBase TargetMethod() => AccessTools.Method(AnimatorWindowType, "DoGraphBottomBar");
@@ -555,41 +555,40 @@ namespace Razgriz.RATS
                 UnityEngine.Object ctrl = (UnityEngine.Object)AnimatorControllerGetter.Invoke(__instance, null);
                 if (ctrl != (UnityEngine.Object)null)
                 {
-                    if(!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD))
-                        return;
-
                     AnimatorController controller = (AnimatorController)ctrl;
 
                     int layerCountWDOn = 0;
                     int layerCountWDOff = 0;
-
                     RATS.RecursivelyDetermineControllerWDStatus(controller, ref layerCountWDOn, ref layerCountWDOff);
 
-                    string WDStatus = "";
+                    string WDStatus = "Mixed";
 
                     if(layerCountWDOn == 0)
                         WDStatus = "Off";
                     else if(layerCountWDOff == 0)
                         WDStatus = "On";
-                    else
-                        WDStatus = "Mixed";
+
+                    string compatibilityString = "";
 
                     #if RATS_NO_ANIMATOR
-                    GUIContent RATSLabel = new GUIContent($"  RATS (Compatibility)  |  WD: {WDStatus}  ", (Texture)RATSGUI.GetRATSIcon());
-                    #else
-                    GUIContent RATSLabel = new GUIContent($"  RATS  |  WD: {WDStatus}  ", (Texture)RATSGUI.GetRATSIcon());
+                    compatibilityString = " (Compatibility)";
                     #endif
-                    GUIContent ControllerLabel = new GUIContent(AssetDatabase.GetAssetPath(ctrl));
+                    GUIContent RATSLabel = new GUIContent($"  RATS{compatibilityString}  |  WD: {WDStatus}   ", (Texture)RATSGUI.GetRATSIcon());
                     float RATSLabelWidth = (buttonStyle).CalcSize(RATSLabel).x;
-                    float controllerNameWidth = (EditorStyles.miniLabel).CalcSize(ControllerLabel).x;
-                    Rect RATSLabelrect = new Rect(nameRect.x, nameRect.y - 2, RATSLabelWidth, nameRect.height);
-                    Rect pingControllerRect = new Rect(nameRect.x + nameRect.width - controllerNameWidth, nameRect.y, controllerNameWidth, nameRect.height);
+                    float controllerLabelWidth = (EditorStyles.miniLabel).CalcSize(new GUIContent(AssetDatabase.GetAssetPath(ctrl))).x;
+                    float controllerIconWidth = 16;
+                    Rect pingControllerRect = new Rect(nameRect.x + nameRect.width - controllerLabelWidth - controllerIconWidth, nameRect.y, controllerLabelWidth + controllerIconWidth, nameRect.height);
+                    Rect RATSLabelrect = new Rect(nameRect.x + nameRect.width - pingControllerRect.width - RATSLabelWidth, nameRect.y, RATSLabelWidth, nameRect.height);
 
                     GUILayout.BeginArea(RATSLabelrect);
-                    GUILayout.Label(RATSLabel, buttonStyle);
+                    EditorGUILayout.LabelField(RATSLabel, buttonStyle);
                     GUILayout.EndArea();
-                    EditorGUIUtility.AddCursorRect(RATSLabelrect, MouseCursor.Link); // "I'm clickable!"
-                    EditorGUIUtility.AddCursorRect(pingControllerRect, MouseCursor.Link); // "I'm clickable!"
+                    EditorGUIUtility.AddCursorRect(RATSLabelrect, MouseCursor.Link); // Show hand cursor on hover
+
+                    GUILayout.BeginArea(pingControllerRect);
+                    EditorGUILayout.LabelField(new GUIContent((Texture)EditorGUIUtility.IconContent("AnimatorController On Icon").image), EditorStyles.miniLabel, GUILayout.Width(controllerIconWidth));
+                    GUILayout.EndArea();
+                    EditorGUIUtility.AddCursorRect(pingControllerRect, MouseCursor.Link);
 
                     Event current = Event.current;
                     if ((current.type == EventType.MouseDown) && (current.button == 0))
@@ -604,13 +603,12 @@ namespace Razgriz.RATS
                                 new GenericMenu.MenuFunction2((object obj) => RATS.HandleTextures()), null);
                             menu.ShowAsContext();
                         }
-
-                        if(pingControllerRect.Contains(current.mousePosition))
+                        else if(pingControllerRect.Contains(current.mousePosition))
                         {
-                            EditorGUIUtility.PingObject(ctrl);
-                            if (current.clickCount == 2) // Adhere to the 'select only on double click' convention
-                                Selection.activeObject = ctrl;
                             current.Use();
+                            EditorGUIUtility.PingObject(ctrl);
+                            // Adhere to the 'select only on double click' convention
+                            if (current.clickCount == 2) Selection.activeObject = ctrl;
                         }
                     } 
                     
