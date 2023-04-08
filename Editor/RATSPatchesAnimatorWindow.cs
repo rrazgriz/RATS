@@ -885,20 +885,22 @@ namespace Razgriz.RATS
                         if (aStateMachine.behaviours != null) hasBehavior = aStateMachine.behaviours.Length > 0;
                     }
 
-                    int iconOffset = 0;
+                    float iconOffset = 0;
 
                     // Loop time label
                     if(isLoopTime && (debugShowLabels || RATS.Prefs.StateLoopedLabels))
                     {
-                        Rect loopingLabelRect = new Rect(stateRect.x + 1, stateRect.y - 29, 16, 16);
+                        float loopTimeIconSize = 16f * RATS.Prefs.StateGraphIconScale;
+                        Rect loopingLabelRect = new Rect(stateRect.x + 1, stateRect.y - 29, loopTimeIconSize, loopTimeIconSize);
                         EditorGUI.LabelField(loopingLabelRect, new GUIContent(EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Animation Clip is Looping"));
-                        iconOffset += 14;
+                        iconOffset += 14f * RATS.Prefs.StateGraphIconScale;
                     }
                     
                     // Empty Animation/State Warning, top left (option)
                     if(RATS.Prefs.ShowWarningsTopLeft)
                     {
-                        Rect emptyWarningRect = new Rect(stateRect.x + iconOffset + 1, stateRect.y - 28, 14, 14);
+                        float warningsIconSize = 14f * RATS.Prefs.StateGraphIconScale;
+                        Rect emptyWarningRect = new Rect(stateRect.x + iconOffset + 1, stateRect.y - 28, warningsIconSize, warningsIconSize);
                         if((debugShowLabels || RATS.Prefs.StateAnimIsEmptyLabel))
                         {
                             if(isEmptyAnim) EditorGUI.LabelField(emptyWarningRect, new GUIContent(EditorGUIUtility.IconContent("Warning@2x").image, "Animation Clip has no Keyframes"));
@@ -917,14 +919,13 @@ namespace Razgriz.RATS
                             // use the value of aState.motion.name if it's is not null, otherwise use a different value
                             string motionName = aState?.motion?.name ?? "[none]";
 
-                            float iconSize = 13f;
+                            float iconSize = 14f * RATS.Prefs.StateGraphIconScale;
 
                             GUIContent labelIconContent = new GUIContent();
                             if(hasblendtree)
                             {
                                 labelIconContent.image = EditorGUIUtility.IconContent("d_BlendTree Icon").image;
                                 labelIconContent.tooltip = "State contains a Blendtree";
-                                iconSize = 14;
                             }
                             else if(isEmptyAnim && !RATS.Prefs.ShowWarningsTopLeft)
                             {
@@ -938,17 +939,25 @@ namespace Razgriz.RATS
                             }
                             else 
                             {
-                                labelIconContent.image = EditorGUIUtility.IconContent("AnimationClip On Icon").image;
+                                string animationClipIconName = RATS.Prefs.StateColoredAnimIcon ? "d_AnimationClip Icon" : "AnimationClip On Icon";
+                                labelIconContent.image = EditorGUIUtility.IconContent(animationClipIconName).image;
                                 labelIconContent.tooltip = "State contains an Animation Clip";
-                                iconSize = 16;
                             }
 
                             GUIContent motionLabel = new GUIContent(motionName);
-                            float width = EditorStyles.label.CalcSize(motionLabel).x;
-                            float height = EditorStyles.label.CalcSize(motionLabel).y;
+                            Vector2 motionLabelSize = StateMotionStyle.CalcSize(motionLabel);
 
-                            Rect motionLabelRect = new Rect(stateRect.x + stateRect.width/2 - width/2, stateRect.y - height/2, width, height);
-                            Rect motionIconRect = new Rect(motionLabelRect.x - iconSize/2 - 0.5f, motionLabelRect.y + height/2 - iconSize/2, iconSize, iconSize);
+                            Rect motionLabelRect = new Rect(stateRect.x + stateRect.width/2 - motionLabelSize.x/2, stateRect.y - motionLabelSize.y/2, motionLabelSize.x, motionLabelSize.y);
+                            motionLabelRect.x = Mathf.Clamp(motionLabelRect.x, iconSize, stateRect.width/2);
+
+                            Vector2 motionIconOffset = new Vector2(0f, 1f + motionLabelRect.y - iconSize/2f + motionLabelRect.height/2f);
+
+                            if(RATS.Prefs.StateGraphIconLocationIsCorner)
+                                motionIconOffset.x += -1f + iconSize/8f;
+                            else
+                                motionIconOffset.x += -7f + (motionLabelRect.x - iconSize/2f);
+
+                            Rect motionIconRect = new Rect(motionIconOffset.x, motionIconOffset.y, iconSize, iconSize);
 
                             EditorGUI.LabelField(motionLabelRect, motionLabel, StateMotionStyle);
                             EditorGUI.LabelField(motionIconRect, labelIconContent);
