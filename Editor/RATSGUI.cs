@@ -58,11 +58,10 @@ namespace Razgriz.RATS
         public bool StateMotionLabels = true;
         public bool StateBlendtreeLabels = true;
         public bool StateAnimIsEmptyLabel = true;
-        public bool StateColoredAnimIcon = false; 
+        public bool StateColoredAnimIcon = false;
         public bool StateLoopedLabels = true;
         public float StateGraphIconScale = 1.0f;
-        public float StateMotionIconOffset = 5.0f;
-        public bool StateGraphIconLocation = false;
+        public bool StateGraphIconLocationIsCorner = false;
         public Color StateExtraLabelsColorEnabled = new Color(1.0f, 1.0f, 1.0f, 0.8f);
         public Color StateExtraLabelsColorDisabled = new Color(1.0f, 1.0f, 1.0f, 0.05f);
         public bool ShowWarningsTopLeft = true;
@@ -326,14 +325,14 @@ namespace Razgriz.RATS
                     ToggleButton(ref RATS.Prefs.StateAnimIsEmptyLabel, new GUIContent("   Empty Anims/States", EditorGUIUtility.IconContent("Warning").image, "Display a warning if a state's animation is empty or if a state has no motion"));
                     ToggleButton(ref RATS.Prefs.StateColoredAnimIcon, new GUIContent("   Colored Anim Icon", EditorGUIUtility.IconContent("d_AnimationClip Icon").image, "Should the Animation clip icon be monochrome or colored?"));
                 }
-                RATS.Prefs.ShowWarningsTopLeft = BooleanDropdown(RATS.Prefs.ShowWarningsTopLeft, "Warning Location", "Next To Motion Name", "Top Left");
+                
+                RATS.Prefs.StateGraphIconScale = EditorGUILayout.Slider("Icon Scale", RATS.Prefs.StateGraphIconScale, 1.0f, 1.5f);
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    RATS.Prefs.StateGraphIconScale = EditorGUILayout.Slider("Icon Scale", RATS.Prefs.StateGraphIconScale, 1.0f, 1.5f);
-                    RATS.Prefs.StateMotionIconOffset = EditorGUILayout.Slider("Icon Offset", RATS.Prefs.StateMotionIconOffset, 0.0f, 20.0f);
+                    RATS.Prefs.ShowWarningsTopLeft = BooleanDropdown(RATS.Prefs.ShowWarningsTopLeft, "Warning Location", "Next To Motion Name", "Top Left");
+                    RATS.Prefs.StateGraphIconLocationIsCorner = BooleanDropdown(RATS.Prefs.StateGraphIconLocationIsCorner, "Icon Location", "Next to Motion Name", "Left Corner");
                 }
-                RATS.Prefs.StateGraphIconLocation = BooleanDropdown(RATS.Prefs.StateGraphIconLocation, "Icon Location", "Left of Motion Name", "Left Corner");
 
                 EditorGUILayout.Space(8);
                 using (new GUILayout.HorizontalScope())

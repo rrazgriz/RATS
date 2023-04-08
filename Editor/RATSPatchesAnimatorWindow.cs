@@ -766,15 +766,17 @@ namespace Razgriz.RATS
                     // Loop time label
                     if(isLoopTime && (debugShowLabels || RATS.Prefs.StateLoopedLabels))
                     {
-                        Rect loopingLabelRect = new Rect(stateRect.x + 1, stateRect.y - 29, 16, 16);
+                        float loopTimeIconSize = 16f * RATS.Prefs.StateGraphIconScale;
+                        Rect loopingLabelRect = new Rect(stateRect.x + 1, stateRect.y - 29, loopTimeIconSize, loopTimeIconSize);
                         EditorGUI.LabelField(loopingLabelRect, new GUIContent(EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image, "Animation Clip is Looping"));
-                        iconOffset += (14f *  RATS.Prefs.StateGraphIconScale);
+                        iconOffset += 14f * RATS.Prefs.StateGraphIconScale;
                     }
                     
                     // Empty Animation/State Warning, top left (option)
                     if(RATS.Prefs.ShowWarningsTopLeft)
                     {
-                        Rect emptyWarningRect = new Rect(stateRect.x + iconOffset + 1, stateRect.y - 28, 14, 14);
+                        float warningsIconSize = 14f * RATS.Prefs.StateGraphIconScale;
+                        Rect emptyWarningRect = new Rect(stateRect.x + iconOffset + 1, stateRect.y - 28, warningsIconSize, warningsIconSize);
                         if((debugShowLabels || RATS.Prefs.StateAnimIsEmptyLabel))
                         {
                             if(isEmptyAnim) EditorGUI.LabelField(emptyWarningRect, new GUIContent(EditorGUIUtility.IconContent("Warning@2x").image, "Animation Clip has no Keyframes"));
@@ -793,14 +795,13 @@ namespace Razgriz.RATS
                             // use the value of aState.motion.name if it's is not null, otherwise use a different value
                             string motionName = aState?.motion?.name ?? "[none]";
 
-                            float iconSize = (13f *  RATS.Prefs.StateGraphIconScale);
+                            float iconSize = 14f * RATS.Prefs.StateGraphIconScale;
 
                             GUIContent labelIconContent = new GUIContent();
                             if(hasblendtree)
                             {
                                 labelIconContent.image = EditorGUIUtility.IconContent("d_BlendTree Icon").image;
                                 labelIconContent.tooltip = "State contains a Blendtree";
-                                iconSize = (14f *  RATS.Prefs.StateGraphIconScale);
                             }
                             else if(isEmptyAnim && !RATS.Prefs.ShowWarningsTopLeft)
                             {
@@ -814,40 +815,25 @@ namespace Razgriz.RATS
                             }
                             else 
                             {
-                                if(RATS.Prefs.StateColoredAnimIcon)
-                                {
-                                    labelIconContent.image = EditorGUIUtility.IconContent("d_AnimationClip Icon").image;  
-                                }
-                                else
-                                {
-                                    labelIconContent.image = EditorGUIUtility.IconContent("AnimationClip On Icon").image;
-                                }
-                    
+                                string animationClipIconName = RATS.Prefs.StateColoredAnimIcon ? "d_AnimationClip Icon" : "AnimationClip On Icon";
+                                labelIconContent.image = EditorGUIUtility.IconContent(animationClipIconName).image;
                                 labelIconContent.tooltip = "State contains an Animation Clip";
-                                iconSize = (16f *  RATS.Prefs.StateGraphIconScale);
                             }
 
                             GUIContent motionLabel = new GUIContent(motionName);
-                            float width = EditorStyles.label.CalcSize(motionLabel).x;
-                            float height = EditorStyles.label.CalcSize(motionLabel).y;
+                            Vector2 motionLabelSize = StateMotionStyle.CalcSize(motionLabel);
 
-                            Rect motionLabelRect = new Rect(stateRect.x + stateRect.width/2 - width/2, stateRect.y - height/2, width, height);
+                            Rect motionLabelRect = new Rect(stateRect.x + stateRect.width/2 - motionLabelSize.x/2, stateRect.y - motionLabelSize.y/2, motionLabelSize.x, motionLabelSize.y);
+                            motionLabelRect.x = Mathf.Clamp(motionLabelRect.x, iconSize, stateRect.width/2);
 
-                            float _MotionIconOffsetX = 0.0f;
-                            float _MotionIconOffsetY = 0.0f;
+                            Vector2 motionIconOffset = new Vector2(0f, 1f + motionLabelRect.y - iconSize/2f + motionLabelRect.height/2f);
 
-                            if(RATS.Prefs.StateGraphIconLocation)
-                            {
-                                _MotionIconOffsetX = -0.25f + iconSize/8f + RATS.Prefs.StateMotionIconOffset;
-                                _MotionIconOffsetY = motionLabelRect.y + height/1.35f - iconSize/1.4f;
-                            } 
+                            if(RATS.Prefs.StateGraphIconLocationIsCorner)
+                                motionIconOffset.x += -1f + iconSize/8f;
                             else
-                            {
-                                _MotionIconOffsetX = Mathf.Clamp(((motionLabelRect.x - iconSize/2) - RATS.Prefs.StateMotionIconOffset),-0.5f, 250.0f);
-                                _MotionIconOffsetY = motionLabelRect.y + height/2 - iconSize/2;
-                            }
+                                motionIconOffset.x += -7f + (motionLabelRect.x - iconSize/2f);
 
-                            Rect motionIconRect = new Rect(_MotionIconOffsetX, _MotionIconOffsetY, iconSize, iconSize);
+                            Rect motionIconRect = new Rect(motionIconOffset.x, motionIconOffset.y, iconSize, iconSize);
 
                             EditorGUI.LabelField(motionLabelRect, motionLabel, StateMotionStyle);
                             EditorGUI.LabelField(motionIconRect, labelIconContent);
