@@ -376,8 +376,12 @@ namespace Razgriz.RATS
         [HarmonyPriority(Priority.Low)]
         class PatchAnimatorNewTransitionDefaults
         {
-            [HarmonyTargetMethod]
-            static MethodBase TargetMethod() => AccessTools.Method(typeof(UnityEditor.Animations.AnimatorState), "CreateTransition");
+            [HarmonyTargetMethods]
+            static IEnumerable<MethodBase> TargetMethods()
+            {
+                yield return AccessTools.Method(typeof(UnityEditor.Animations.AnimatorState), "CreateTransition");
+                yield return AccessTools.Method(typeof(UnityEditor.Animations.AnimatorStateMachine), "AddAnyStateTransition");
+            }
 
             [HarmonyPostfix]
             static void Postfix(ref AnimatorStateTransition __result)
