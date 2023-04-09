@@ -436,16 +436,17 @@ namespace Razgriz.RATS
             [HarmonyPrefix]
             static void Prefix(object __instance, object edge, Texture2D tex, ref Color color, object info, bool viewHasLiveLinkExactEdge)
             {
-                object transitionEditionContextsList = (object)EdgeInfoTransitionsField.GetValue(info);
+                if (info == null) return;
+                object transitionEditionContextsList = EdgeInfoTransitionsField.GetValue(info);
                 if (transitionEditionContextsList is not IEnumerable<object> transitionEditionContexts) return;
 
                 foreach (object transitionEditionContext in transitionEditionContexts)
                 {
                     AnimatorTransitionBase transition = (AnimatorTransitionBase)TransitionEditionContextTransitionField.GetValue(transitionEditionContext);
 
-                    if(transition == null) continue;
+                    if(!Event.current.alt || transition == null) continue;
 
-                    if(transition.conditions.Any(c => c.parameter == AnimatorWindowState.selectedParameterName && AnimatorWindowState.selectedParameterIsFocused)) // Event.current.alt
+                    if(transition.conditions.Any(c => c.parameter == AnimatorWindowState.selectedParameterName))
                     {
                         color = Color.green;
                         break;
@@ -856,6 +857,7 @@ namespace Razgriz.RATS
             private static GUIStyle StateExtrasStyle = null;
             private static GUIStyle StateExtrasStyleActive = null;
             private static GUIStyle StateExtrasStyleInactive = null;
+            private static GUIStyle StateExtrasStyleHighlight = null;
             private static GUIStyle StateBlendtreeStyle = null;
 
             [HarmonyTargetMethods]
@@ -891,6 +893,11 @@ namespace Razgriz.RATS
                     StateExtrasStyleInactive.alignment = TextAnchor.UpperRight;
                     StateExtrasStyleInactive.fontStyle = FontStyle.Bold;
                     StateExtrasStyleInactive.normal.textColor = RATS.Prefs.StateExtraLabelsColorDisabled;
+
+                    StateExtrasStyleHighlight = new GUIStyle(EditorStyles.label);
+                    StateExtrasStyleHighlight.alignment = TextAnchor.UpperRight;
+                    StateExtrasStyleHighlight.fontStyle = FontStyle.Bold;
+                    StateExtrasStyleHighlight.normal.textColor = Color.green;
 
                     StateMotionStyle = new GUIStyle(EditorStyles.miniBoldLabel);
                     StateMotionStyle.fontSize = 9;
@@ -984,10 +991,43 @@ namespace Razgriz.RATS
                     }
 
                     #if !RATS_NO_ANIMATOR
-                        if(!hasStateMachine && (debugShowLabels || RATS.Prefs.StateExtraLabelsWD)) EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
-                        if(				(debugShowLabels || RATS.Prefs.StateExtraLabelsBehavior)) EditorGUI.LabelField(behaviorLabelRect, "B", (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive));
-                        if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsMotionTime)) EditorGUI.LabelField(motionTimeLabelRect, "M", (hasMotionTime ? StateExtrasStyleActive : StateExtrasStyleInactive));
-                        if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsSpeed)) EditorGUI.LabelField(speedLabelRect, "S", (hasSpeedParam ? StateExtrasStyleActive : StateExtrasStyleInactive));
+                        if(!hasStateMachine && (debugShowLabels || RATS.Prefs.StateExtraLabelsWD))
+                        {
+                            EditorGUI.LabelField(wdLabelRect, "WD", (isWD ? StateExtrasStyleActive : StateExtrasStyleInactive));
+                        }
+
+                        if(debugShowLabels || RATS.Prefs.StateExtraLabelsBehavior)
+                        {
+                            GUIStyle behaviorStyle = (hasBehavior ? StateExtrasStyleActive : StateExtrasStyleInactive);
+                            EditorGUI.LabelField(behaviorLabelRect, "B", behaviorStyle);
+                        }
+
+                        if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsMotionTime))
+                        {
+                            GUIStyle motionTimeStyle = StateExtrasStyleInactive;
+                            if(hasMotionTime)
+                            {
+                                if(debugShowLabels && aState.timeParameter == AnimatorWindowState.selectedParameterName)
+                                    motionTimeStyle = StateExtrasStyleHighlight;
+                                else
+                                    motionTimeStyle = StateExtrasStyleActive;
+                            }
+
+                            EditorGUI.LabelField(motionTimeLabelRect, "M", motionTimeStyle);
+                        }
+
+                        if(hasMotion && (debugShowLabels || RATS.Prefs.StateExtraLabelsSpeed))
+                        {
+                            GUIStyle speedStyle = StateExtrasStyleInactive;
+                            if(hasSpeedParam)
+                            {
+                                if(debugShowLabels && aState.speedParameter == AnimatorWindowState.selectedParameterName)
+                                    speedStyle = StateExtrasStyleHighlight;
+                                else
+                                    speedStyle = StateExtrasStyleActive;
+                            }
+                            EditorGUI.LabelField(speedLabelRect, "S", speedStyle);
+                        }
 
                         if (hasMotion && (debugShowLabels || RATS.Prefs.StateMotionLabels))
                         {
