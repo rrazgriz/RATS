@@ -41,6 +41,10 @@ namespace Razgriz.RATS
             // Layer copy/paste
            internal static AnimatorControllerLayer layerClipboard = null;
            internal static AnimatorController controllerClipboard = null;
+
+            // Currently selected parameters
+            internal static string selectedParameterName = "";
+            internal static bool selectedParameterIsFocused = false;
         }
 
 #if !RATS_NO_ANIMATOR // Compatibility
@@ -415,6 +419,70 @@ namespace Razgriz.RATS
 
         #region ParametersFeatures
 
+        // Parameter List: Show Transitions using parameter
+        // TODO: figure out a better way to track focus, as it currently stays true if the user clicks on the layer list. Maybe just do it when the user holds the alt key?
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchAnimatorShowTransitionsUsingParameter
+        {
+            private static readonly Type EdgeInfoType = AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.EdgeInfo");
+            private static readonly FieldInfo EdgeInfoTransitionsField = AccessTools.Field(EdgeInfoType, "transitions");
+            private static readonly Type TransitionEditionContextType = AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.TransitionEditionContext");
+            private static readonly FieldInfo TransitionEditionContextTransitionField = AccessTools.Field(TransitionEditionContextType, "transition");
+
+            static MethodBase TargetMethod() => AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.EdgeGUI"), "DrawEdge");
+
+            // private void DrawEdge(Edge edge, Texture2D tex, Color color, EdgeInfo info, bool viewHasLiveLinkExactEdge)
+            [HarmonyPrefix]
+            static void Prefix(object __instance, object edge, Texture2D tex, ref Color color, object info, bool viewHasLiveLinkExactEdge)
+            {
+                object transitionEditionContextsList = (object)EdgeInfoTransitionsField.GetValue(info);
+                if (transitionEditionContextsList is not IEnumerable<object> transitionEditionContexts) return;
+
+                foreach (object transitionEditionContext in transitionEditionContexts)
+                {
+                    AnimatorTransitionBase transition = (AnimatorTransitionBase)TransitionEditionContextTransitionField.GetValue(transitionEditionContext);
+
+                    if(transition == null) continue;
+
+                    if(transition.conditions.Any(c => c.parameter == AnimatorWindowState.selectedParameterName && AnimatorWindowState.selectedParameterIsFocused)) // Event.current.alt
+                    {
+                        color = Color.green;
+                        break;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchAnimatorParameterControllerViewOnDrawBackgroundParameter
+        {
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(ParameterControllerViewType, "OnDrawBackgroundParameter");
+
+            [HarmonyPrefix]
+            static void Prefix(object __instance, Rect rect, int index, bool selected, bool focused)
+            {
+                // Because of the way the ParameterControllerView works, focused will not be true all the time, just for a bit when the user clicks on the parameter
+                // So we need to keep track of the focused state ourselves using this and the OnLostFocus patch
+                // We would just use OnFocus, but it doesn't always get called when we want it to
+                if(focused) 
+                    AnimatorWindowState.selectedParameterIsFocused = true;
+            }
+        }
+
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchAnimatorParameterControllerViewOnLostFocus
+        {
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(ParameterControllerViewType, "OnLostFocus");
+
+            [HarmonyPrefix]
+            static void Prefix(object __instance) => AnimatorWindowState.selectedParameterIsFocused = false;
+        }
+
         [HarmonyPatch]
         [HarmonyPriority(Priority.Low)]
         class PatchAnimatorParameterVisuals
@@ -449,6 +517,9 @@ namespace Razgriz.RATS
                 const float labelWidth = 66f;
                 Rect labelTypeRect = new Rect(rect.xMax - labelWidth * 2f, rect.y, labelWidth - 6f, rect.height);
                 GUI.Label(labelTypeRect, parameterTypeLabel, AnimatorParameterTypeLabel);
+
+                // // While we're here, track the currently selected parameter
+                if(selected) AnimatorWindowState.selectedParameterName = animatorControllerParameter.name;
             }
         }
 
