@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/github-script@v6
         with:
-          GITHUB_TOKEN: ${{ secrets.RAZ_VPM_TOKEN }}
+          github-token: ${{ secrets.RAZ_VPM_TOKEN }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'rrazgriz',
