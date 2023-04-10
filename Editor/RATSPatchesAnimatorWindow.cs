@@ -84,24 +84,22 @@ namespace Razgriz.RATS
             }
         }
 
+#if !UNITY_2021_3_OR_NEWER
         // Break 'undo' of sub-state machine pasting
         [HarmonyPatch]
         [HarmonyPriority(Priority.Low)]
         class PatchBreakUndoSubStateMachinePaste
         {
             [HarmonyTargetMethod]
-            static MethodBase TargetMethod() => typeof(Unsupported).GetMethod("PasteToStateMachineFromPasteboard", BindingFlags.Static | BindingFlags.Public);//AccessTools.Method(typeof(Unsupported), "PasteToStateMachineFromPasteboard");
+            static MethodBase TargetMethod() => AccessTools.Method(typeof(Unsupported), "PasteToStateMachineFromPasteboard");
 
             [HarmonyPostfix]
-            static void Postfix(
-                AnimatorStateMachine sm,
-                AnimatorController controller,
-                int layerIndex,
-                Vector3 position)
+            static void Postfix(AnimatorStateMachine sm, AnimatorController controller, int layerIndex, Vector3 position)
             {
                 Undo.ClearUndo(sm);
             }
         }
+#endif
 
         // Prevent transition condition parameter change from altering the condition function
         [HarmonyPatch]
