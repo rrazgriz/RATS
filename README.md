@@ -1,6 +1,11 @@
 # 🐀 RATS - Raz's Animator Tweaks 'n' Stuff 🧀
 
-![GitHub deployments](https://img.shields.io/github/actions/workflow/status/rrazgriz/RATS/release.yml?label=Build%20Release)
+<div align=left>
+  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/rrazgriz/rats/release.yml?style=for-the-badge">
+  <img alt="GitHub" src="https://img.shields.io/github/license/rrazgriz/rats?color=blue&style=for-the-badge">
+  <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/rrazgriz/rats?logo=unity&style=for-the-badge">
+  <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/rrazgriz/rats/total?color=blue&style=for-the-badge">
+</div>
 
 ## 📥 Get it from VPM! https://vpm.razgriz.one/ (make sure to install Harmony as well!)
 
