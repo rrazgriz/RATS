@@ -138,28 +138,6 @@ namespace Razgriz.RATS
             }
         }
 
-        private struct InternalTextureInfo
-        {
-            public int Width;
-            public int Height;
-            public bool Mips;
-            public bool Linear;
-            public TextureFormat Format;
-            public IntPtr Ptr;
-
-            public InternalTextureInfo(int width, int height, TextureFormat format, bool mips, bool linear, IntPtr ptr)
-            {
-                Width = width; Height = height; Mips = mips; Linear = linear; Format = format; Ptr = ptr;
-            }
-
-            public InternalTextureInfo(Texture2D tex, bool linear)
-            {
-                Width = tex.width; Height = tex.height; Mips = tex.mipmapCount > 0; Linear = linear; Format = tex.format; Ptr = tex.GetNativeTexturePtr();
-            }
-
-            public Texture2D GetTexture2D() => Texture2D.CreateExternalTexture(Width, Height, Format, Mips, Linear, Ptr);
-        }
-
         // Recursive helper functions to gather deeply-nested parameter references
         private static void GatherBtParams(BlendTree bt, ref Dictionary<string, AnimatorControllerParameter> srcParams, ref Dictionary<string, AnimatorControllerParameter> queuedParams)
         {
