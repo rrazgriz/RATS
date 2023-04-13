@@ -407,13 +407,13 @@ namespace Razgriz.RATS
 
         static void LoadGraphTextures()
         {
-            byte[] nodeBackgroundBytes = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("780a9e3efb8a1ca42b44c98c5e972f2d")).Replace("/", "\\"));
-            byte[] nodeBackgroundActiveBytes = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("4fb6ef4881973e24cbcf73cff14ae0c8")).Replace("/", "\\"));
-            nodeBackgroundImageMask = LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("81dcb3a363364ea4f9a475b4cebb0eaf")).Replace("/", "\\"));
+            byte[] nodeBackgroundBytes = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("780a9e3efb8a1ca42b44c98c5e972f2d")).Replace('/', Path.DirectorySeparatorChar));
+            byte[] nodeBackgroundActiveBytes = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("4fb6ef4881973e24cbcf73cff14ae0c8")).Replace('/', Path.DirectorySeparatorChar));
+            nodeBackgroundImageMask = LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("81dcb3a363364ea4f9a475b4cebb0eaf")).Replace('/', Path.DirectorySeparatorChar));
             
-            stateMachineBackgroundImage = LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("160541e301c89e644a9c10fb82f74f88")).Replace("/", "\\"));
+            stateMachineBackgroundImage = LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("160541e301c89e644a9c10fb82f74f88")).Replace('/', Path.DirectorySeparatorChar));
             stateMachineBackgroundPixels = stateMachineBackgroundImage.GetPixels();
-            stateMachineBackgroundImageActive = LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("c430ad55db449494aa1caefe9dccdc2d")).Replace("/", "\\"));
+            stateMachineBackgroundImageActive = LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath("c430ad55db449494aa1caefe9dccdc2d")).Replace('/', Path.DirectorySeparatorChar));
             stateMachineBackgroundPixelsActive = stateMachineBackgroundImageActive.GetPixels();
 
             nodeBackgroundPixels = LoadPNG(nodeBackgroundBytes).GetPixels();
@@ -505,7 +505,7 @@ namespace Razgriz.RATS
 
         public static Texture2D LoadPNGFromGUID(string guid)
         {
-            return LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath(guid)).Replace("/", "\\"));
+            return LoadPNG(Path.Combine(Directory.GetCurrentDirectory(), AssetDatabase.GUIDToAssetPath(guid)).Replace('/', Path.DirectorySeparatorChar));
         }
 
         public static Texture2D LoadPNG(string filePath)
