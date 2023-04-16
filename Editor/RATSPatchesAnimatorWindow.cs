@@ -744,7 +744,7 @@ namespace Razgriz.RATS
                             3 => on ? nodeBackgroundImageGreenActive    : nodeBackgroundImageGreen,
                             2 => on ? nodeBackgroundImageAquaActive     : nodeBackgroundImageAqua,
                             1 => on ? nodeBackgroundImageBlueActive     : nodeBackgroundImageBlue,
-                            _ => on ? nodeBackgroundImageActive         : textures.nodeBackgroundAsset,
+                            _ => on ? nodeBackgroundImageActive         : nodeBackgroundImage,
                         };
                     }
                     else if(styleName == "node hex") // SubStateMachine node
