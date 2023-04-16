@@ -736,16 +736,16 @@ namespace Razgriz.RATS
 
                     if(styleName == "node") // Regular state node
                     {
-                        switch(color)
+                        __result.normal.background = color switch
                         {
-                            case 6: __result.normal.background = on ? nodeBackgroundImageRedActive : nodeBackgroundImageRed; break; // Red 
-                            case 5: __result.normal.background = on ? nodeBackgroundImageOrangeActive : nodeBackgroundImageOrange; break; // Orange
-                            case 4: __result.normal.background = on ? nodeBackgroundImageYellowActive : nodeBackgroundImageYellow; break; // Yellow
-                            case 3: __result.normal.background = on ? nodeBackgroundImageGreenActive : nodeBackgroundImageGreen; break; // Green
-                            case 2: __result.normal.background = on ? nodeBackgroundImageAquaActive : nodeBackgroundImageAqua; break; // Aqua
-                            case 1: __result.normal.background = on ? nodeBackgroundImageBlueActive : nodeBackgroundImageBlue; break; // Blue
-                            default:__result.normal.background = on ? nodeBackgroundImageActive : nodeBackgroundImage; break; // Anything Else
-                        }
+                            6 => on ? nodeBackgroundImageRedActive      : nodeBackgroundImageRed,
+                            5 => on ? nodeBackgroundImageOrangeActive   : nodeBackgroundImageOrange,
+                            4 => on ? nodeBackgroundImageYellowActive   : nodeBackgroundImageYellow,
+                            3 => on ? nodeBackgroundImageGreenActive    : nodeBackgroundImageGreen,
+                            2 => on ? nodeBackgroundImageAquaActive     : nodeBackgroundImageAqua,
+                            1 => on ? nodeBackgroundImageBlueActive     : nodeBackgroundImageBlue,
+                            _ => on ? nodeBackgroundImageActive         : textures.nodeBackgroundAsset,
+                        };
                     }
                     else if(styleName == "node hex") // SubStateMachine node
                     {
@@ -762,12 +762,14 @@ namespace Razgriz.RATS
 
             public static string GetStyleCacheKey(string styleName, int color, bool on)
             {
-                if(styleName == "node hex")
-                    return String.Format("node{0} hex{1}", color.ToString(), on ? " on" : "");
-                else if(styleName == "node")
-                    return String.Format("node{0}{1}", color.ToString(), on ? " on" : "");
-                else
-                    return String.Format("{0}{1}{2}", styleName, color.ToString(), on ? " on" : "");
+                string onOff = on ? "on" : "";
+
+                return styleName switch
+                {
+                    "node hex"  => $"node{color} hex{onOff}",
+                    "node"      => $"node{color}{onOff}",
+                    _           => $"{styleName}{color}{onOff}",
+                };
             }
         }
 

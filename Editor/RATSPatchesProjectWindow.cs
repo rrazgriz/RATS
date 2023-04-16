@@ -30,16 +30,15 @@ namespace Razgriz.RATS
 
         public static string FormatSizeBytes(float size)
         {
-            if(size < 1024)
-                return string.Format("{0} B", Math.Round(size, 0));
-            else if(size < 1048576)
-                return string.Format("{0} KB", Math.Round(size / 1024, 0));
-            else if(size < 1048576 * 10)
-                return string.Format("{0} MB", Math.Round(size / 1048576, 2));
-            else if(size < 1048576 * 100)
-                return string.Format("{0} MB", Math.Round(size / 1048576, 1));
-            else
-                return string.Format("{0} MB", Math.Round(size / 1048576, 0));
+            int sizeLog1024 = Mathf.FloorToInt(Mathf.Log(size, 1024)); // Intervals of 1024 bytes
+            return sizeLog1024 switch
+            {
+                0 => $"{Math.Round(size, 0)} B",
+                1 => $"{Math.Round(size / 1024, 0)} KB",
+                2 => $"{Math.Round(size / 1048576, 2)} MB",
+                3 => $"{Math.Round(size / 1048576, 1)} MB",
+                _ => $"{Math.Round(size / 1048576, 0)} MB",
+            };
         }
 
         // TODO: figure out why this doesn't show for newly created assets until project reload
