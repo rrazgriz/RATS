@@ -75,6 +75,10 @@ namespace Razgriz.RATS
                 string name = (string)FilterResultNameField.GetValue(filterItem);
                 string guid = (string)FilterResultGuidProperty.GetValue(filterItem);
 
+                // This prevents nullrefs when trying to list scene objects
+                if(guid == null)
+                    return;
+
                 string labelText = ProjectItemCache.GetLabel(instanceID, guid, isFolder);
 
                 extensionLabelStyle.normal.textColor = RATS.Prefs.ProjectWindowLabelTextColor;
