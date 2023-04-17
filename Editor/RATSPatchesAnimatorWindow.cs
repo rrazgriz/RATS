@@ -736,16 +736,16 @@ namespace Razgriz.RATS
 
                     if(styleName == "node") // Regular state node
                     {
-                        __result.normal.background = color switch
+                        switch (color)
                         {
-                            6 => on ? nodeBackgroundImageRedActive      : nodeBackgroundImageRed,
-                            5 => on ? nodeBackgroundImageOrangeActive   : nodeBackgroundImageOrange,
-                            4 => on ? nodeBackgroundImageYellowActive   : nodeBackgroundImageYellow,
-                            3 => on ? nodeBackgroundImageGreenActive    : nodeBackgroundImageGreen,
-                            2 => on ? nodeBackgroundImageAquaActive     : nodeBackgroundImageAqua,
-                            1 => on ? nodeBackgroundImageBlueActive     : nodeBackgroundImageBlue,
-                            _ => on ? nodeBackgroundImageActive         : nodeBackgroundImage,
-                        };
+                            case 6:  __result.normal.background = on ? nodeBackgroundImageRedActive : nodeBackgroundImageRed; break;
+                            case 5:  __result.normal.background = on ? nodeBackgroundImageOrangeActive : nodeBackgroundImageOrange; break;
+                            case 4:  __result.normal.background = on ? nodeBackgroundImageYellowActive : nodeBackgroundImageYellow; break;
+                            case 3:  __result.normal.background = on ? nodeBackgroundImageGreenActive : nodeBackgroundImageGreen; break;
+                            case 2:  __result.normal.background = on ? nodeBackgroundImageAquaActive : nodeBackgroundImageAqua; break;
+                            case 1:  __result.normal.background = on ? nodeBackgroundImageActive : nodeBackgroundImage; break;
+                            default: __result.normal.background = on ? nodeBackgroundImageActive : nodeBackgroundImage; break;
+                        }
                     }
                     else if(styleName == "node hex") // SubStateMachine node
                     {
@@ -764,12 +764,12 @@ namespace Razgriz.RATS
             {
                 string onOff = on ? "on" : "";
 
-                return styleName switch
-                {
-                    "node hex"  => $"node{color} hex{onOff}",
-                    "node"      => $"node{color}{onOff}",
-                    _           => $"{styleName}{color}{onOff}",
-                };
+                if(styleName == "node hex")
+                    return $"node{color} hex{onOff}";
+                else if(styleName == "node")
+                    return $"node{color}{onOff}";
+                else
+                    return $"{styleName}{color}{onOff}";
             }
         }
 

@@ -31,14 +31,15 @@ namespace Razgriz.RATS
         public static string FormatSizeBytes(float size)
         {
             int sizeLog1024 = Mathf.FloorToInt(Mathf.Log(size, 1024)); // Intervals of 1024 bytes
-            return sizeLog1024 switch
+
+            switch (sizeLog1024)
             {
-                0 => $"{Math.Round(size, 0)} B",
-                1 => $"{Math.Round(size / 1024, 0)} KB",
-                2 => $"{Math.Round(size / 1048576, 2)} MB",
-                3 => $"{Math.Round(size / 1048576, 1)} MB",
-                _ => $"{Math.Round(size / 1048576, 0)} MB",
-            };
+                case 0:  return $"{Math.Round(size, 0)} B";
+                case 1:  return $"{Math.Round(size / 1024, 0)} KB";
+                case 2:  return $"{Math.Round(size / 1048576, 2)} MB";
+                case 3:  return $"{Math.Round(size / 1048576, 1)} MB";
+                default: return $"{Math.Round(size / 1048576, 0)} MB";
+            }
         }
 
         // TODO: figure out why this doesn't show for newly created assets until project reload
