@@ -762,7 +762,7 @@ namespace Razgriz.RATS
 
             public static string GetStyleCacheKey(string styleName, int color, bool on)
             {
-                string onOff = on ? "on" : "";
+                string onOff = on ? " on" : "";
 
                 if(styleName == "node hex")
                     return $"node{color} hex{onOff}";
