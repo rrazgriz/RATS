@@ -382,8 +382,12 @@ namespace Razgriz.RATS
             }
 
             [HarmonyPostfix]
-            static void Postfix(ref AnimatorStateTransition __result)
+            static void Postfix(object __instance, ref AnimatorStateTransition __result)
             {
+                // Without this check, it throws warnings when inspecting unrelated transitions
+                if(string.IsNullOrEmpty(AssetDatabase.GetAssetPath((UnityEngine.Object)__instance)))
+                    return;
+
                 __result.duration = RATS.Prefs.DefaultTransitionTime;
                 __result.exitTime = RATS.Prefs.DefaultTransitionExitTime;
                 __result.hasExitTime = RATS.Prefs.DefaultTransitionHasExitTime;
