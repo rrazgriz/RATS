@@ -703,6 +703,9 @@ namespace Razgriz.RATS
                 else if(RATS.Prefs.GraphDragSnapToModifiedGrid && RATS.Prefs.GraphGridOverride) // Enforce Minor Grid Spacing Snapping
                 {
                     float minorGridSpacing = RATS.Prefs.GraphGridScalingMajor * (100f / RATS.Prefs.GraphGridDivisorMinor);
+                    // prevent states from disappearing when GraphGridScalingMajor is 0
+                    if (minorGridSpacing < 1)
+                        minorGridSpacing = 1;
                     __result = new Rect(Mathf.Round(position.x / minorGridSpacing) * minorGridSpacing, Mathf.Round(position.y / minorGridSpacing) * minorGridSpacing, position.width, position.height);
                     return false;
                 }
