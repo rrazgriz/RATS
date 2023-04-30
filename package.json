@@ -8,7 +8,9 @@
     "name": "Raz"
   },
   "gitDependencies": {},
-  "vpmDependencies": {},
+  "vpmDependencies": {
+    "one.razgriz.harmony-vpm": "2.2.2"
+  },
   "legacyFolders": {},
   "legacyFiles": {},
   "hideInEditor": false,
