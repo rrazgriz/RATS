@@ -25,7 +25,7 @@ Tested on Unity versions:
 
 ### VRChat Creator Companion
 
-Visit https://github.com/rrazgriz/raz-vpm/blob/main/README.md and follow the instructions to add my Repository to VPM. You'll need to add the Harmony package if you don't already have Harmony in your Unity project.
+Visit https://github.com/rrazgriz/raz-vpm/blob/main/README.md and follow the instructions to add my Repository to VPM. You'll need to add the Harmony package if you don't already have Harmony in your Unity project. (Things that bundle this include [UdonSharp](https://github.com/vrchat-community/UdonSharp) and Dreadrith's [ControllerEditor](https://dreadrith.gumroad.com/l/CEditor))
 
 ### Manual
 
