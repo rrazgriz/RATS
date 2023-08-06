@@ -123,7 +123,12 @@ namespace Razgriz.RATS
                 int wdOffStateCount = 0;
                 RecursivelyDetermineStateMachineWDStatus(layer.stateMachine, ref wdOnStateCount, ref wdOffStateCount);
 
-                if(wdOnStateCount > 0 && wdOffStateCount > 0)
+                if(wdOnStateCount == 0 && wdOffStateCount == 0)
+                {
+                    // We don't consider the WD status of empty layers
+                    continue;
+                }
+                else if(wdOnStateCount > 0 && wdOffStateCount > 0)
                 {
                     layerCountWDOn++;
                     layerCountWDOff++;
