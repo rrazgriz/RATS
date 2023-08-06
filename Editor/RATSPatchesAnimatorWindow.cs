@@ -341,7 +341,7 @@ namespace Razgriz.RATS
                 layerLabelRect.x -= 19;
                 layerLabelRect.y += 15;
 
-                if(layerStateMachine.states.Length == 0)
+                if(layerStateMachine.states.Length == 0 && layerStateMachine.stateMachines.Length == 0)
                 {
                     EditorGUI.LabelField(layerLabelRect, "  E", LayerWDStyle);
                     return; 
