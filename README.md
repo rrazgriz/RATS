@@ -7,7 +7,7 @@
   <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/rrazgriz/rats/total?color=blue&style=for-the-badge">
 </div>
 
-## 📥 Get it from VPM! https://vpm.razgriz.one/ (make sure to install Harmony as well!)
+## 📥 Get it from VPM! https://vpm.razgriz.one/ (Make sure to use SDK 3.4.0 or higher!)
 
 ![Animator Window](.github/img/RATS-Animator.png)
 
@@ -29,7 +29,11 @@ Visit https://github.com/rrazgriz/raz-vpm/blob/main/README.md and follow the ins
 
 ### Manual
 
-Download the latest release package from the [Releases](https://github.com/rrazgriz/RATS/releases/) page, and add to your project. You'll need Harmony, which you can get in package form from https://github.com/rrazgriz/harmony-vpm or from the source at https://github.com/pardeike/Harmony.
+Download the latest release package from the [Releases](https://github.com/rrazgriz/RATS/releases/) page, and add to your project. You'll need Harmony, which you can get via the VRChat Base SDK 3.4.0 or higher.
+
+If you had RATS before the VRChat Base SDK 3.4.0, you may have a Harmony package installed too - remove it when updating to 3.4.0 or higher. If you have a new enough VCC install, this should happen automatically when updating RATS.
+
+Alternatively, you can download it from package from the source at https://github.com/pardeike/Harmony - note that you may need to use the 2.2.2 release (the .NET 4.7.2 dll) for best results.
 
 ## Features
 
