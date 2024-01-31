@@ -558,6 +558,9 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             static void Postfix(object __instance, Rect nameRect)
             {
+                if (RATS.Prefs.DisableBottomBarRatsLabel)
+                    return;
+
                 UnityEngine.Object ctrl = (UnityEngine.Object)AnimatorControllerGetter.Invoke(__instance, null);
                 if (ctrl != (UnityEngine.Object)null)
                 {

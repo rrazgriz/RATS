@@ -55,6 +55,7 @@ namespace Razgriz.RATS
     public class RATSPreferences
     {
         public bool DisableAnimatorGraphFixes = false;
+        public bool DisableBottomBarRatsLabel = false;
         public bool StateMotionLabels = true;
         public bool StateBlendtreeLabels = true;
         public bool StateAnimIsEmptyLabel = true;
@@ -362,6 +363,12 @@ namespace Razgriz.RATS
                 {
                     EditorGUILayout.LabelField("Tip: Hold ALT to see all labels at any time", new GUIStyle("miniLabel"));
                 }
+
+                EditorGUILayout.Space(8);
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.DisableBottomBarRatsLabel, "Disable Bottom Bar Label", "Disables the RATS label on the bottom bar of the Graph Window");
+                }
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
@@ -440,6 +447,7 @@ namespace Razgriz.RATS
                         RATS.Prefs.StateExtraLabelsMotionTime = false;
                         RATS.Prefs.StateMotionLabels = false;
                         RATS.Prefs.GraphGridOverride = false;
+                        RATS.Prefs.DisableBottomBarRatsLabel = true;
                     }
                     HandlePreferences();
 
