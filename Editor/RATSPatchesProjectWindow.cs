@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using HarmonyLib;
+using UnityEditor.Animations;
 
 namespace Razgriz.RATS
 {
@@ -165,6 +166,74 @@ namespace Razgriz.RATS
                 }
             }
         }
+        
+        [MenuItem("Assets/Cleanup Controller")]
+        private static void CleanupController()
+        {
+            var controller = Selection.activeObject as AnimatorController;
+
+            if (controller == null) return;
+
+            UnityEngine.Object[] subAssets = AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(controller)).Where(x => x != null).ToArray();
+            
+            List<UnityEngine.Object> relevantObjects = new List<UnityEngine.Object>();
+            relevantObjects.Add(controller);
+            controller.layers.ToList().ForEach(x => ProcessStateMachine(x.stateMachine, relevantObjects));
+            
+            void ProcessStateMachine(AnimatorStateMachine stateMachine, List<UnityEngine.Object> objects)
+            {
+                objects.Add(stateMachine);
+                foreach (var childAnimatorState in stateMachine.states)
+                {
+                    AnimatorState animatorState = childAnimatorState.state;
+                    objects.Add(animatorState);
+                    animatorState.transitions.ToList().ForEach(x => objects.Add(x));
+                    animatorState.behaviours.ToList().ForEach(x => objects.Add(x));
+				
+                    if (animatorState.motion is BlendTree tree)
+                    {
+                        Queue<BlendTree> trees = new Queue<BlendTree>(new [] {tree});
+                        while (trees.Count>0)
+                        {
+                            tree = trees.Dequeue();
+                            AssetDatabase.RemoveObjectFromAsset(tree);
+                            objects.Add(tree);
+                            tree.children.Where(x => x.motion is BlendTree).ToList().ForEach(x => trees.Enqueue((BlendTree)x.motion));
+                        }
+                    } else if (animatorState.motion is AnimationClip clip)
+                    {
+                        relevantObjects.Add(clip);
+                    }
+                }
+			
+                stateMachine.entryTransitions.ToList().ForEach(x => objects.Add(x));
+                stateMachine.anyStateTransitions.ToList().ForEach(x => objects.Add(x));
+                stateMachine.stateMachines.ToList().ForEach(x => ProcessStateMachine(x.stateMachine, relevantObjects));
+            }
+            
+            foreach (var subAsset in subAssets)
+            {
+                int totalRemoved = 0;
+                if (!relevantObjects.Contains(subAsset))
+                {
+                    AssetDatabase.RemoveObjectFromAsset(subAsset);
+                    Debug.Log("Removing: " + subAsset.name);
+                    totalRemoved++;
+                }
+
+                if (totalRemoved > 0)
+                {
+                    Debug.Log($"Removed {totalRemoved} Assets from Controller {controller.name}");
+                }
+            }
+        }
+
+        [MenuItem("Assets/Cleanup Controller", true)]
+        private static bool ValidateCleanupController()
+        {
+            return Selection.objects.Any(x => x is AnimatorController) && Selection.objects.Length > 0;
+        }
+
     }
 }
 #endif
