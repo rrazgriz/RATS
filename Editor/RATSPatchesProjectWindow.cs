@@ -174,6 +174,10 @@ namespace Razgriz.RATS
 
             if (controller == null) return;
 
+            if (!EditorUtility.DisplayDialog("Cleanup Controller",
+                    "This operation will remove all sub-assets not referenced in this Controller. This might remove assets that are still used externally. Make sure you have a backup of the Controller.",
+                    "Proceed", "Cancel")) return;
+            
             UnityEngine.Object[] subAssets = AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(controller)).Where(x => x != null).ToArray();
             
             List<UnityEngine.Object> relevantObjects = new List<UnityEngine.Object>();
