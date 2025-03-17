@@ -50,6 +50,9 @@ namespace Razgriz.RATS
             // State Menu
             internal static AnimatorState multipleState;
 
+            // Double Clicks
+            internal static double doubleClickLastClick;
+            internal static bool doubleClickLeftControlDown;
         }
 
 #if !RATS_NO_ANIMATOR // Compatibility
@@ -819,6 +822,113 @@ namespace Razgriz.RATS
             }
         }
 
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchDoubleClickStateMachine
+        {
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(
+                AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"), "OnGraphGUI");
+
+            [HarmonyPostfix]
+            static void HandleDoubleClick(object __instance)
+            {
+                Event e = Event.current;
+                if (e.type == EventType.KeyDown && e.keyCode == KeyCode.LeftControl)
+                {
+                    AnimatorWindowState.doubleClickLeftControlDown = true;
+                }
+                if (e.type == EventType.KeyUp && e.keyCode == KeyCode.LeftControl)
+                {
+                    AnimatorWindowState.doubleClickLeftControlDown = false;
+                }
+                
+                if (e.type == EventType.MouseDown && e.button != 2 && AnimatorWindowState.doubleClickLeftControlDown)
+                {
+                    if (EditorApplication.timeSinceStartup - AnimatorWindowState.doubleClickLastClick <
+                        RATS.Prefs.DoubleClickTimeInterval)
+                    {
+                        AnimatorWindowState.doubleClickLastClick = 0;
+                        AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
+                            .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                                "get_activeStateMachine").Invoke(__instance, new object[0]);
+                        
+                        AnimatorState newState = new AnimatorState();
+                        stateMachine.AddState(newState, Event.current.mousePosition - new Vector2(100, 20));
+                        Event.current.Use();
+                        AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
+                    }
+                    else
+                    {
+                        AnimatorWindowState.doubleClickLastClick = EditorApplication.timeSinceStartup;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchDoubleClickEntryAnyState
+        {
+            private static MethodInfo IsDoubleClick;
+            [HarmonyTargetMethod]
+            static MethodBase[] TargetMethods() => new[]
+            { 
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.AnyStateNode"), "NodeUI"),
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.EntryNode"), "NodeUI"),
+            };
+            
+            [HarmonyPostfix]
+            static void HandleDoubleClick(object __instance)
+            {
+                if (IsDoubleClick == null) IsDoubleClick = AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"),  "IsDoubleClick");
+                if ((bool)IsDoubleClick.Invoke(__instance, new object[0]) && AnimatorWindowState.doubleClickLeftControlDown)
+                {
+                    object graphGUI = AccessTools.Field(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"),  "graphGUI").GetValue(__instance);
+                    object edgeGUI = AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                        "get_edgeGUI").Invoke(graphGUI, new object[0]);
+                    IEnumerable<UnityEditor.Graphs.Slot> outputSlots = (IEnumerable<UnityEditor.Graphs.Slot>) AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"), "get_outputSlots").Invoke(__instance, new object[0]);
+                    AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.IEdgeGUI"), "BeginSlotDragging",
+                        new Type[] { typeof(UnityEditor.Graphs.Slot), typeof(bool), typeof(bool) }).Invoke(edgeGUI, new object[]
+                    {
+                        outputSlots.First(), true, false
+                    }); 
+                }
+            }
+        }
+        
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchDoubleClickNormalState
+        {
+            private static MethodInfo IsDoubleClick;
+            [HarmonyTargetMethod]
+            static MethodBase[] TargetMethods() => new[]
+            { 
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"), "NodeUI"),
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateMachineNode"), "NodeUI"),
+            };
+            
+            [HarmonyPrefix]
+            static void HandleDoubleClick(object __instance)
+            {
+                if (IsDoubleClick == null) IsDoubleClick = AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"),  "IsDoubleClick");
+                if ((bool)IsDoubleClick.Invoke(__instance, new object[0]) && AnimatorWindowState.doubleClickLeftControlDown)
+                {
+                    object graphGUI = AccessTools.Field(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"),  "graphGUI").GetValue(__instance);
+                    object edgeGUI = AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                        "get_edgeGUI").Invoke(graphGUI, new object[0]);
+                    IEnumerable<UnityEditor.Graphs.Slot> outputSlots = (IEnumerable<UnityEditor.Graphs.Slot>) AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"), "get_outputSlots").Invoke(__instance, new object[0]);
+                    AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.IEdgeGUI"), "BeginSlotDragging",
+                        new Type[] { typeof(UnityEditor.Graphs.Slot), typeof(bool), typeof(bool) }).Invoke(edgeGUI, new object[]
+                    {
+                        outputSlots.First(), true, false
+                    }); 
+                    Event.current.Use();
+                }
+            }
+        }
+        
         #endregion GraphFeatures
 
         #region ParametersFeatures

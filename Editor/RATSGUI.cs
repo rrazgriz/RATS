@@ -97,6 +97,8 @@ namespace Razgriz.RATS
         public bool DefaultTransitionOrderedInterruption = true;
         public bool DefaultTransitionCanTransitionToSelf = true;
         public bool ManipulateTransitionsMenuOption = true;
+        public bool DoubleClickObjectCreation = true;
+        public float DoubleClickTimeInterval = 0.15f;
         public bool LayerListShowWD = true;
         public bool LayerListShowMixedWD = true;
         public bool ParameterListShowParameterTypeLabels = true;
@@ -399,8 +401,13 @@ namespace Razgriz.RATS
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.ManipulateTransitionsMenuOption, "Add Transition Manipulation Right-Click Options", "Add options to right-click menu of States and Transitions");
+                    ToggleButton(ref RATS.Prefs.DoubleClickObjectCreation, "Double Click Object Creation", "Double Click on a state while holding left Control to create a Transition, double click elsewhere to create a State");
                 }
 
+                if (RATS.Prefs.DoubleClickObjectCreation)
+                {
+                    RATS.Prefs.DoubleClickTimeInterval = EditorGUILayout.Slider("Click Interval", RATS.Prefs.DoubleClickTimeInterval, 0.0f, 1.0f);
+                }
 
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
