@@ -177,67 +177,168 @@ namespace Razgriz.RATS
             if (!EditorUtility.DisplayDialog("Cleanup Controller",
                     "This operation will remove all sub-assets not referenced in this Controller. This might remove assets that are still used externally. Make sure you have a backup of the Controller.",
                     "Proceed", "Cancel")) return;
-            
-            UnityEngine.Object[] subAssets = AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(controller)).Where(x => x != null).ToArray();
-            
-            List<UnityEngine.Object> relevantObjects = new List<UnityEngine.Object>();
-            relevantObjects.Add(controller);
-            controller.layers.ToList().ForEach(x => ProcessStateMachine(x.stateMachine, relevantObjects));
-            
-            void ProcessStateMachine(AnimatorStateMachine stateMachine, List<UnityEngine.Object> objects)
-            {
-                objects.Add(stateMachine);
-                foreach (var childAnimatorState in stateMachine.states)
-                {
-                    AnimatorState animatorState = childAnimatorState.state;
-                    objects.Add(animatorState);
-                    animatorState.transitions.ToList().ForEach(x => objects.Add(x));
-                    animatorState.behaviours.ToList().ForEach(x => objects.Add(x));
-				
-                    if (animatorState.motion is BlendTree tree)
-                    {
-                        Queue<BlendTree> trees = new Queue<BlendTree>(new [] {tree});
-                        while (trees.Count>0)
-                        {
-                            tree = trees.Dequeue();
-                            AssetDatabase.RemoveObjectFromAsset(tree);
-                            objects.Add(tree);
-                            tree.children.Where(x => x.motion is BlendTree).ToList().ForEach(x => trees.Enqueue((BlendTree)x.motion));
-                        }
-                    } else if (animatorState.motion is AnimationClip clip)
-                    {
-                        relevantObjects.Add(clip);
-                    }
-                }
-			
-                stateMachine.entryTransitions.ToList().ForEach(x => objects.Add(x));
-                stateMachine.anyStateTransitions.ToList().ForEach(x => objects.Add(x));
-                stateMachine.stateMachines.ToList().ForEach(x => ProcessStateMachine(x.stateMachine, relevantObjects));
-            }
-            
-            foreach (var subAsset in subAssets)
-            {
-                int totalRemoved = 0;
-                if (!relevantObjects.Contains(subAsset))
-                {
-                    AssetDatabase.RemoveObjectFromAsset(subAsset);
-                    Debug.Log("Removing: " + subAsset.name);
-                    totalRemoved++;
-                }
 
-                if (totalRemoved > 0)
-                {
-                    Debug.Log($"Removed {totalRemoved} Assets from Controller {controller.name}");
-                }
-            }
+            ScanController(controller);
         }
-
+            
         [MenuItem("Assets/Cleanup Controller", true)]
         private static bool ValidateCleanupController()
         {
             return Selection.objects.Any(x => x is AnimatorController) && Selection.objects.Length > 0;
         }
+        
+        // Code in the region below has been adapted from Dreadrith's Controller Cleaner, which has the following license
+        /*
+MIT License
+Copyright (c) 2024 Dreadrith
 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+         */
+        #region Dreadrith Controller Cleaner
+        static void ScanController(AnimatorController target)
+        {
+            var controller = target;
+            Type[] targetTypes = new [] {
+                typeof(AnimatorState), 
+                typeof(AnimatorStateTransition),
+                typeof(AnimatorStateMachine),
+                typeof(AnimatorTransition),
+                typeof(AnimatorTransitionBase),
+                typeof(StateMachineBehaviour),
+                typeof(BlendTree),
+            };
+
+            var allObjects = AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(controller)).Where(x => targetTypes.Contains(x.GetType())).ToArray();
+            var usedObjects = new List<UnityEngine.Object>();
+            for (int i = 0; i < controller.layers.Length; i++)
+                ScanMachine(controller.layers[i].stateMachine, true, usedObjects);
+            
+            var obsoleteObjects = allObjects.Except(usedObjects).ToArray();
+            bool shouldDestroy = obsoleteObjects.Length > 0;
+            if (shouldDestroy)
+            {
+                int destroyCount = 0;
+                foreach (var o in obsoleteObjects)
+                {
+                    if (!o) continue;
+                    Debug.Log($"Removed {o} from {controller}");
+                    destroyCount++;
+                    AssetDatabase.RemoveObjectFromAsset(o);
+                    UnityEngine.Object.DestroyImmediate(o);
+                }
+                Debug.Log($"Removed {destroyCount} assets from {controller}");
+            }
+
+            foreach (var l in controller.layers)
+                RemoveMissingTransitions(l.stateMachine);
+
+            if (shouldDestroy) ScanController(target);
+        }
+
+        static void RemoveMissingTransitions(AnimatorStateMachine m)
+        {
+            m.entryTransitions = m.entryTransitions.Where(o => o).ToArray();
+            m.anyStateTransitions = m.anyStateTransitions.Where(o => o).ToArray();
+            foreach (var cs in m.states)
+            {
+                cs.state.transitions = cs.state.transitions.Where(o => o).ToArray();
+                EditorUtility.SetDirty(cs.state);
+            }
+            foreach (var cssm in m.stateMachines)
+            {
+                m.SetStateMachineTransitions(cssm.stateMachine, m.GetStateMachineTransitions(cssm.stateMachine).Where(o => o).ToArray());
+                RemoveMissingTransitions(cssm.stateMachine);
+            }
+            EditorUtility.SetDirty(m);
+        }
+
+        static void ScanMachine(AnimatorStateMachine machine, bool isRootMachine, List<UnityEngine.Object> usedObjects)
+        {
+            usedObjects.Add(machine);
+            foreach (var b in machine.behaviours)
+                usedObjects.Add(b);
+            foreach (var cs in machine.states)
+            {
+                var s = cs.state;
+                usedObjects.Add(s);
+                AddTree(s.motion as BlendTree, usedObjects);
+                foreach (var t in s.transitions)
+                {
+                    if (!t) continue;
+                    if (t.destinationState || t.destinationStateMachine || t.isExit)
+                        usedObjects.Add(t);
+                }
+                foreach (var b in s.behaviours)
+                    usedObjects.Add(b);
+            }
+
+            foreach (var t in machine.entryTransitions)
+            {
+                if (!t) continue;
+                if (t.destinationState || t.destinationStateMachine || t.isExit)
+                    usedObjects.Add(t);
+            }
+
+            if (isRootMachine)
+            {
+                foreach (var t in machine.anyStateTransitions)
+                {
+                    if (!t) continue;
+                    if (t.destinationState || t.destinationStateMachine || t.isExit)
+                        usedObjects.Add(t);
+                }
+            }
+
+            for (int i = 0; i < machine.stateMachines.Length; i++)
+                ScanMachine(machine.stateMachines[i].stateMachine, false, usedObjects);
+            
+            FinalScanMachine(machine, usedObjects);
+            for (int i = 0; i < machine.stateMachines.Length; i++)
+                FinalScanMachine(machine.stateMachines[i].stateMachine, usedObjects);
+            
+        }
+
+        static void FinalScanMachine(AnimatorStateMachine machine, List<UnityEngine.Object> usedObjects)
+        {
+            foreach (var cssm in machine.stateMachines)
+            {
+                if (!cssm.stateMachine) continue;
+                foreach (var t in machine.GetStateMachineTransitions(cssm.stateMachine))
+                {
+                    if (!t) continue;
+                    if (t.destinationState || t.destinationStateMachine || t.isExit)
+                        usedObjects.Add(t);
+                }
+                FinalScanMachine(cssm.stateMachine, usedObjects);
+            }
+        }
+
+        
+        static void AddTree(BlendTree t, List<UnityEngine.Object> usedObjects)
+        {
+            if (!t) return;
+            usedObjects.Add(t);
+            foreach (var cm in t.children)
+                AddTree(cm.motion as BlendTree, usedObjects);
+        }
+        
+        #endregion //DREADRITH CONTROLLER CLEANER
     }
 }
 #endif
