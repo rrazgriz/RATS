@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Emit;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -39,8 +40,19 @@ namespace Razgriz.RATS
             internal static Dictionary<string, bool> nodeBackgroundPatched = new Dictionary<string, bool>();
 
             // Layer copy/paste
-           internal static AnimatorControllerLayer layerClipboard = null;
-           internal static AnimatorController controllerClipboard = null;
+            internal static AnimatorControllerLayer layerClipboard = null;
+            internal static AnimatorController controllerClipboard = null;
+
+            // Transition Menu
+            internal static AnimatorTransitionBase redirectTransition;
+            internal static AnimatorTransitionBase replicateTransition;
+
+            // State Menu
+            internal static AnimatorState multipleState;
+
+            // Double Clicks
+            internal static double doubleClickLastClick;
+            internal static bool doubleClickLeftControlDown;
         }
 
 #if !RATS_NO_ANIMATOR // Compatibility
@@ -413,6 +425,510 @@ namespace Razgriz.RATS
             }
         }
 
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchStateMenu
+        {
+            [HarmonyTargetMethod]
+            static MethodBase[] TargetMethods() => new[]
+            { 
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateMachineNode"), "NodeUI"),
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"), "NodeUI"),
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.AnyStateNode"), "NodeUI"),
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.EntryNode"), "NodeUI"),
+            };
+
+            private static StateMenuEntry[] Entries = {
+                new MultipleTransitionEntry(),
+                new RedirectMenuEntry(),
+                new ReplicateMenuEntry()
+            };
+            
+            static void AddMenuItems(object graph, GenericMenu menu)
+            {
+                if (!RATS.Prefs.ManipulateTransitionsMenuOption) return;
+                if (Entries.Any(x => x.ShouldShow(graph))) menu.AddSeparator("");
+                
+                foreach (var entry in Entries)
+                {
+                    if (!entry.ShouldShow(graph)) continue;
+                    if (entry.ShouldEnable(graph))
+                    {
+                        menu.AddItem(EditorGUIUtility.TrTextContent(entry.GetEntryName()), entry.ShouldCheck(graph), (object data) => entry.Callback(data, graph), Event.current.mousePosition);
+                    }
+                    else
+                    {
+                        menu.AddDisabledItem(EditorGUIUtility.TrTextContent(entry.GetEntryName()));
+                    }
+                }
+            }
+            
+            [HarmonyTranspiler]
+            static IEnumerable<CodeInstruction> Transpiler(object __instance, IEnumerable<CodeInstruction> instructions)
+            {
+                var instructionList = instructions.ToList();
+                int genericMenuLocalIndex = -1;
+                for (var i = 0; i < instructionList.Count; i++)
+                {
+                    if (instructionList[i].opcode == OpCodes.Newobj && (ConstructorInfo)instructionList[i].operand == AccessTools.Constructor(typeof(GenericMenu), Type.EmptyTypes))
+                    {
+                        if (i + 1 < instructionList.Count && (instructionList[i + 1].opcode == OpCodes.Stloc_1 || 
+                                                              instructionList[i + 1].opcode == OpCodes.Stloc_2 ||
+                                                              instructionList[i + 1].opcode == OpCodes.Stloc_3 ||
+                                                              instructionList[i + 1].opcode == OpCodes.Stloc_S))
+                        {
+                            if (instructionList[i + 1].opcode == OpCodes.Stloc_1)
+                                genericMenuLocalIndex = 1;
+                            else if (instructionList[i + 1].opcode == OpCodes.Stloc_2)
+                                genericMenuLocalIndex = 2;
+                            else if (instructionList[i + 1].opcode == OpCodes.Stloc_3)
+                                genericMenuLocalIndex = 3;
+                            else if (instructionList[i + 1].opcode == OpCodes.Stloc_S) 
+                                genericMenuLocalIndex = ((LocalBuilder)instructionList[i + 1].operand).LocalIndex;
+                        }
+                    } 
+                    
+                    if (instructionList[i].opcode == OpCodes.Callvirt && (MethodInfo)instructionList[i].operand == AccessTools.Method(typeof(GenericMenu), "ShowAsContext"))
+                    {
+                        var newInstructions = new[]
+                        {
+                            new CodeInstruction(OpCodes.Ldarg_0),
+                            new CodeInstruction(OpCodes.Ldloc_S, genericMenuLocalIndex),
+                            new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(PatchStateMenu), "AddMenuItems")),
+                        }; 
+                        instructionList.InsertRange(i, newInstructions);
+                        break;
+                    }
+                }
+                return instructionList; 
+            }
+            
+             interface StateMenuEntry
+            {
+                string GetEntryName();
+                bool ShouldCheck(object data) => true;
+                bool ShouldEnable(object data) => true;
+                bool ShouldShow(object data) => true;
+                void Callback(object graph, object data);
+            }
+            
+            class MultipleTransitionEntry : StateMenuEntry
+            {
+                public string GetEntryName() => "Add Multiple Transitions";
+                public bool ShouldCheck(object data) => AnimatorWindowState.multipleState != null;
+                public bool ShouldEnable(object data) => true;
+                public bool ShouldShow(object data) => true;
+                public void Callback(object data, object stateNode)
+                {
+                    object graph =  AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"),
+                        "get_graph").Invoke(stateNode, new object[0]);
+                    AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
+                        .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Graph"),
+                            "get_activeStateMachine").Invoke(graph, new object[0]);
+
+                    if (AnimatorWindowState.multipleState == null)
+                    {
+                        AnimatorState state = Selection.activeObject as AnimatorState;
+                        if (state == null) return;
+                        AnimatorWindowState.multipleState = state;
+                        return;
+                    }
+                    
+                    AnimatorState[] selectedStates = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
+                    foreach (var selectedState in selectedStates)
+                    {
+                        AnimatorWindowState.multipleState.AddTransition(selectedState);
+                    }
+                    AnimatorWindowState.multipleState = null;
+                    AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
+                }
+            }
+            
+            class RedirectMenuEntry : StateMenuEntry
+            {
+                public string GetEntryName() => "Redirect";
+                public bool ShouldShow(object data) => AnimatorWindowState.redirectTransition != null;
+                public void Callback(object data, object stateNode)
+                {
+                    object graph =  AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"),
+                        "get_graph").Invoke(stateNode, new object[0]);
+                    AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
+                        .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Graph"),
+                            "get_activeStateMachine").Invoke(graph, new object[0]);
+                    
+                    AnimatorState[] selectedStates = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
+                    if (selectedStates.Length == 0) return;
+
+                    AnimatorStateTransition transition = AnimatorWindowState.redirectTransition as AnimatorStateTransition;
+                    
+
+                    foreach (var selectedState in selectedStates)
+                    {
+                        if (!stateMachine.anyStateTransitions.Contains(transition))
+                        {
+                            ChildAnimatorState source = stateMachine.states.FirstOrDefault(x => x.state.transitions.Contains(transition));
+                            if (source.state == null) continue;
+                            
+                            source.state.AddTransition(new AnimatorStateTransition()
+                            {
+                                canTransitionToSelf = transition.canTransitionToSelf,
+                                conditions = transition.conditions.Select(x => x).ToArray(),
+                                destinationState = selectedState,
+                                duration = transition.duration,
+                                exitTime = transition.exitTime,
+                                hasExitTime = transition.hasExitTime,
+                                hasFixedDuration = transition.hasFixedDuration,
+                                hideFlags = transition.hideFlags,
+                                interruptionSource = transition.interruptionSource,
+                            });
+                        }
+                        else
+                        {
+                            stateMachine.anyStateTransitions = stateMachine.anyStateTransitions.AddItem(new AnimatorStateTransition()
+                            {
+                                canTransitionToSelf = transition.canTransitionToSelf,
+                                conditions = transition.conditions.Select(x => x).ToArray(),
+                                duration = transition.duration,
+                                destinationState = selectedState,
+                                exitTime = transition.exitTime,
+                                hasExitTime = transition.hasExitTime,
+                                hasFixedDuration = transition.hasFixedDuration,
+                                hideFlags = transition.hideFlags,
+                                interruptionSource = transition.interruptionSource,
+                            }).ToArray();
+                            if (AssetDatabase.GetAssetPath(stateMachine) != "")
+                                AssetDatabase.AddObjectToAsset((UnityEngine.Object) stateMachine.anyStateTransitions.Last(), AssetDatabase.GetAssetPath(stateMachine));
+                        }
+                    }
+                    
+                    AnimatorWindowState.redirectTransition = null;
+                    AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
+                }
+            }
+            
+            class ReplicateMenuEntry : StateMenuEntry
+            {
+                public string GetEntryName() => "Replicate";
+                public bool ShouldShow(object data) => AnimatorWindowState.replicateTransition != null;
+
+                public void Callback(object data, object stateNode)
+                {
+                   
+                    object graph =  AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"),
+                        "get_graph").Invoke(stateNode, new object[0]);
+                    AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
+                        .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Graph"),
+                            "get_activeStateMachine").Invoke(graph, new object[0]);
+                    
+                    AnimatorState[] selectedStates = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
+                    if (selectedStates.Length == 0) return;
+
+                    AnimatorStateTransition transition = AnimatorWindowState.replicateTransition as AnimatorStateTransition;
+                    
+                    ChildAnimatorState target = stateMachine.states.FirstOrDefault(x => x.state == transition.destinationState);
+                    if (target.state == null) return;
+                    foreach (var selectedState in selectedStates)
+                    {
+                        selectedState.AddTransition(new AnimatorStateTransition()
+                        {
+                            canTransitionToSelf = transition.canTransitionToSelf,
+                            conditions = transition.conditions.Select(x => x).ToArray(),
+                            destinationState = target.state,
+                            duration = transition.duration,
+                            exitTime = transition.exitTime,
+                            hasExitTime = transition.hasExitTime,
+                            hasFixedDuration = transition.hasFixedDuration,
+                            hideFlags = transition.hideFlags,
+                            interruptionSource = transition.interruptionSource,
+                        });
+                    }
+
+                    AnimatorWindowState.replicateTransition = null;
+                    AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
+                }
+            }
+        }
+
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchTransitionMenu
+        {
+            [HarmonyTargetMethod]
+            static MethodBase[] TargetMethods() => new[]
+            { 
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"), "HandleContextMenu"),
+            };
+
+            private static TransitionMenuEntry[] Entries = {
+                new ReverseMenuEntry(),
+                new RedirectMenuEntry(),
+                new ReplicateMenuEntry()
+            };
+            
+            static GenericMenu ReplaceMenu(GenericMenu menu, object graph)
+            {
+                if (!RATS.Prefs.ManipulateTransitionsMenuOption) return menu;
+                Vector2 current = Event.current.mousePosition;
+                UnityEngine.Object o = Selection.activeObject;
+                if (!(o is AnimatorTransitionBase transition)) return menu;
+
+                AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
+                    .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                        "get_activeStateMachine").Invoke(graph, new object[0]);
+                
+                ChildAnimatorState source = stateMachine.states.FirstOrDefault(x => x.state.transitions.Contains(transition));
+                ChildAnimatorState target = stateMachine.states.FirstOrDefault(x => x.state == transition.destinationState);
+                
+                bool IsPointNearLine(Vector2 p, Vector2 a, Vector2 b, float d)
+                {
+                    Vector2 ab = b - a, ap = p - a;
+                    float t = Mathf.Clamp(Vector2.Dot(ap, ab) / ab.sqrMagnitude, 0, 1);
+                    return (p - (a + t * ab)).sqrMagnitude <= d * d;
+                }
+
+                current = current - new Vector2(100, 20); //Half of a state
+
+                bool isAnyState = stateMachine.anyStateTransitions.Contains(transition);
+                
+                if ((!isAnyState && source.state != null && target.state != null && IsPointNearLine(current, source.position, target.position, 20)) ||
+                    isAnyState && target.state != null && IsPointNearLine(current, stateMachine.anyStatePosition, target.position, 20))
+                {
+                    GenericMenu replaceMenu = new GenericMenu();
+                    foreach (TransitionMenuEntry menuEntry in Entries)
+                    {
+                        if (menuEntry.ShouldEnable(graph))
+                        {
+                            replaceMenu.AddItem(EditorGUIUtility.TrTextContent(menuEntry.GetEntryName()), menuEntry.ShouldCheck(graph), (object data) => menuEntry.Callback(data, graph), Event.current.mousePosition);
+                        }
+                        else
+                        {
+                            replaceMenu.AddDisabledItem(EditorGUIUtility.TrTextContent(menuEntry.GetEntryName()));
+                        }
+                    }
+                    return replaceMenu;
+                }
+                else
+                {
+                    return menu;
+                }
+            }
+            
+            [HarmonyTranspiler]
+            static IEnumerable<CodeInstruction> Transpiler(object __instance, IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+            {
+                var instructionList = instructions.ToList();
+                int genericMenuLocalIndex = -1;
+                for (var i = 0; i < instructionList.Count; i++)
+                {
+                    if (instructionList[i].opcode == OpCodes.Callvirt && (MethodInfo)instructionList[i].operand == AccessTools.Method(typeof(GenericMenu), "ShowAsContext"))
+                    {
+                        var newInstructions = new[]
+                        {
+                            new CodeInstruction(OpCodes.Ldarg_0),
+                            new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(PatchTransitionMenu), "ReplaceMenu")),
+                        }; 
+                        instructionList.InsertRange(i, newInstructions);
+                        break;
+                    }
+                }
+                return instructionList; 
+            }
+
+            interface TransitionMenuEntry
+            {
+                string GetEntryName();
+                bool ShouldCheck(object data) => false;
+                bool ShouldEnable(object data) => true;
+                void Callback(object graph, object data);
+            }
+            
+            class ReverseMenuEntry : TransitionMenuEntry
+            {
+                public string GetEntryName() => "Reverse";
+                public bool ShouldEnable(object data)
+                {
+                    if (!(Selection.activeObject is AnimatorTransitionBase transition)) return false;
+                    AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
+                        .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                            "get_activeStateMachine").Invoke(data, new object[0]);
+                    return !stateMachine.anyStateTransitions.Contains(transition);
+                }
+                
+                public void Callback(object graph, object data)
+                {
+                    if (!(Selection.activeObject is AnimatorStateTransition transition)) return;
+                    AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
+                        .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                            "get_activeStateMachine").Invoke(data, new object[0]);
+                
+                    ChildAnimatorState source = stateMachine.states.FirstOrDefault(x => x.state.transitions.Contains(transition));
+                    ChildAnimatorState target = stateMachine.states.FirstOrDefault(x => x.state == transition.destinationState);
+                    if (source.state == null || target.state == null) return;
+                    target.state.AddTransition(new AnimatorStateTransition()
+                    {
+                        canTransitionToSelf = transition.canTransitionToSelf,
+                        conditions = transition.conditions.Select(x => x).ToArray(),
+                        destinationState = source.state,
+                        duration = transition.duration,
+                        exitTime = transition.exitTime,
+                        hasExitTime = transition.hasExitTime,
+                        hasFixedDuration = transition.hasFixedDuration,
+                        hideFlags = transition.hideFlags,
+                        interruptionSource = transition.interruptionSource,
+                    });
+                    
+                    AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
+                }
+            }
+            
+            class RedirectMenuEntry : TransitionMenuEntry
+            {
+                public string GetEntryName() => "Redirect";
+                public bool ShouldCheck(object data) => AnimatorWindowState.redirectTransition != null;
+                public void Callback(object graph, object data)
+                {
+                    if (!(Selection.activeObject is AnimatorStateTransition transition)) return;
+
+                    if (AnimatorWindowState.redirectTransition == null)
+                    {
+                        AnimatorWindowState.redirectTransition = transition;
+                        AnimatorWindowState.replicateTransition = null;
+                    }
+                    else
+                    {
+                        AnimatorWindowState.redirectTransition = null;
+                    }
+                }
+            }
+            
+            class ReplicateMenuEntry : TransitionMenuEntry
+            {
+                public string GetEntryName() => "Replicate";
+                public bool ShouldCheck(object data) => AnimatorWindowState.replicateTransition != null;
+                public void Callback(object graph, object data)
+                {
+                    if (!(Selection.activeObject is AnimatorStateTransition transition)) return;
+
+                    if (AnimatorWindowState.replicateTransition == null)
+                    {
+                        AnimatorWindowState.replicateTransition = transition;
+                        AnimatorWindowState.redirectTransition = null;
+                    }
+                    else
+                    {
+                        AnimatorWindowState.replicateTransition = null;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchDoubleClickStateMachine
+        {
+            [HarmonyTargetMethod]
+            static MethodBase TargetMethod() => AccessTools.Method(
+                AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"), "OnGraphGUI");
+
+            [HarmonyPostfix]
+            static void HandleDoubleClick(object __instance)
+            {
+                Event e = Event.current;
+                if (e.type == EventType.KeyDown && e.keyCode == KeyCode.LeftControl)
+                {
+                    AnimatorWindowState.doubleClickLeftControlDown = true;
+                }
+                if (e.type == EventType.KeyUp && e.keyCode == KeyCode.LeftControl)
+                {
+                    AnimatorWindowState.doubleClickLeftControlDown = false;
+                }
+                
+                if (e.type == EventType.MouseDown && e.button != 2 && AnimatorWindowState.doubleClickLeftControlDown)
+                {
+                    if (EditorApplication.timeSinceStartup - AnimatorWindowState.doubleClickLastClick <
+                        RATS.Prefs.DoubleClickTimeInterval)
+                    {
+                        AnimatorWindowState.doubleClickLastClick = 0;
+                        AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
+                            .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                                "get_activeStateMachine").Invoke(__instance, new object[0]);
+                        
+                        AnimatorState newState = new AnimatorState();
+                        stateMachine.AddState(newState, Event.current.mousePosition - new Vector2(100, 20));
+                        Event.current.Use();
+                        AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
+                    }
+                    else
+                    {
+                        AnimatorWindowState.doubleClickLastClick = EditorApplication.timeSinceStartup;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchDoubleClickEntryAnyState
+        {
+            private static MethodInfo IsDoubleClick;
+            [HarmonyTargetMethod]
+            static MethodBase[] TargetMethods() => new[]
+            { 
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.AnyStateNode"), "NodeUI"),
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.EntryNode"), "NodeUI"),
+            };
+            
+            [HarmonyPostfix]
+            static void HandleDoubleClick(object __instance)
+            {
+                if (IsDoubleClick == null) IsDoubleClick = AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"),  "IsDoubleClick");
+                if ((bool)IsDoubleClick.Invoke(__instance, new object[0]) && AnimatorWindowState.doubleClickLeftControlDown)
+                {
+                    object graphGUI = AccessTools.Field(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"),  "graphGUI").GetValue(__instance);
+                    object edgeGUI = AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                        "get_edgeGUI").Invoke(graphGUI, new object[0]);
+                    IEnumerable<UnityEditor.Graphs.Slot> outputSlots = (IEnumerable<UnityEditor.Graphs.Slot>) AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"), "get_outputSlots").Invoke(__instance, new object[0]);
+                    AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.IEdgeGUI"), "BeginSlotDragging",
+                        new Type[] { typeof(UnityEditor.Graphs.Slot), typeof(bool), typeof(bool) }).Invoke(edgeGUI, new object[]
+                    {
+                        outputSlots.First(), true, false
+                    }); 
+                }
+            }
+        }
+        
+        [HarmonyPatch]
+        [HarmonyPriority(Priority.Low)]
+        class PatchDoubleClickNormalState
+        {
+            private static MethodInfo IsDoubleClick;
+            [HarmonyTargetMethod]
+            static MethodBase[] TargetMethods() => new[]
+            { 
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"), "NodeUI"),
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateMachineNode"), "NodeUI"),
+            };
+            
+            [HarmonyPrefix]
+            static void HandleDoubleClick(object __instance)
+            {
+                if (IsDoubleClick == null) IsDoubleClick = AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"),  "IsDoubleClick");
+                if ((bool)IsDoubleClick.Invoke(__instance, new object[0]) && AnimatorWindowState.doubleClickLeftControlDown)
+                {
+                    object graphGUI = AccessTools.Field(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"),  "graphGUI").GetValue(__instance);
+                    object edgeGUI = AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"),
+                        "get_edgeGUI").Invoke(graphGUI, new object[0]);
+                    IEnumerable<UnityEditor.Graphs.Slot> outputSlots = (IEnumerable<UnityEditor.Graphs.Slot>) AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Node"), "get_outputSlots").Invoke(__instance, new object[0]);
+                    AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.IEdgeGUI"), "BeginSlotDragging",
+                        new Type[] { typeof(UnityEditor.Graphs.Slot), typeof(bool), typeof(bool) }).Invoke(edgeGUI, new object[]
+                    {
+                        outputSlots.First(), true, false
+                    }); 
+                    Event.current.Use();
+                }
+            }
+        }
+        
         #endregion GraphFeatures
 
         #region ParametersFeatures

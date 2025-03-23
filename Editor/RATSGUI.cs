@@ -96,6 +96,9 @@ namespace Razgriz.RATS
         public int DefaultTransitionInterruptionSource = 0;
         public bool DefaultTransitionOrderedInterruption = true;
         public bool DefaultTransitionCanTransitionToSelf = true;
+        public bool ManipulateTransitionsMenuOption = true;
+        public bool DoubleClickObjectCreation = true;
+        public float DoubleClickTimeInterval = 0.15f;
         public bool LayerListShowWD = true;
         public bool LayerListShowMixedWD = true;
         public bool ParameterListShowParameterTypeLabels = true;
@@ -212,6 +215,7 @@ namespace Razgriz.RATS
                     EditorGUI.indentLevel += 1;
                     DrawNodeSnappingOptions();
                     DrawGraphStateDefaultsOptions();
+                    DrawStateMachinePatchOptions();
                     DrawCompatibilityOptions();
                     EditorGUI.indentLevel -= 1;
                 }
@@ -379,6 +383,30 @@ namespace Razgriz.RATS
                 {
                     ToggleButton(ref RATS.Prefs.ParameterListShowParameterTypeLabels, "Show Parameter Type Labels", "Show the type of parameter being animated next to its value");
                     ToggleButton(ref RATS.Prefs.ParameterListShowParameterTypeLabelShorten, "Shorten Label", "Shorten the label to just the first letter");
+                }
+
+                EditorGUI.indentLevel -= optionsIndentStep;
+            }
+        }
+
+        private static void DrawStateMachinePatchOptions()
+        {
+            // State Machine
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine(lightUILineColor);
+                SectionLabel(new GUIContent("  StateMachine Patches", EditorGUIUtility.IconContent("d_AnimatorStateMachine Icon").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.ManipulateTransitionsMenuOption, "Add Transition Manipulation Right-Click Options", "Add options to right-click menu of States and Transitions");
+                    ToggleButton(ref RATS.Prefs.DoubleClickObjectCreation, "Double Click Object Creation", "Double Click on a state while holding left Control to create a Transition, double click elsewhere to create a State");
+                }
+
+                if (RATS.Prefs.DoubleClickObjectCreation)
+                {
+                    RATS.Prefs.DoubleClickTimeInterval = EditorGUILayout.Slider("Click Interval", RATS.Prefs.DoubleClickTimeInterval, 0.0f, 1.0f);
                 }
 
                 EditorGUI.indentLevel -= optionsIndentStep;

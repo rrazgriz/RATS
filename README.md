@@ -57,6 +57,11 @@ Compatibility: Disable certain Animator window fixes/behaviors to avoid conflict
   - Icons for Blendtree/Loop Time
   - Warning icons For empty states/animations
 - Hold Alt to view all labels regardless of setting
+- Create Animator State by left control + double clicking
+- Create Transition by Left Control + double clicking on an Animator State
+- Make Multiple Transitions via State right-click menu
+- Reverse/Redirect/Replicate Transitions via right-click menu
+- Cleanup Controller Sub-Assets via Controller right-click menu
 - Animation Window: Show actual property name instead of "Display Name" in animation hierarchy
 - Animation Window: Show full path of keyframes
 - Animation Window: Reduce/Disable Indentation
