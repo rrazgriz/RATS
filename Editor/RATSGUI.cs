@@ -99,6 +99,7 @@ namespace Razgriz.RATS
         public bool ManipulateTransitionsMenuOption = true;
         public bool DoubleClickObjectCreation = true;
         public float DoubleClickTimeInterval = 0.15f;
+        public bool EditNonAnyStateSelfTransition = false;
         public bool LayerListShowWD = true;
         public bool LayerListShowMixedWD = true;
         public bool ParameterListShowParameterTypeLabels = true;
@@ -216,6 +217,7 @@ namespace Razgriz.RATS
                     DrawNodeSnappingOptions();
                     DrawGraphStateDefaultsOptions();
                     DrawStateMachinePatchOptions();
+                    DrawMultiEditorOptions();
                     DrawCompatibilityOptions();
                     EditorGUI.indentLevel -= 1;
                 }
@@ -440,6 +442,19 @@ namespace Razgriz.RATS
             }
         }
 
+        private static void DrawMultiEditorOptions()
+        {
+
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine(lightUILineColor);
+                SectionLabel(new GUIContent("  Multi-Editor", EditorGUIUtility.IconContent("d_UnityEditor.FindDependencies").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+                ToggleButton(ref RATS.Prefs.EditNonAnyStateSelfTransition, "Edit Non-AnyState Self Transition", "Allows the multi-editor to edit the 'Can Transition To Self' option of non-AnyState transitions.");
+                EditorGUI.indentLevel -= optionsIndentStep;
+            }
+        }
+        
         private static void DrawCompatibilityOptions()
         {
             // Disable Patch Categories

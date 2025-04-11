@@ -6,6 +6,7 @@ using HarmonyLib;
 using Razgriz.RATS;
 using UnityEditor;
 using UnityEditor.Animations;
+using UnityEditor.Graphs;
 using UnityEditorInternal;
 using UnityEngine;
 using VRC.SDK3.Avatars.Components;
@@ -21,6 +22,7 @@ public class RATSMultiEditor : EditorWindow
     private string[] tabNames = new string[] { "States", "Transitions", "Parameter Drivers" }; // TODO: Animator Tracking Control
 
     private static AnimatorController controller;
+    private static AnimatorStateMachine stateMachine;
     private static object tool;
     private static object graphGUI;
     
@@ -35,12 +37,12 @@ public class RATSMultiEditor : EditorWindow
         static void OnGraphGUI(object __instance)
         {
             if (graphGUI == __instance) return;
-            
             graphGUI = __instance;
             tool = AccessTools
                 .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"), "get_tool")
                 .Invoke(__instance, Array.Empty<object>());
             controller = (AnimatorController)AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool"), "get_animatorController").Invoke(tool, Array.Empty<object>());
+            stateMachine = (AnimatorStateMachine)AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"), "get_activeStateMachine").Invoke(graphGUI, Array.Empty<object>());
         }
     }
 
@@ -65,7 +67,7 @@ public class RATSMultiEditor : EditorWindow
         }
     }
 
-    [MenuItem("Tools/RATS/Mutli-Editor")]
+    [MenuItem("Tools/RATS/Multi-Editor")]
     public static void ShowWindow()
     {
         RATSMultiEditor window = EditorWindow.GetWindow<RATSMultiEditor>();
@@ -413,6 +415,19 @@ public class RATSMultiEditor : EditorWindow
                 });
             }
         }
+
+        if (transitions.Any(x => stateMachine.anyStateTransitions.Contains(x)) ||
+            RATS.Prefs.EditNonAnyStateSelfTransition)
+        {
+            var selfTransitionConditions = RATS.Prefs.EditNonAnyStateSelfTransition
+                ? transitions
+                : transitions.Where(x => stateMachine.anyStateTransitions.Contains(x)).ToList();
+            DrawBoolField(selfTransitionConditions,
+                transition => transition.canTransitionToSelf,
+                (transition, value) => transition.canTransitionToSelf = value,
+                "Can Transition To Self");
+        }
+        
         
         List<TargetCondition> sharedConditions = new List<TargetCondition>();
         
