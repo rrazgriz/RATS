@@ -114,7 +114,14 @@ public class RATSMultiEditor : EditorWindow
             bool sharedMotion = states.All(x => x.motion == states[0].motion);
             Motion currentMotion = sharedMotion ? states[0].motion : null;
             Motion newMotion = EditorGUILayout.ObjectField(currentMotion, typeof(Motion), false) as Motion;
-            if (newMotion != currentMotion) states.ForEach(x => x.motion = newMotion);
+            if (newMotion != currentMotion)
+            {
+                states.ForEach(x =>
+                {
+                    Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                    x.motion = newMotion;
+                });
+            }
         }
         
         // Speed field
@@ -126,12 +133,26 @@ public class RATSMultiEditor : EditorWindow
             if (sharedSpeed)
             {
                 float newSpeed = EditorGUILayout.FloatField(currentSpeed);
-                if (newSpeed != currentSpeed) states.ForEach(x => x.speed = newSpeed);
+                if (newSpeed != currentSpeed)
+                {
+                    states.ForEach(x =>
+                    {
+                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                        x.speed = newSpeed;
+                    });
+                }
             }
             else
             {
                 string newSpeedString = EditorGUILayout.TextField("--");
-                if (float.TryParse(newSpeedString, out float newSpeedFloat)) states.ForEach(x => x.speed = newSpeedFloat);
+                if (float.TryParse(newSpeedString, out float newSpeedFloat))
+                {
+                    states.ForEach(x =>
+                    {
+                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                        x.speed = newSpeedFloat;
+                    });
+                }
             }
         }
 
@@ -149,12 +170,23 @@ public class RATSMultiEditor : EditorWindow
                 int newMultiplierIndex = EditorGUILayout.Popup(currentMultiplierIndex, paramNames);
                 if (newMultiplierIndex != currentMultiplierIndex)
                 {
-                    states.ForEach(x => x.speedParameter = paramNames[newMultiplierIndex]);
+                    states.ForEach(x =>
+                    {
+                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                        x.speedParameter = paramNames[newMultiplierIndex];
+                    });
                 }
             }
             bool newMultiplierEnabled = EditorGUILayout.Toggle(states[0].speedParameterActive, GUILayout.Width(12f));
             EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
-            if (sharedMultiplierEnabled && newMultiplierEnabled != currentMultiplierEnabled) states.ForEach(x => x.speedParameterActive = newMultiplierEnabled);
+            if (sharedMultiplierEnabled && newMultiplierEnabled != currentMultiplierEnabled)
+            {
+                states.ForEach(x =>
+                {
+                    Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                    x.speedParameterActive = newMultiplierEnabled;
+                });
+            }
         }
 
 
@@ -172,12 +204,23 @@ public class RATSMultiEditor : EditorWindow
                 int newMotionTimeIndex = EditorGUILayout.Popup(currentMotionTimeIndex, paramNames);
                 if (newMotionTimeIndex != currentMotionTimeIndex)
                 {
-                    states.ForEach(x => x.timeParameter = paramNames[newMotionTimeIndex]);
+                    states.ForEach(x =>
+                    {
+                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                        x.timeParameter = paramNames[newMotionTimeIndex];
+                    });
                 }
             }
             bool newMultiplierEnabled = EditorGUILayout.Toggle(states[0].timeParameterActive, GUILayout.Width(12f));
             EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
-            if (newMultiplierEnabled != currentMotionTimeEnabled) states.ForEach(x => x.timeParameterActive = newMultiplierEnabled);
+            if (newMultiplierEnabled != currentMotionTimeEnabled)
+            {
+                states.ForEach(x =>
+                {
+                    Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                    x.timeParameterActive = newMultiplierEnabled;
+                });
+            }
         }
 
         // Mirror field
@@ -195,7 +238,11 @@ public class RATSMultiEditor : EditorWindow
                 int newMirrorIndex = EditorGUILayout.Popup(currentMirrorIndex, paramNames);
                 if (newMirrorIndex != currentMirrorIndex)
                 {
-                    states.ForEach(x => x.mirrorParameter = paramNames[newMirrorIndex]);
+                    states.ForEach(x =>
+                    {
+                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                        x.mirrorParameter = paramNames[newMirrorIndex];
+                    });
                 }
             }
             else
@@ -204,11 +251,25 @@ public class RATSMultiEditor : EditorWindow
                 bool currentMirrorEnabled = sharedMirrorEnabled ? states[0].mirror : false;
                 
                 bool newMirror = EditorGUILayout.Toggle(currentMirrorEnabled);
-                if (newMirror != currentMirrorEnabled) states.ForEach(x => x.mirror = newMirror);
+                if (newMirror != currentMirrorEnabled)
+                {
+                    states.ForEach(x =>
+                    {
+                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                        x.mirror = newMirror;
+                    });
+                }
             }
             bool newMirrorEnabled = EditorGUILayout.Toggle(states[0].mirrorParameterActive, GUILayout.Width(12f));
             EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
-            if (newMirrorEnabled != currentMirrorParameterEnabled) states.ForEach(x => x.mirrorParameterActive = newMirrorEnabled);
+            if (newMirrorEnabled != currentMirrorParameterEnabled)
+            {
+                states.ForEach(x =>
+                {
+                    Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                    x.mirrorParameterActive = newMirrorEnabled;
+                });
+            }
         }
       
         // Cycle Offset field
@@ -226,7 +287,11 @@ public class RATSMultiEditor : EditorWindow
                 int newCycleOffsetIndex = EditorGUILayout.Popup(currentCycleOffsetIndex, paramNames);
                 if (newCycleOffsetIndex != currentCycleOffsetIndex)
                 {
-                    states.ForEach(x => x.cycleOffsetParameter = paramNames[newCycleOffsetIndex]);
+                    states.ForEach(x =>
+                    {
+                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                        x.cycleOffsetParameter = paramNames[newCycleOffsetIndex];
+                    });
                 }
             }
             else
@@ -237,17 +302,38 @@ public class RATSMultiEditor : EditorWindow
                 if (sharedCycleOffset)
                 {
                     float newCycleOffset = EditorGUILayout.FloatField(currentCycleOffset);
-                    if (newCycleOffset != currentCycleOffset) states.ForEach(x => x.cycleOffset = newCycleOffset);
+                    if (newCycleOffset != currentCycleOffset)
+                    {
+                        states.ForEach(x =>
+                        {
+                            Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                            x.cycleOffset = newCycleOffset;
+                        });
+                    }
                 }
                 else
                 {
                     string newCycleOffsetString = EditorGUILayout.TextField("--");
-                    if (float.TryParse(newCycleOffsetString, out float newCycleOffset)) states.ForEach(x => x.cycleOffset = newCycleOffset);
+                    if (float.TryParse(newCycleOffsetString, out float newCycleOffset))
+                    {
+                        states.ForEach(x =>
+                        {
+                            Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                            x.cycleOffset = newCycleOffset;
+                        });
+                    }
                 }
             }
             bool newCycleOffsetEnabled = EditorGUILayout.Toggle(states[0].cycleOffsetParameterActive, GUILayout.Width(12f));
             EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
-            if (newCycleOffsetEnabled != currentCycleOffsetParameterEnabled) states.ForEach(x => x.cycleOffsetParameterActive = newCycleOffsetEnabled);
+            if (newCycleOffsetEnabled != currentCycleOffsetParameterEnabled)
+            {
+                states.ForEach(x =>
+                {
+                    Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                    x.cycleOffsetParameterActive = newCycleOffsetEnabled;
+                });
+            }
         }
 
         // Write Defaults toggle
@@ -318,7 +404,14 @@ public class RATSMultiEditor : EditorWindow
             bool sharedValue = transitions.All(x => x.interruptionSource == transitions[0].interruptionSource);
             TransitionInterruptionSource currentValue = sharedValue ? transitions[0].interruptionSource : TransitionInterruptionSource.None;
             TransitionInterruptionSource newValue = (TransitionInterruptionSource) EditorGUILayout.EnumPopup(currentValue);
-            if (newValue != currentValue) transitions.ForEach(x => x.interruptionSource = newValue);
+            if (newValue != currentValue)
+            {
+                transitions.ForEach(x =>
+                {
+                    Undo.RegisterCompleteObjectUndo(x, "Modify Transition");
+                    x.interruptionSource = newValue;
+                });
+            }
         }
         
         List<TargetCondition> sharedConditions = new List<TargetCondition>();
@@ -399,7 +492,7 @@ public class RATSMultiEditor : EditorWindow
             });
 
         
-        conditions??=new ReorderableList(sharedConditions, typeof(AnimatorCondition), false, true, true, true);
+        conditions ??= new ReorderableList(sharedConditions, typeof(AnimatorCondition), false, true, true, true);
         conditions.list = sharedConditions;
         conditions.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
         {
@@ -427,6 +520,7 @@ public class RATSMultiEditor : EditorWindow
                 sharedConditions[index].references.ForEach((x) =>
                 {
                     var (transition, index) = x;
+                    Undo.RegisterCompleteObjectUndo(transition, "Modify Transition Conditions");
                     var conditions = transition.conditions;
                     conditions[index].parameter = paramNames[newParamIndex];
                     conditions[index].mode = type == AnimatorControllerParameterType.Bool
@@ -449,6 +543,7 @@ public class RATSMultiEditor : EditorWindow
                         sharedConditions[index].references.ForEach((x) =>
                         {
                             var (transition, index) = x;
+                            Undo.RegisterCompleteObjectUndo(transition, "Modify Transition Conditions");
                             var conditions = transition.conditions;
                             conditions[index].mode = new [] {AnimatorConditionMode.If, AnimatorConditionMode.IfNot}[newBoolIndex];
                             transition.conditions = conditions;
@@ -464,6 +559,7 @@ public class RATSMultiEditor : EditorWindow
                         sharedConditions[index].references.ForEach((x) =>
                         {
                             var (transition, index) = x;
+                            Undo.RegisterCompleteObjectUndo(transition, "Modify Transition Conditions");
                             var conditions = transition.conditions;
                             conditions[index].mode = new [] {AnimatorConditionMode.Greater, AnimatorConditionMode.Less}[newFloatIndex];
                             transition.conditions = conditions;
@@ -481,6 +577,7 @@ public class RATSMultiEditor : EditorWindow
                         sharedConditions[index].references.ForEach((x) =>
                         {
                             var (transition, index) = x;
+                            Undo.RegisterCompleteObjectUndo(transition, "Modify Transition Conditions");
                             var conditions = transition.conditions;
                             conditions[index].mode = new [] {AnimatorConditionMode.Greater, AnimatorConditionMode.Less, AnimatorConditionMode.Equals, AnimatorConditionMode.NotEqual}[newIntIndex];
                             transition.conditions = conditions;
@@ -502,6 +599,7 @@ public class RATSMultiEditor : EditorWindow
                     sharedConditions[index].references.ForEach((x) =>
                     { 
                         var (transition, index) = x;
+                        Undo.RegisterCompleteObjectUndo(transition, "Modify Transition Conditions");
                         var conditions = transition.conditions;
                         conditions[index].threshold = newThreshold;
                         transition.conditions = conditions;
@@ -518,6 +616,7 @@ public class RATSMultiEditor : EditorWindow
         conditions.onAddCallback = (ReorderableList list) => {
             transitions.ForEach(t =>
             {
+                Undo.RegisterCompleteObjectUndo(t, "Modify Transition Conditions");
                 if (controller.parameters.Length == 0)
                 {
                     t.conditions = t.conditions.Append(new AnimatorCondition()
@@ -547,6 +646,7 @@ public class RATSMultiEditor : EditorWindow
             toRemove.references.ForEach(x =>
             {
                 (var transition, var index) = x;
+                Undo.RegisterCompleteObjectUndo(transition, "Modify Transition Conditions");
                 var conditions = transition.conditions.ToList();
                 conditions.RemoveAt(index);
                 transition.conditions = conditions.ToArray();
@@ -770,6 +870,7 @@ public class RATSMultiEditor : EditorWindow
                 sharedDrivers[index].references.ForEach((x) =>
                 {
                     var (parameterDriver, index) = x;
+                    Undo.RegisterCompleteObjectUndo(parameterDriver, "Modify Parameter Drivers");
                     var parameters = parameterDriver.parameters;
                     parameters[index].type = newType;
                     
@@ -799,6 +900,7 @@ public class RATSMultiEditor : EditorWindow
                         sharedDrivers[index].references.ForEach((x) =>
                         {
                             var (driver, index) = x;
+                            Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                             var parameters = driver.parameters;
                             parameters[index].name = paramNames[newParamIndex];
                             driver.parameters = parameters;
@@ -814,6 +916,7 @@ public class RATSMultiEditor : EditorWindow
                             sharedDrivers[index].references.ForEach((x) =>
                             {
                                 var (driver, index) = x;
+                                Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                                 var parameters = driver.parameters;
                                 parameters[index].value = newValue ? 1.0f : 0.0f;
                                 driver.parameters = parameters;
@@ -828,6 +931,7 @@ public class RATSMultiEditor : EditorWindow
                             sharedDrivers[index].references.ForEach((x) =>
                             {
                                 var (driver, index) = x;
+                                Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                                 var parameters = driver.parameters;
                                 parameters[index].value = newValue;
                                 driver.parameters = parameters;
@@ -846,6 +950,7 @@ public class RATSMultiEditor : EditorWindow
                         {
                             var (driver, index) = x;
                             var parameters = driver.parameters;
+                            Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                             parameters[index].source = paramNames[newSourceParamIndex];
                             driver.parameters = parameters;
                         });
@@ -859,6 +964,7 @@ public class RATSMultiEditor : EditorWindow
                         {
                             var (driver, index) = x;
                             var parameters = driver.parameters;
+                            Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                             parameters[index].name = paramNames[newDestParamIndex];
                             driver.parameters = parameters;
                         });
@@ -875,6 +981,7 @@ public class RATSMultiEditor : EditorWindow
                         {
                             var (driver, index) = x;
                             var parameters = driver.parameters;
+                            Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                             parameters[index].name = paramNames[newRandomParamIndex];
                             driver.parameters = parameters;
                         });
@@ -891,6 +998,7 @@ public class RATSMultiEditor : EditorWindow
                             {
                                 var (driver, index) = x;
                                 var parameters = driver.parameters;
+                                Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                                 parameters[index].chance = newRandomValue;
                                 driver.parameters = parameters;
                             });
@@ -905,6 +1013,7 @@ public class RATSMultiEditor : EditorWindow
                             {
                                 var (driver, index) = x;
                                 var parameters = driver.parameters;
+                                Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                                 parameters[index].valueMin = newRandomMinValue;
                                 driver.parameters = parameters;
                             });
@@ -917,6 +1026,7 @@ public class RATSMultiEditor : EditorWindow
                             {
                                 var (driver, index) = x;
                                 var parameters = driver.parameters;
+                                Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                                 parameters[index].valueMax = newRandomMaxValue;
                                 driver.parameters = parameters;
                             });
@@ -935,6 +1045,7 @@ public class RATSMultiEditor : EditorWindow
             states.ForEach(s =>
             {
                 var driver = s.behaviours.Where(x => x is VRCAvatarParameterDriver).Cast<VRCAvatarParameterDriver>().Last();
+                Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                 driver.parameters = driver.parameters.Append(new VRC_AvatarParameterDriver.Parameter()
                 {
                     type = VRC_AvatarParameterDriver.ChangeType.Add,
@@ -949,6 +1060,7 @@ public class RATSMultiEditor : EditorWindow
             toRemove.references.ForEach(x =>
             {
                 (var driver, var index) = x;
+                Undo.RegisterCompleteObjectUndo(driver, "Modify Parameter Drivers");
                 var parameters = driver.parameters.ToList();
                 parameters.RemoveAt(index);
                 driver.parameters = parameters.ToList();
@@ -964,7 +1076,7 @@ public class RATSMultiEditor : EditorWindow
     }
     
     
-    private void DrawFloatField<T>(List<T> objects, Func<T, float> getter, Action<T, float> setter, string name)
+    private void DrawFloatField<T>(List<T> objects, Func<T, float> getter, Action<T, float> setter, string name) where T: Object
     {
         using (new GUILayout.HorizontalScope())
         {
@@ -972,11 +1084,18 @@ public class RATSMultiEditor : EditorWindow
             bool sharedValue = objects.All(x => getter(x) == getter(objects[0]));
             float currentValue = sharedValue ? getter(objects[0]) : 0.0f;
             float newValue = EditorGUILayout.FloatField(currentValue);
-            if (newValue != currentValue) objects.ForEach(x => setter(x, newValue));
+            if (newValue != currentValue)
+            {
+                objects.ForEach(x =>
+                {
+                    Undo.RegisterCompleteObjectUndo(x, "Modify Controller");
+                    setter(x, newValue);
+                });
+            }
         }
     }
 
-    private void DrawBoolField<T>(List<T> objects, Func<T, bool> getter, Action<T, bool> setter, string name)
+    private void DrawBoolField<T>(List<T> objects, Func<T, bool> getter, Action<T, bool> setter, string name) where T: Object
     {
         using (new GUILayout.HorizontalScope())
         {
@@ -984,7 +1103,14 @@ public class RATSMultiEditor : EditorWindow
             bool sharedValue = objects.All(x => getter(x) == getter(objects[0]));
             bool currentValue = sharedValue ? getter(objects[0]) : false;
             bool newValue = EditorGUILayout.Toggle(currentValue);
-            if (newValue != currentValue) objects.ForEach(x => setter(x, newValue));
+            if (newValue != currentValue)
+            {
+                objects.ForEach(x =>
+                {
+                    Undo.RegisterCompleteObjectUndo(x, "Modify Controller");
+                    setter(x, newValue);
+                });
+            }
         }
     }
 }
