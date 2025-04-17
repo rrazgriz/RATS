@@ -33,11 +33,12 @@ jobs:
           rsync -r --exclude="${{ env.packagePath }}" ./ "${{ env.packagePath }}"/
 
       - name: Create Zip
-        uses: thedoctor0/zip-release@09336613be18a8208dfa66bd57efafd9e2685657
+        uses: thedoctor0/zip-release@78b32010bd8b7722906817a1f9e2a7190a182d0c
         with:
           type: "zip"
           directory: "${{ env.packagePath }}/"
           filename: "../../${{env.zipFile}}" # make the zip file two directories up, since we start two directories in above
+          exclusions: '/.git* .git*' # Exclude build-time .git dir, .github dir, and .gitignore, among others at the root
 
       - run: find "${{env.packagePath}}" -name \*.meta >> metaList
 
