@@ -2,15 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+#if RATS_HARMONY
 using HarmonyLib;
+#endif
 using Razgriz.RATS;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.Graphs;
 using UnityEditorInternal;
 using UnityEngine;
+#if VRC_SDK_VRCSDK3 && !UDON
 using VRC.SDK3.Avatars.Components;
 using VRC.SDKBase;
+#endif
 using AnimatorController = UnityEditor.Animations.AnimatorController;
 using AnimatorControllerParameter = UnityEngine.AnimatorControllerParameter;
 using AnimatorControllerParameterType = UnityEngine.AnimatorControllerParameterType;
@@ -19,13 +23,17 @@ using Object = UnityEngine.Object;
 public class RATSMultiEditor : EditorWindow
 {
     private int selectedTab = 0;
+#if VRC_SDK_VRCSDK3 && !UDON
     private string[] tabNames = new string[] { "States", "Transitions", "Parameter Drivers" }; // TODO: Animator Tracking Control
-
+#else 
+    private string[] tabNames = new string[] { "States", "Transitions"};
+#endif
     private static AnimatorController controller;
     private static AnimatorStateMachine stateMachine;
     private static object tool;
     private static object graphGUI;
     
+#if RATS_HARMONY
     [HarmonyPatch]
     [HarmonyPriority(Priority.Low)]
     private class GetControllerPatch
@@ -45,7 +53,8 @@ public class RATSMultiEditor : EditorWindow
             stateMachine = (AnimatorStateMachine)AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.GraphGUI"), "get_activeStateMachine").Invoke(graphGUI, Array.Empty<object>());
         }
     }
-
+#endif
+    
     Object[] selectionCache = Array.Empty<Object>();
     private void Update()
     {
@@ -76,6 +85,9 @@ public class RATSMultiEditor : EditorWindow
 
     private void OnGUI()
     {
+#if !RATS_HARMONY
+        controller = EditorGUILayout.ObjectField("Animator Controller", controller, typeof(AnimatorController), false) as AnimatorController;        
+#endif
         // Draw the tabs
         selectedTab = GUILayout.Toolbar(selectedTab, tabNames);
         
@@ -88,9 +100,11 @@ public class RATSMultiEditor : EditorWindow
             case 1:
                 DrawTransitionsTab();
                 break;
+#if VRC_SDK_VRCSDK3 && !UDON
             case 2:
                 DrawParameterDriversTab();
                 break;
+#endif
         }
     }
     
@@ -676,6 +690,7 @@ public class RATSMultiEditor : EditorWindow
         conditions.DoLayoutList();
     }
 
+#if VRC_SDK_VRCSDK3 && !UDON
     struct SourceParameter
     {
         public VRC_AvatarParameterDriver.Parameter parameter;
@@ -1089,7 +1104,7 @@ public class RATSMultiEditor : EditorWindow
         
         parameters.DoLayoutList();
     }
-    
+#endif
     
     private void DrawFloatField<T>(List<T> objects, Func<T, float> getter, Action<T, float> setter, string name) where T: Object
     {
