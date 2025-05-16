@@ -568,8 +568,8 @@ namespace Razgriz.RATS
                         {
                             ChildAnimatorState source = stateMachine.states.FirstOrDefault(x => x.state.transitions.Contains(transition));
                             if (source.state == null) continue;
-                            
-                            source.state.AddTransition(new AnimatorStateTransition()
+
+                            AnimatorStateTransition newTransition = new AnimatorStateTransition()
                             {
                                 canTransitionToSelf = transition.canTransitionToSelf,
                                 conditions = transition.conditions.Select(x => x).ToArray(),
@@ -580,7 +580,10 @@ namespace Razgriz.RATS
                                 hasFixedDuration = transition.hasFixedDuration,
                                 hideFlags = transition.hideFlags,
                                 interruptionSource = transition.interruptionSource,
-                            });
+                            };
+                            source.state.AddTransition(newTransition);
+                            if (AssetDatabase.GetAssetPath((UnityEngine.Object)source.state) != "") 
+                                AssetDatabase.AddObjectToAsset((UnityEngine.Object) newTransition, AssetDatabase.GetAssetPath((UnityEngine.Object) source.state));
                         }
                         else
                         {
@@ -629,7 +632,7 @@ namespace Razgriz.RATS
                     if (target.state == null) return;
                     foreach (var selectedState in selectedStates)
                     {
-                        selectedState.AddTransition(new AnimatorStateTransition()
+                        AnimatorStateTransition newTransition = new AnimatorStateTransition()
                         {
                             canTransitionToSelf = transition.canTransitionToSelf,
                             conditions = transition.conditions.Select(x => x).ToArray(),
@@ -640,7 +643,10 @@ namespace Razgriz.RATS
                             hasFixedDuration = transition.hasFixedDuration,
                             hideFlags = transition.hideFlags,
                             interruptionSource = transition.interruptionSource,
-                        });
+                        };
+                        selectedState.AddTransition(newTransition);
+                        if (AssetDatabase.GetAssetPath(stateMachine) != "")
+                            AssetDatabase.AddObjectToAsset((UnityEngine.Object) newTransition, AssetDatabase.GetAssetPath(stateMachine));
                     }
 
                     AnimatorWindowState.replicateTransition = null;
@@ -764,7 +770,7 @@ namespace Razgriz.RATS
                     ChildAnimatorState source = stateMachine.states.FirstOrDefault(x => x.state.transitions.Contains(transition));
                     ChildAnimatorState target = stateMachine.states.FirstOrDefault(x => x.state == transition.destinationState);
                     if (source.state == null || target.state == null) return;
-                    target.state.AddTransition(new AnimatorStateTransition()
+                    AnimatorStateTransition newTransition = new AnimatorStateTransition()
                     {
                         canTransitionToSelf = transition.canTransitionToSelf,
                         conditions = transition.conditions.Select(x => x).ToArray(),
@@ -775,8 +781,10 @@ namespace Razgriz.RATS
                         hasFixedDuration = transition.hasFixedDuration,
                         hideFlags = transition.hideFlags,
                         interruptionSource = transition.interruptionSource,
-                    });
-                    
+                    };
+                    target.state.AddTransition(newTransition);
+                    if (AssetDatabase.GetAssetPath(stateMachine) != "")
+                        AssetDatabase.AddObjectToAsset((UnityEngine.Object) newTransition, AssetDatabase.GetAssetPath(stateMachine));
                     AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
                 }
             }
@@ -855,6 +863,9 @@ namespace Razgriz.RATS
                         
                         AnimatorState newState = new AnimatorState();
                         stateMachine.AddState(newState, Event.current.mousePosition - new Vector2(100, 20));
+                        if (AssetDatabase.GetAssetPath((UnityEngine.Object) stateMachine) != "")
+                            AssetDatabase.AddObjectToAsset((UnityEngine.Object) newState, AssetDatabase.GetAssetPath((UnityEngine.Object) stateMachine));
+                        newState.hideFlags = HideFlags.HideInHierarchy;
                         Event.current.Use();
                         AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
                     }
