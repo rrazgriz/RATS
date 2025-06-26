@@ -49,6 +49,7 @@ namespace Razgriz.RATS
 
             // State Menu
             internal static AnimatorState multipleState;
+            internal static AnimatorState[] multipleStateArray;
 
             // Double Clicks
             internal static double doubleClickLastClick;
@@ -515,7 +516,7 @@ namespace Razgriz.RATS
             class MultipleTransitionEntry : StateMenuEntry
             {
                 public string GetEntryName() => "Add Multiple Transitions";
-                public bool ShouldCheck(object data) => AnimatorWindowState.multipleState != null;
+                public bool ShouldCheck(object data) => AnimatorWindowState.multipleStateArray != null;
                 public bool ShouldEnable(object data) => true;
                 public bool ShouldShow(object data) => true;
                 public void Callback(object data, object stateNode)
@@ -526,20 +527,22 @@ namespace Razgriz.RATS
                         .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Graph"),
                             "get_activeStateMachine").Invoke(graph, new object[0]);
 
-                    if (AnimatorWindowState.multipleState == null)
+                    if (AnimatorWindowState.multipleStateArray == null)
                     {
-                        AnimatorState state = Selection.activeObject as AnimatorState;
+                        AnimatorState[] state = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
                         if (state == null) return;
-                        AnimatorWindowState.multipleState = state;
+                        AnimatorWindowState.multipleStateArray = state;
                         return;
                     }
                     
                     AnimatorState[] selectedStates = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
                     foreach (var selectedState in selectedStates)
                     {
-                        AnimatorWindowState.multipleState.AddTransition(selectedState);
+                        foreach (var savedState in AnimatorWindowState.multipleStateArray) {
+                            savedState.AddTransition(selectedState);
+                        }
                     }
-                    AnimatorWindowState.multipleState = null;
+                    AnimatorWindowState.multipleStateArray = null;
                     AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
                 }
             }
