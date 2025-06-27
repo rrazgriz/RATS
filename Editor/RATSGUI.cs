@@ -333,13 +333,13 @@ namespace Razgriz.RATS
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    ToggleButton(ref RATS.Prefs.MACSCompatibleLayerIcons, "MACS Compatible Layer Icons", "Makes layer icons not overlap with MACS");
+                    ToggleButton(ref RATS.Prefs.MACSCompatibleLayerIcons, "MACS Compatible Layer Icons", "Makes layer icons not overlap with MACS layer indexes");
                     ToggleButton(ref RATS.Prefs.InfoLabelInAnimator, "Animator information", "Shows information about the animator at the bottom");
                 }
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    ToggleButton(ref RATS.Prefs.ShowEmptyLayerIcon, "Show Empty Layer Icon", "Shows \"E\" when a layer only has empty animations");
+                    ToggleButton(ref RATS.Prefs.ShowEmptyLayerIcon, "Show Empty Layer Icon", "Shows \"E\" when a layer doesn't have states.");
                     RATS.Prefs.EmptyLayerIconColor = EditorGUILayout.ColorField("Empty Layer Icon", RATS.Prefs.EmptyLayerIconColor);
                 }
 
