@@ -384,7 +384,7 @@ namespace Razgriz.RATS
 
                 if (Prefs.LayerListShowMixedWD && layerWDOnCount > 0 && layerWDOffCount > 0)
                 {
-                    if (RATS.Prefs.ShowMixedWDIcon)
+                    if (RATS.Prefs.LayerListShowMixedWD)
                     {
                         layerLabelRect.width = 16;
                         layerLabelRect.height = 16;
@@ -399,12 +399,9 @@ namespace Razgriz.RATS
                         EditorGUI.LabelField(layerLabelRect, new GUIContent(EditorGUIUtility.IconContent("Error").image, "Layer has mixed Write Defaults settings"));
                     }
                 }
-                else if(Prefs.LayerListShowWD)
+                else if (RATS.Prefs.LayerListShowWD)
                 {
-                    if (RATS.Prefs.ShowWDLayerIcon)
-                    {
-                        EditorGUI.LabelField(layerLabelRect, (layerWDOnCount > 0 ? "WD" : ""), LayerWDStyle);
-                    }
+                    EditorGUI.LabelField(layerLabelRect, (layerWDOnCount > 0 ? "WD" : ""), LayerWDStyle);
                 }
             }
         }

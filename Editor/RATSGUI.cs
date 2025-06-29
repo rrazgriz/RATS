@@ -55,13 +55,6 @@ namespace Razgriz.RATS
     public class RATSPreferences
     {
         public bool DisableAnimatorGraphFixes = false;
-        public bool MACSCompatibleLayerIcons = false;
-        public bool InfoLabelInAnimator = true;
-        public bool ShowEmptyLayerIcon = true;
-        public Color EmptyLayerIconColor = new Color(1.0f, 0.5f, 0f);
-        public bool ShowWDLayerIcon = true;
-        public Color WDLayerIconColor = new Color(1.0f, 1.0f, 1.0f);
-        public bool ShowMixedWDIcon = true;
         public bool StateMotionLabels = true;
         public bool StateBlendtreeLabels = true;
         public bool StateAnimIsEmptyLabel = true;
@@ -76,7 +69,6 @@ namespace Razgriz.RATS
         public bool StateExtraLabelsBehavior = true;
         public bool StateExtraLabelsMotionTime = true;
         public bool StateExtraLabelsSpeed = true;
-        public bool DebugLabelsOnAlt = true;
         public bool GraphGridOverride = true;
         public float GraphGridDivisorMinor = 1.0f;
         public float GraphGridScalingMajor = 0.0f;
@@ -121,6 +113,12 @@ namespace Razgriz.RATS
         public bool ProjectWindowFolderChildren = true;
         public Color ProjectWindowLabelTextColor = new Color(1.0f, 1.0f, 1.0f, 0.3f);
         public TextAnchor ProjectWindowLabelAlignment = TextAnchor.MiddleRight;
+        public bool DebugLabelsOnAlt = true;
+        public bool MACSCompatibleLayerIcons = false;
+        public bool InfoLabelInAnimator = true;
+        public bool ShowEmptyLayerIcon = true;
+        public Color EmptyLayerIconColor = new Color(1.0f, 0.5f, 0f);
+        public Color WDLayerIconColor = new Color(1.0f, 1.0f, 1.0f);
     }
 
     public static class RATSPreferenceHandler
@@ -333,7 +331,6 @@ namespace Razgriz.RATS
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    ToggleButton(ref RATS.Prefs.MACSCompatibleLayerIcons, "MACS Compatible Layer Icons", "Makes layer icons not overlap with MACS layer indexes");
                     ToggleButton(ref RATS.Prefs.InfoLabelInAnimator, "Animator information", "Shows information about the animator at the bottom");
                 }
 
@@ -345,13 +342,15 @@ namespace Razgriz.RATS
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    ToggleButton(ref RATS.Prefs.ShowWDLayerIcon, "Show Layer WD State", "Shows \"WD\" if a layer has Write Defaults turned on. Shows nothing if Write Defaults is off.");
+                    ToggleButton(ref RATS.Prefs.LayerListShowWD, "Show Layer WD State", "Shows \"WD\" if a layer has at least one state with Write Defaults turned on.\n" +
+                                                                 "Shows nothing if Write Defaults is off for all states on the layer.");
                     RATS.Prefs.WDLayerIconColor = EditorGUILayout.ColorField("WD Layer Icon", RATS.Prefs.WDLayerIconColor);
                 }
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    ToggleButton(ref RATS.Prefs.ShowMixedWDIcon, "Show Mixed WD Layer Icon", "Shows a warning icon if a layer has mixed Write Defaults.");
+                    ToggleButton(ref RATS.Prefs.LayerListShowMixedWD, "Show Mixed WD Layer Icon", "Shows a warning icon if a layer has mixed Write Defaults.");
+                    ToggleButton(ref RATS.Prefs.MACSCompatibleLayerIcons, "MACS Compatible Layer Icons", "Makes layer icons not overlap with MACS layer indexes");
                 }
 
                 EditorGUI.indentLevel -= optionsIndentStep;
