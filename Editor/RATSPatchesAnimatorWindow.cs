@@ -346,7 +346,7 @@ namespace Razgriz.RATS
             static void Prefix(object __instance, Rect rect, int index, bool selected, bool focused)
             {
                 // Don't show if not configured, or if playing (prevents indicator from getting pushed off screen)
-                if(!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD) || EditorApplication.isPlaying)
+                if (!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD || Prefs.ShowEmptyLayerIcon) || EditorApplication.isPlaying)
                     return;
 
                 AnimatorController controller = (AnimatorController)AnimatorControllerField.GetValue(IAnimatorControllerEditorField.GetValue(__instance));
