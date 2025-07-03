@@ -114,7 +114,7 @@ namespace Razgriz.RATS
         public Color ProjectWindowLabelTextColor = new Color(1.0f, 1.0f, 1.0f, 0.3f);
         public TextAnchor ProjectWindowLabelAlignment = TextAnchor.MiddleRight;
         public bool DebugLabelsOnAlt = true;
-        public bool MACSCompatibleLayerIcons = false;
+        public bool MACSCompatibility = false;
         public bool InfoLabelInAnimator = true;
         public bool ShowEmptyLayerIcon = true;
         public Color EmptyLayerIconColor = new Color(1.0f, 0.5f, 0f);
@@ -350,7 +350,7 @@ namespace Razgriz.RATS
                 using (new GUILayout.HorizontalScope())
                 {
                     ToggleButton(ref RATS.Prefs.LayerListShowMixedWD, "Show Mixed WD Layer Icon", "Shows a warning icon if a layer has mixed Write Defaults.");
-                    ToggleButton(ref RATS.Prefs.MACSCompatibleLayerIcons, "MACS Compatible Layer Icons", "Makes layer icons not overlap with MACS layer indexes");
+                    ToggleButton(ref RATS.Prefs.MACSCompatibility, "MACS Compatibility", "Makes layer icons not overlap with MACS layer indexes, and disables layer creation auto scroll and parameter creation auto scroll patches in RATS. Use these in MACS.");
                 }
 
                 EditorGUI.indentLevel -= optionsIndentStep;

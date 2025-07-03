@@ -74,6 +74,8 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             static void Postfix(object __instance)
             {
+                if (RATS.Prefs.MACSCompatibility) return;
+
                 Vector2 scrollpos = (Vector2)LayerScrollField.GetValue(__instance);
                 if (scrollpos.y == 0)
                     LayerScrollField.SetValue(__instance, AnimatorWindowState.layerScrollCache);
@@ -92,6 +94,8 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             public static void Postfix(object __instance, object value)
             {
+                if (RATS.Prefs.MACSCompatibility) return;
+
                 Traverse.Create(__instance).Field("m_ScrollPosition").SetValue(new Vector2(0, 9001));
             }
         }
@@ -328,7 +332,7 @@ namespace Razgriz.RATS
 
             static PatchLayerWriteDefaultsIndicator()
             {
-                if (RATS.Prefs.MACSCompatibleLayerIcons)
+                if (RATS.Prefs.MACSCompatibility)
                 {
                     LayerWDStyle.fontSize = 8;
                 }
@@ -360,7 +364,7 @@ namespace Razgriz.RATS
                 layerLabelRect.x -= 19;
                 layerLabelRect.y += 15;
 
-                if (RATS.Prefs.MACSCompatibleLayerIcons)
+                if (RATS.Prefs.MACSCompatibility)
                 {
                     layerLabelRect.y -= 6;
                     layerLabelRect.x += 2;
@@ -390,7 +394,7 @@ namespace Razgriz.RATS
                         layerLabelRect.height = 16;
                         layerLabelRect.x += 2;
 
-                        if (RATS.Prefs.MACSCompatibleLayerIcons)
+                        if (RATS.Prefs.MACSCompatibility)
                         {
                             layerLabelRect.x -= 3;
                             layerLabelRect.y -= 5;
