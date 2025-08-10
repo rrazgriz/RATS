@@ -737,19 +737,19 @@ namespace Razgriz.RATS
         {
             try
             {
-                string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(
-                        BuildTargetGroup.Standalone);
+                BuildTargetGroup buildTargetGroup = BuildPipeline.GetBuildTargetGroup(EditorUserBuildSettings.activeBuildTarget);
+                string symbols = PlayerSettings.GetScriptingDefineSymbolsForGroup(buildTargetGroup);
                 if (!symbols.Contains(symbol) && active)
                 {
                     PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                                BuildTargetGroup.Standalone, symbols + ";" + symbol);
+                                buildTargetGroup, symbols + ";" + symbol);
                     if(refresh_if_changed)
                         AssetDatabase.Refresh();
                 }
                 else if (symbols.Contains(symbol) && !active)
                 {
                     PlayerSettings.SetScriptingDefineSymbolsForGroup(
-                                BuildTargetGroup.Standalone, Regex.Replace(symbols, @";?" + @symbol, ""));
+                                buildTargetGroup, Regex.Replace(symbols, @";?" + @symbol, ""));
                     if(refresh_if_changed)
                         AssetDatabase.Refresh();
                 }
