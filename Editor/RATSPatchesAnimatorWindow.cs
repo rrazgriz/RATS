@@ -79,6 +79,8 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             static void Postfix(object __instance)
             {
+                if (RATS.Prefs.MACSCompatibility) return;
+
                 Vector2 scrollpos = (Vector2)LayerScrollField.GetValue(__instance);
                 if (scrollpos.y == 0)
                     LayerScrollField.SetValue(__instance, AnimatorWindowState.layerScrollCache);
@@ -97,6 +99,8 @@ namespace Razgriz.RATS
             [HarmonyPostfix]
             public static void Postfix(object __instance, object value)
             {
+                if (RATS.Prefs.MACSCompatibility) return;
+
                 Traverse.Create(__instance).Field("m_ScrollPosition").SetValue(new Vector2(0, 9001));
             }
         }
@@ -333,7 +337,14 @@ namespace Razgriz.RATS
 
             static PatchLayerWriteDefaultsIndicator()
             {
-                LayerWDStyle.fontSize = 9;
+                if (RATS.Prefs.MACSCompatibility)
+                {
+                    LayerWDStyle.fontSize = 8;
+                }
+                else
+                {
+                    LayerWDStyle.fontSize = 9;
+                }
             }
 
             // TODO: Not sure if this should be done for every layer but gonna stick with it for now
@@ -344,7 +355,7 @@ namespace Razgriz.RATS
             static void Prefix(object __instance, Rect rect, int index, bool selected, bool focused)
             {
                 // Don't show if not configured, or if playing (prevents indicator from getting pushed off screen)
-                if(!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD) || EditorApplication.isPlaying)
+                if (!(Prefs.LayerListShowWD || Prefs.LayerListShowMixedWD || Prefs.ShowEmptyLayerIcon) || EditorApplication.isPlaying)
                     return;
 
                 AnimatorController controller = (AnimatorController)AnimatorControllerField.GetValue(IAnimatorControllerEditorField.GetValue(__instance));
@@ -358,25 +369,46 @@ namespace Razgriz.RATS
                 layerLabelRect.x -= 19;
                 layerLabelRect.y += 15;
 
-                if(layerStateMachine.states.Length == 0 && layerStateMachine.stateMachines.Length == 0)
+                if (RATS.Prefs.MACSCompatibility)
                 {
-                    EditorGUI.LabelField(layerLabelRect, "  E", LayerWDStyle);
-                    return; 
+                    layerLabelRect.y -= 6;
+                    layerLabelRect.x += 2;
+                }
+
+                if (RATS.Prefs.ShowEmptyLayerIcon)
+                {
+                    if (layerStateMachine.states.Length == 0 && layerStateMachine.stateMachines.Length == 0)
+                    {
+                        LayerWDStyle.normal.textColor = RATS.Prefs.EmptyLayerIconColor;
+                        EditorGUI.LabelField(layerLabelRect, "  E", LayerWDStyle);
+                        return;
+                    }
                 }
 
                 int layerWDOnCount = 0;
                 int layerWDOffCount = 0;
 
                 RATS.RecursivelyDetermineStateMachineWDStatus(layerStateMachine, ref layerWDOnCount, ref layerWDOffCount);
+                LayerWDStyle.normal.textColor = RATS.Prefs.WDLayerIconColor;
 
-                if(Prefs.LayerListShowMixedWD && layerWDOnCount > 0 && layerWDOffCount > 0)
+                if (Prefs.LayerListShowMixedWD && layerWDOnCount > 0 && layerWDOffCount > 0)
                 {
-                    layerLabelRect.width = 16;
-                    layerLabelRect.height = 16;
-                    layerLabelRect.x += 2;
-                    EditorGUI.LabelField(layerLabelRect, new GUIContent(EditorGUIUtility.IconContent("Error").image, "Layer has mixed Write Defaults settings"));
+                    if (RATS.Prefs.LayerListShowMixedWD)
+                    {
+                        layerLabelRect.width = 16;
+                        layerLabelRect.height = 16;
+                        layerLabelRect.x += 2;
+
+                        if (RATS.Prefs.MACSCompatibility)
+                        {
+                            layerLabelRect.x -= 3;
+                            layerLabelRect.y -= 5;
+                        }
+
+                        EditorGUI.LabelField(layerLabelRect, new GUIContent(EditorGUIUtility.IconContent("Error").image, "Layer has mixed Write Defaults settings"));
+                    }
                 }
-                else if(Prefs.LayerListShowWD)
+                else if (RATS.Prefs.LayerListShowWD)
                 {
                     EditorGUI.LabelField(layerLabelRect, (layerWDOnCount > 0 ? "WD" : ""), LayerWDStyle);
                 }
@@ -1162,47 +1194,50 @@ namespace Razgriz.RATS
 
                     string compatibilityString = "";
 
-                    #if RATS_NO_ANIMATOR
+#if RATS_NO_ANIMATOR
                     compatibilityString = " (Compatibility)";
-                    #endif
-                    GUIContent RATSLabel = new GUIContent($"  RATS{compatibilityString}  |  WD: {WDStatus}   ", (Texture)RATSGUI.GetRATSIcon());
-                    float RATSLabelWidth = (buttonStyle).CalcSize(RATSLabel).x;
-                    float controllerLabelWidth = (EditorStyles.miniLabel).CalcSize(new GUIContent(AssetDatabase.GetAssetPath(ctrl))).x;
-                    float controllerIconWidth = 16;
-                    Rect pingControllerRect = new Rect(nameRect.x + nameRect.width - controllerLabelWidth - controllerIconWidth, nameRect.y, controllerLabelWidth + controllerIconWidth, nameRect.height);
-                    Rect RATSLabelrect = new Rect(nameRect.x + nameRect.width - pingControllerRect.width - RATSLabelWidth, nameRect.y, RATSLabelWidth, nameRect.height);
-
-                    GUILayout.BeginArea(RATSLabelrect);
-                    EditorGUILayout.LabelField(RATSLabel, buttonStyle);
-                    GUILayout.EndArea();
-                    EditorGUIUtility.AddCursorRect(RATSLabelrect, MouseCursor.Link); // Show hand cursor on hover
-
-                    GUILayout.BeginArea(pingControllerRect);
-                    EditorGUILayout.LabelField(new GUIContent((Texture)EditorGUIUtility.IconContent("AnimatorController On Icon").image), EditorStyles.miniLabel, GUILayout.Width(controllerIconWidth));
-                    GUILayout.EndArea();
-                    EditorGUIUtility.AddCursorRect(pingControllerRect, MouseCursor.Link);
-
-                    Event current = Event.current;
-                    if ((current.type == EventType.MouseDown) && (current.button == 0))
+#endif
+                    if (RATS.Prefs.InfoLabelInAnimator)
                     {
-                        if(RATSLabelrect.Contains(current.mousePosition))
+                        GUIContent RATSLabel = new GUIContent($"  RATS{compatibilityString}  |  WD: {WDStatus}   ", (Texture)RATSGUI.GetRATSIcon());
+                        float RATSLabelWidth = (buttonStyle).CalcSize(RATSLabel).x;
+                        float controllerLabelWidth = (EditorStyles.miniLabel).CalcSize(new GUIContent(AssetDatabase.GetAssetPath(ctrl))).x;
+                        float controllerIconWidth = 16;
+                        Rect pingControllerRect = new Rect(nameRect.x + nameRect.width - controllerLabelWidth - controllerIconWidth, nameRect.y, controllerLabelWidth + controllerIconWidth, nameRect.height);
+                        Rect RATSLabelrect = new Rect(nameRect.x + nameRect.width - pingControllerRect.width - RATSLabelWidth, nameRect.y, RATSLabelWidth, nameRect.height);
+
+                        GUILayout.BeginArea(RATSLabelrect);
+                        EditorGUILayout.LabelField(RATSLabel, buttonStyle);
+                        GUILayout.EndArea();
+                        EditorGUIUtility.AddCursorRect(RATSLabelrect, MouseCursor.Link); // Show hand cursor on hover
+
+                        GUILayout.BeginArea(pingControllerRect);
+                        EditorGUILayout.LabelField(new GUIContent((Texture)EditorGUIUtility.IconContent("AnimatorController On Icon").image), EditorStyles.miniLabel, GUILayout.Width(controllerIconWidth));
+                        GUILayout.EndArea();
+                        EditorGUIUtility.AddCursorRect(pingControllerRect, MouseCursor.Link);
+
+                        Event current = Event.current;
+                        if ((current.type == EventType.MouseDown) && (current.button == 0))
                         {
-                            current.Use();
-                            GenericMenu menu = new GenericMenu();
-                            menu.AddItem(EditorGUIUtility.TrTextContent("RATS Options", null, (Texture) null), false,
-                                new GenericMenu.MenuFunction2((object obj) => RATSGUI.ShowWindow()), null);
-                            menu.AddItem(EditorGUIUtility.TrTextContent("Refresh Textures", null, (Texture) null), false,
-                                new GenericMenu.MenuFunction2((object obj) => RATS.HandleTextures()), null);
-                            menu.ShowAsContext();
+                            if (RATSLabelrect.Contains(current.mousePosition))
+                            {
+                                current.Use();
+                                GenericMenu menu = new GenericMenu();
+                                menu.AddItem(EditorGUIUtility.TrTextContent("RATS Options", null, (Texture)null), false,
+                                    new GenericMenu.MenuFunction2((object obj) => RATSGUI.ShowWindow()), null);
+                                menu.AddItem(EditorGUIUtility.TrTextContent("Refresh Textures", null, (Texture)null), false,
+                                    new GenericMenu.MenuFunction2((object obj) => RATS.HandleTextures()), null);
+                                menu.ShowAsContext();
+                            }
+                            else if (pingControllerRect.Contains(current.mousePosition))
+                            {
+                                current.Use();
+                                EditorGUIUtility.PingObject(ctrl);
+                                // Adhere to the 'select only on double click' convention
+                                if (current.clickCount == 2) Selection.activeObject = ctrl;
+                            }
                         }
-                        else if(pingControllerRect.Contains(current.mousePosition))
-                        {
-                            current.Use();
-                            EditorGUIUtility.PingObject(ctrl);
-                            // Adhere to the 'select only on double click' convention
-                            if (current.clickCount == 2) Selection.activeObject = ctrl;
-                        }
-                    } 
+                    }
                     
                 }
             }
@@ -1429,6 +1464,9 @@ namespace Razgriz.RATS
                 Rect stateRect = GUILayoutUtility.GetLastRect();
 
                 bool debugShowLabels = Event.current.alt;
+
+                if (RATS.Prefs.DebugLabelsOnAlt == false)
+                    debugShowLabels = false;
 
                 // Tags in corner, similar to what layer editor does
                 if ((hasMotion || hasStateMachine))

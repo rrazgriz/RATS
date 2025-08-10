@@ -113,6 +113,12 @@ namespace Razgriz.RATS
         public bool ProjectWindowFolderChildren = true;
         public Color ProjectWindowLabelTextColor = new Color(1.0f, 1.0f, 1.0f, 0.3f);
         public TextAnchor ProjectWindowLabelAlignment = TextAnchor.MiddleRight;
+        public bool DebugLabelsOnAlt = true;
+        public bool MACSCompatibility = false;
+        public bool InfoLabelInAnimator = true;
+        public bool ShowEmptyLayerIcon = true;
+        public Color EmptyLayerIconColor = new Color(1.0f, 0.5f, 0f);
+        public Color WDLayerIconColor = new Color(1.0f, 1.0f, 1.0f);
     }
 
     public static class RATSPreferenceHandler
@@ -231,6 +237,7 @@ namespace Razgriz.RATS
                 if(sectionExpandedStyling)
                 {
                     EditorGUI.indentLevel += 1;
+                    DrawAnimatorOptions();
                     DrawGraphLabelsOptions();
                     DrawGridStyleOptions();
                     DrawNodeStyleOptions();
@@ -314,6 +321,42 @@ namespace Razgriz.RATS
             }
         }
 
+        private static void DrawAnimatorOptions()
+        {
+            using (new GUILayout.VerticalScope())
+            {
+                DrawUILine(lightUILineColor);
+                SectionLabel(new GUIContent("  Animator Tweaks", EditorGUIUtility.IconContent("d_Animator Icon").image));
+                EditorGUI.indentLevel += optionsIndentStep;
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.InfoLabelInAnimator, "Animator information", "Shows information about the animator at the bottom");
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.ShowEmptyLayerIcon, "Show Empty Layer Icon", "Shows \"E\" when a layer doesn't have states.");
+                    RATS.Prefs.EmptyLayerIconColor = EditorGUILayout.ColorField("Empty Layer Icon", RATS.Prefs.EmptyLayerIconColor);
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.LayerListShowWD, "Show Layer WD State", "Shows \"WD\" if a layer has at least one state with Write Defaults turned on.\n" +
+                                                                 "Shows nothing if Write Defaults is off for all states on the layer.");
+                    RATS.Prefs.WDLayerIconColor = EditorGUILayout.ColorField("WD Layer Icon", RATS.Prefs.WDLayerIconColor);
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    ToggleButton(ref RATS.Prefs.LayerListShowMixedWD, "Show Mixed WD Layer Icon", "Shows a warning icon if a layer has mixed Write Defaults.");
+                    ToggleButton(ref RATS.Prefs.MACSCompatibility, "MACS Compatibility", "Makes layer icons not overlap with MACS layer indexes, and disables layer creation auto scroll and parameter creation auto scroll patches in RATS. Use these in MACS.");
+                }
+
+                EditorGUI.indentLevel -= optionsIndentStep;
+            }
+        }
+
         private static void DrawGraphLabelsOptions()
         {
             // Graph Labels
@@ -366,8 +409,9 @@ namespace Razgriz.RATS
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    EditorGUILayout.LabelField("Tip: Hold ALT to see all labels at any time", new GUIStyle("miniLabel"));
+                    ToggleButton(ref RATS.Prefs.DebugLabelsOnAlt, "Hold ALT to see all labels at any time", "Hold ALT to see all labels at any time");
                 }
+
                 EditorGUI.indentLevel -= optionsIndentStep;
             }
         }
