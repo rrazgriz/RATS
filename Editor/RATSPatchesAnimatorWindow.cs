@@ -15,6 +15,7 @@ using UnityEditor.Animations;
 using UnityEngine;
 using ReorderableList = UnityEditorInternal.ReorderableList;
 using HarmonyLib;
+using UnityEditor.Graphs.AnimationBlendTree;
 #if VRC_SDK_VRCSDK3 && !UDON
 using VRC.SDK3.Avatars.Components;
 #endif
@@ -48,7 +49,11 @@ namespace Razgriz.RATS
             internal static AnimatorTransitionBase replicateTransition;
 
             // State Menu
-            internal static AnimatorState multipleState;
+            internal static AnimatorState[] multipleState = Array.Empty<AnimatorState>();
+
+            internal static bool entrySelected = false;
+            internal static bool exitSelected = false;
+            internal static bool anyStateSelected = false;
 
             // Double Clicks
             internal static double doubleClickLastClick;
@@ -436,6 +441,7 @@ namespace Razgriz.RATS
                 AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"), "NodeUI"),
                 AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.AnyStateNode"), "NodeUI"),
                 AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.EntryNode"), "NodeUI"),
+                AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.ExitNode"), "NodeUI")
             };
 
             private static StateMenuEntry[] Entries = {
@@ -443,11 +449,22 @@ namespace Razgriz.RATS
                 new RedirectMenuEntry(),
                 new ReplicateMenuEntry()
             };
+
+            static void CreateAndDisplay(object graph)
+            {
+                Event current = Event.current;
+                if (current.type != EventType.ContextClick) return;
+            
+                GenericMenu menu = new GenericMenu();
+                AddMenuItems(graph, menu);
+                menu.ShowAsContext();
+                current.Use();
+            }
             
             static void AddMenuItems(object graph, GenericMenu menu)
             {
                 if (!RATS.Prefs.ManipulateTransitionsMenuOption) return;
-                if (Entries.Any(x => x.ShouldShow(graph))) menu.AddSeparator("");
+                if (Entries.Any(x => x.ShouldShow(graph)) && menu.GetItemCount() != 0) menu.AddSeparator("");
                 
                 foreach (var entry in Entries)
                 {
@@ -465,8 +482,16 @@ namespace Razgriz.RATS
             
             [HarmonyTranspiler]
             static IEnumerable<CodeInstruction> Transpiler(object __instance, IEnumerable<CodeInstruction> instructions)
-            {
+            { 
                 var instructionList = instructions.ToList();
+
+                if (instructionList.Count < 30)
+                {
+                    instructionList.Insert(0, new CodeInstruction(OpCodes.Ldarg_1));
+                    instructionList.Insert(1, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(PatchStateMenu), "CreateAndDisplay")));
+                    instructionList.Insert(2, new CodeInstruction(OpCodes.Nop));
+                }
+                
                 int genericMenuLocalIndex = -1;
                 for (var i = 0; i < instructionList.Count; i++)
                 {
@@ -515,31 +540,65 @@ namespace Razgriz.RATS
             class MultipleTransitionEntry : StateMenuEntry
             {
                 public string GetEntryName() => "Add Multiple Transitions";
-                public bool ShouldCheck(object data) => AnimatorWindowState.multipleState != null;
+                public bool ShouldCheck(object data) => AnimatorWindowState.multipleState.Length > 0 || AnimatorWindowState.anyStateSelected || AnimatorWindowState.entrySelected || AnimatorWindowState.exitSelected;
                 public bool ShouldEnable(object data) => true;
                 public bool ShouldShow(object data) => true;
                 public void Callback(object data, object stateNode)
                 {
-                    object graph =  AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"),
-                        "get_graph").Invoke(stateNode, new object[0]);
+                    object graph =  AccessTools.Method(AccessTools.TypeByName(stateNode.GetType().FullName), "get_graph").Invoke(stateNode, new object[0]);
                     AnimatorStateMachine stateMachine = (AnimatorStateMachine)AccessTools
                         .Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.Graph"),
                             "get_activeStateMachine").Invoke(graph, new object[0]);
 
-                    if (AnimatorWindowState.multipleState == null)
+                    if (AnimatorWindowState.multipleState.Length == 0 && !AnimatorWindowState.anyStateSelected && !AnimatorWindowState.entrySelected && !AnimatorWindowState.exitSelected )
                     {
-                        AnimatorState state = Selection.activeObject as AnimatorState;
-                        if (state == null) return;
-                        AnimatorWindowState.multipleState = state;
+                        AnimatorState[] states = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
+                        AnimatorWindowState.anyStateSelected = Selection.objects.Any(x => x.GetType().Name.Contains("AnyStateNode"));
+                        AnimatorWindowState.entrySelected = Selection.objects.Any(x => x.GetType().Name.Contains("EntryNode"));
+                        AnimatorWindowState.exitSelected = Selection.objects.Any(x => x.GetType().Name.Contains("ExitNode"));
+                        AnimatorWindowState.multipleState = states;
                         return;
                     }
                     
                     AnimatorState[] selectedStates = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
-                    foreach (var selectedState in selectedStates)
+                    bool exitSelected = Selection.objects.Any(x => x.GetType().Name.Contains("ExitNode"));
+
+                    List<UnityEngine.Object> newSelection = new List<UnityEngine.Object>();
+                    
+                    foreach (var savedState in AnimatorWindowState.multipleState)
                     {
-                        AnimatorWindowState.multipleState.AddTransition(selectedState);
+                        foreach (var selectedState in selectedStates)
+                        {
+                            newSelection.Add(savedState.AddTransition(selectedState));
+                        }
+                        
+                        if (exitSelected)
+                        {
+                            newSelection.Add(savedState.AddExitTransition());
+                        }
                     }
-                    AnimatorWindowState.multipleState = null;
+
+                    if (AnimatorWindowState.anyStateSelected)
+                    {
+                        foreach (var selectedState in selectedStates)
+                        {
+                            newSelection.Add(stateMachine.AddAnyStateTransition(selectedState));
+                        }
+                    }
+
+                    if (AnimatorWindowState.entrySelected)
+                    {
+                        foreach (var selectedState in selectedStates)
+                        {
+                            newSelection.Add(stateMachine.AddEntryTransition(selectedState));
+                        }
+                    }
+                    
+                    AnimatorWindowState.multipleState = Array.Empty<AnimatorState>();
+                    AnimatorWindowState.anyStateSelected = false;
+                    AnimatorWindowState.entrySelected = false;
+                    AnimatorWindowState.exitSelected = false;
+                    Selection.objects = newSelection.ToArray();
                     AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
                 }
             }
