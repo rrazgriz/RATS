@@ -45,8 +45,8 @@ namespace Razgriz.RATS
             internal static AnimatorController controllerClipboard = null;
 
             // Transition Menu
-            internal static AnimatorTransitionBase redirectTransition;
-            internal static AnimatorTransitionBase replicateTransition;
+            internal static AnimatorTransitionBase[] redirectTransition = Array.Empty<AnimatorTransitionBase>();
+            internal static AnimatorTransitionBase[] replicateTransition = Array.Empty<AnimatorTransitionBase>();
 
             // State Menu
             internal static AnimatorState[] multipleState = Array.Empty<AnimatorState>();
@@ -638,7 +638,7 @@ namespace Razgriz.RATS
             class RedirectMenuEntry : StateMenuEntry
             {
                 public string GetEntryName() => "Redirect";
-                public bool ShouldShow(object data) => AnimatorWindowState.redirectTransition != null;
+                public bool ShouldShow(object data) => AnimatorWindowState.redirectTransition.Length != 0;
                 public void Callback(object data, object stateNode)
                 {
                     object graph =  AccessTools.Method(AccessTools.TypeByName("UnityEditor.Graphs.AnimationStateMachine.StateNode"),
@@ -650,52 +650,63 @@ namespace Razgriz.RATS
                     AnimatorState[] selectedStates = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
                     if (selectedStates.Length == 0) return;
 
-                    AnimatorStateTransition transition = AnimatorWindowState.redirectTransition as AnimatorStateTransition;
+                    AnimatorStateTransition[] transitions = AnimatorWindowState.redirectTransition.OfType<AnimatorStateTransition>().ToArray();
                     
-
+                    
                     foreach (var selectedState in selectedStates)
                     {
-                        if (!stateMachine.anyStateTransitions.Contains(transition))
+                        for (var i = 0; i < transitions.Length; i++)
                         {
-                            ChildAnimatorState source = stateMachine.states.FirstOrDefault(x => x.state.transitions.Contains(transition));
-                            if (source.state == null) continue;
+                            var transition = transitions[i];
+                            if (!stateMachine.anyStateTransitions.Contains(transition))
+                            {
+                                ChildAnimatorState source =
+                                    stateMachine.states.FirstOrDefault(x => x.state.transitions.Contains(transition));
+                                if (source.state == null) continue;
 
-                            AnimatorStateTransition newTransition = new AnimatorStateTransition()
+
+                                AnimatorStateTransition newTransition = new AnimatorStateTransition()
+                                {
+                                    canTransitionToSelf = transition.canTransitionToSelf,
+                                    conditions = transition.conditions.Select(x => x).ToArray(),
+                                    destinationState = selectedState,
+                                    duration = transition.duration,
+                                    exitTime = transition.exitTime,
+                                    hasExitTime = transition.hasExitTime,
+                                    hasFixedDuration = transition.hasFixedDuration,
+                                    hideFlags = transition.hideFlags,
+                                    interruptionSource = transition.interruptionSource,
+                                };
+                                source.state.AddTransition(newTransition);
+                                if (AssetDatabase.GetAssetPath((UnityEngine.Object)source.state) != "")
+                                    AssetDatabase.AddObjectToAsset((UnityEngine.Object)newTransition,
+                                        AssetDatabase.GetAssetPath((UnityEngine.Object)source.state));
+
+                            }
+                            else
                             {
-                                canTransitionToSelf = transition.canTransitionToSelf,
-                                conditions = transition.conditions.Select(x => x).ToArray(),
-                                destinationState = selectedState,
-                                duration = transition.duration,
-                                exitTime = transition.exitTime,
-                                hasExitTime = transition.hasExitTime,
-                                hasFixedDuration = transition.hasFixedDuration,
-                                hideFlags = transition.hideFlags,
-                                interruptionSource = transition.interruptionSource,
-                            };
-                            source.state.AddTransition(newTransition);
-                            if (AssetDatabase.GetAssetPath((UnityEngine.Object)source.state) != "") 
-                                AssetDatabase.AddObjectToAsset((UnityEngine.Object) newTransition, AssetDatabase.GetAssetPath((UnityEngine.Object) source.state));
-                        }
-                        else
-                        {
-                            stateMachine.anyStateTransitions = stateMachine.anyStateTransitions.AddItem(new AnimatorStateTransition()
-                            {
-                                canTransitionToSelf = transition.canTransitionToSelf,
-                                conditions = transition.conditions.Select(x => x).ToArray(),
-                                duration = transition.duration,
-                                destinationState = selectedState,
-                                exitTime = transition.exitTime,
-                                hasExitTime = transition.hasExitTime,
-                                hasFixedDuration = transition.hasFixedDuration,
-                                hideFlags = transition.hideFlags,
-                                interruptionSource = transition.interruptionSource,
-                            }).ToArray();
-                            if (AssetDatabase.GetAssetPath(stateMachine) != "")
-                                AssetDatabase.AddObjectToAsset((UnityEngine.Object) stateMachine.anyStateTransitions.Last(), AssetDatabase.GetAssetPath(stateMachine));
+                                stateMachine.anyStateTransitions = stateMachine.anyStateTransitions.AddItem(
+                                    new AnimatorStateTransition()
+                                    {
+                                        canTransitionToSelf = transition.canTransitionToSelf,
+                                        conditions = transition.conditions.Select(x => x).ToArray(),
+                                        duration = transition.duration,
+                                        destinationState = selectedState,
+                                        exitTime = transition.exitTime,
+                                        hasExitTime = transition.hasExitTime,
+                                        hasFixedDuration = transition.hasFixedDuration,
+                                        hideFlags = transition.hideFlags,
+                                        interruptionSource = transition.interruptionSource,
+                                    }).ToArray();
+                                if (AssetDatabase.GetAssetPath(stateMachine) != "")
+                                    AssetDatabase.AddObjectToAsset(
+                                        (UnityEngine.Object)stateMachine.anyStateTransitions.Last(),
+                                        AssetDatabase.GetAssetPath(stateMachine));
+                            }
                         }
                     }
                     
-                    AnimatorWindowState.redirectTransition = null;
+                    AnimatorWindowState.redirectTransition = Array.Empty<AnimatorTransitionBase>();
                     AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
                 }
             }
@@ -703,7 +714,7 @@ namespace Razgriz.RATS
             class ReplicateMenuEntry : StateMenuEntry
             {
                 public string GetEntryName() => "Replicate";
-                public bool ShouldShow(object data) => AnimatorWindowState.replicateTransition != null;
+                public bool ShouldShow(object data) => AnimatorWindowState.replicateTransition.Length != 0;
 
                 public void Callback(object data, object stateNode)
                 {
@@ -717,30 +728,34 @@ namespace Razgriz.RATS
                     AnimatorState[] selectedStates = Selection.objects.Where(x => x is AnimatorState).Cast<AnimatorState>().ToArray();
                     if (selectedStates.Length == 0) return;
 
-                    AnimatorStateTransition transition = AnimatorWindowState.replicateTransition as AnimatorStateTransition;
-                    
-                    ChildAnimatorState target = stateMachine.states.FirstOrDefault(x => x.state == transition.destinationState);
-                    if (target.state == null) return;
-                    foreach (var selectedState in selectedStates)
-                    {
-                        AnimatorStateTransition newTransition = new AnimatorStateTransition()
-                        {
-                            canTransitionToSelf = transition.canTransitionToSelf,
-                            conditions = transition.conditions.Select(x => x).ToArray(),
-                            destinationState = target.state,
-                            duration = transition.duration,
-                            exitTime = transition.exitTime,
-                            hasExitTime = transition.hasExitTime,
-                            hasFixedDuration = transition.hasFixedDuration,
-                            hideFlags = transition.hideFlags,
-                            interruptionSource = transition.interruptionSource,
-                        };
-                        selectedState.AddTransition(newTransition);
-                        if (AssetDatabase.GetAssetPath(stateMachine) != "")
-                            AssetDatabase.AddObjectToAsset((UnityEngine.Object) newTransition, AssetDatabase.GetAssetPath(stateMachine));
-                    }
+                    AnimatorStateTransition[] transitions = AnimatorWindowState.replicateTransition.OfType<AnimatorStateTransition>().ToArray();
 
-                    AnimatorWindowState.replicateTransition = null;
+                    foreach (var transition in transitions)
+                    {
+                        ChildAnimatorState target = stateMachine.states.FirstOrDefault(x => x.state == transition.destinationState);
+                        if (target.state == null) return;
+                        foreach (var selectedState in selectedStates)
+                        {
+                            AnimatorStateTransition newTransition = new AnimatorStateTransition()
+                            {
+                                canTransitionToSelf = transition.canTransitionToSelf,
+                                conditions = transition.conditions.Select(x => x).ToArray(),
+                                destinationState = target.state,
+                                duration = transition.duration,
+                                exitTime = transition.exitTime,
+                                hasExitTime = transition.hasExitTime,
+                                hasFixedDuration = transition.hasFixedDuration,
+                                hideFlags = transition.hideFlags,
+                                interruptionSource = transition.interruptionSource,
+                            };
+                            selectedState.AddTransition(newTransition);
+                            if (AssetDatabase.GetAssetPath(stateMachine) != "")
+                                AssetDatabase.AddObjectToAsset((UnityEngine.Object) newTransition, AssetDatabase.GetAssetPath(stateMachine));
+                        }
+                    }
+                    
+
+                    AnimatorWindowState.replicateTransition = Array.Empty<AnimatorStateTransition>();
                     AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetMethod("RebuildGraph").Invoke(AccessTools.TypeByName("UnityEditor.Graphs.AnimatorControllerTool").GetField("tool").GetValue(null), new object[]{false});
                 }
             }
@@ -883,19 +898,20 @@ namespace Razgriz.RATS
             class RedirectMenuEntry : TransitionMenuEntry
             {
                 public string GetEntryName() => "Redirect";
-                public bool ShouldCheck(object data) => AnimatorWindowState.redirectTransition != null;
+                public bool ShouldCheck(object data) => AnimatorWindowState.redirectTransition.Length != 0;
                 public void Callback(object graph, object data)
                 {
-                    if (!(Selection.activeObject is AnimatorStateTransition transition)) return;
-
-                    if (AnimatorWindowState.redirectTransition == null)
+                    AnimatorStateTransition[] transitions = Selection.objects.OfType<AnimatorStateTransition>().ToArray();
+                    if (transitions.Length == 0) return;
+                    
+                    if (AnimatorWindowState.redirectTransition.Length == 0)
                     {
-                        AnimatorWindowState.redirectTransition = transition;
-                        AnimatorWindowState.replicateTransition = null;
+                        AnimatorWindowState.redirectTransition = transitions;
+                        AnimatorWindowState.replicateTransition = Array.Empty<AnimatorStateTransition>();
                     }
                     else
                     {
-                        AnimatorWindowState.redirectTransition = null;
+                        AnimatorWindowState.redirectTransition = Array.Empty<AnimatorStateTransition>();
                     }
                 }
             }
@@ -903,19 +919,20 @@ namespace Razgriz.RATS
             class ReplicateMenuEntry : TransitionMenuEntry
             {
                 public string GetEntryName() => "Replicate";
-                public bool ShouldCheck(object data) => AnimatorWindowState.replicateTransition != null;
+                public bool ShouldCheck(object data) => AnimatorWindowState.replicateTransition.Length != 0;
                 public void Callback(object graph, object data)
                 {
-                    if (!(Selection.activeObject is AnimatorStateTransition transition)) return;
-
-                    if (AnimatorWindowState.replicateTransition == null)
+                    AnimatorStateTransition[] transitions = Selection.objects.OfType<AnimatorStateTransition>().ToArray();
+                    if (transitions.Length == 0) return;
+                    
+                    if (AnimatorWindowState.replicateTransition.Length == 0)
                     {
-                        AnimatorWindowState.replicateTransition = transition;
-                        AnimatorWindowState.redirectTransition = null;
+                        AnimatorWindowState.replicateTransition = transitions;
+                        AnimatorWindowState.redirectTransition = Array.Empty<AnimatorStateTransition>();
                     }
                     else
                     {
-                        AnimatorWindowState.replicateTransition = null;
+                        AnimatorWindowState.replicateTransition = Array.Empty<AnimatorStateTransition>();
                     }
                 }
             }
