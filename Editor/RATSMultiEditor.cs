@@ -882,6 +882,7 @@ public class RATSMultiEditor : EditorWindow
             Rect thirdRect1 = new Rect(rect.x + rect.width * 0.74f, rect.y + 2, rect.width * 0.12f, EditorGUIUtility.singleLineHeight);
             Rect thirdRect2 = new Rect(rect.x + rect.width * 0.88f, rect.y + 2, rect.width * 0.12f, EditorGUIUtility.singleLineHeight);
 
+            EditorGUI.BeginChangeCheck();
             VRC_AvatarParameterDriver.ChangeType newType = (VRC_AvatarParameterDriver.ChangeType)EditorGUI.EnumPopup(typeRect, parameter.type);
             if (EditorGUI.EndChangeCheck())
             {
