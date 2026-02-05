@@ -122,15 +122,22 @@ public class RATSMultiEditor : EditorWindow
         
         AnimatorControllerParameter[] parameters = controller.parameters;
         string[] paramNames = parameters.Where(p => p.type == AnimatorControllerParameterType.Float).Select(p => p.name).ToArray();
-        
+
+        bool MixedToggle(bool mixed, bool value, params GUILayoutOption[] options)
+        {
+            return MixedField(mixed, () => EditorGUILayout.Toggle(mixed || value, options));
+        }
+
         // Motion field
         using (new GUILayout.HorizontalScope())
         {
             EditorGUILayout.LabelField("Motion", GUILayout.Width(350f));
             bool sharedMotion = states.All(x => x.motion == states[0].motion);
-            Motion currentMotion = sharedMotion ? states[0].motion : null;
-            Motion newMotion = EditorGUILayout.ObjectField(currentMotion, typeof(Motion), false) as Motion;
-            if (newMotion != currentMotion)
+            Motion currentMotion = states[0].motion;
+            EditorGUI.BeginChangeCheck();
+            Motion newMotion = MixedField(!sharedMotion, () =>
+                EditorGUILayout.ObjectField(currentMotion, typeof(Motion), false) as Motion);
+            if (EditorGUI.EndChangeCheck())
             {
                 states.ForEach(x =>
                 {
@@ -145,30 +152,16 @@ public class RATSMultiEditor : EditorWindow
         {
             EditorGUILayout.LabelField("Speed", GUILayout.Width(350f));
             bool sharedSpeed = states.All(x => x.speed == states[0].speed);
-            float currentSpeed = sharedSpeed ? states[0].speed : 0;
-            if (sharedSpeed)
+            float currentSpeed = states[0].speed;
+            EditorGUI.BeginChangeCheck();
+            float newSpeed = MixedField(!sharedSpeed, () => EditorGUILayout.FloatField(currentSpeed));
+            if (EditorGUI.EndChangeCheck())
             {
-                float newSpeed = EditorGUILayout.FloatField(currentSpeed);
-                if (newSpeed != currentSpeed)
+                states.ForEach(x =>
                 {
-                    states.ForEach(x =>
-                    {
-                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
-                        x.speed = newSpeed;
-                    });
-                }
-            }
-            else
-            {
-                string newSpeedString = EditorGUILayout.TextField("--");
-                if (float.TryParse(newSpeedString, out float newSpeedFloat))
-                {
-                    states.ForEach(x =>
-                    {
-                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
-                        x.speed = newSpeedFloat;
-                    });
-                }
+                    Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                    x.speed = newSpeed;
+                });
             }
         }
 
@@ -177,14 +170,15 @@ public class RATSMultiEditor : EditorWindow
         {
             EditorGUILayout.LabelField("   Multiplier", GUILayout.Width(350f));
             bool sharedMultiplier = states.All(x => x.speedParameter == states[0].speedParameter);
-            string currentMultiplier = sharedMultiplier ? states[0].speedParameter : "--";
+            string currentMultiplier = states[0].speedParameter;
             bool sharedMultiplierEnabled = states.All(x => x.speedParameterActive == states[0].speedParameterActive);
-            bool currentMultiplierEnabled = sharedMultiplierEnabled ? states[0].speedParameterActive : false;
+            bool currentMultiplierEnabled = states[0].speedParameterActive;
             using (new EditorGUI.DisabledScope(!(sharedMultiplierEnabled && currentMultiplierEnabled)))
             {
                 int currentMultiplierIndex = Array.FindIndex(paramNames, p => p == currentMultiplier);
-                int newMultiplierIndex = EditorGUILayout.Popup(currentMultiplierIndex, paramNames);
-                if (newMultiplierIndex != currentMultiplierIndex)
+                EditorGUI.BeginChangeCheck();
+                int newMultiplierIndex = MixedField(!sharedMultiplier, () => EditorGUILayout.Popup(currentMultiplierIndex, paramNames));
+                if (EditorGUI.EndChangeCheck())
                 {
                     states.ForEach(x =>
                     {
@@ -193,9 +187,9 @@ public class RATSMultiEditor : EditorWindow
                     });
                 }
             }
-            bool newMultiplierEnabled = EditorGUILayout.Toggle(states[0].speedParameterActive, GUILayout.Width(12f));
-            EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
-            if (sharedMultiplierEnabled && newMultiplierEnabled != currentMultiplierEnabled)
+            EditorGUI.BeginChangeCheck();
+            bool newMultiplierEnabled = MixedToggle(!sharedMultiplierEnabled, currentMultiplierEnabled, GUILayout.Width(12f));
+            if (EditorGUI.EndChangeCheck())
             {
                 states.ForEach(x =>
                 {
@@ -203,22 +197,23 @@ public class RATSMultiEditor : EditorWindow
                     x.speedParameterActive = newMultiplierEnabled;
                 });
             }
+            EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
         }
-
 
         // Motion Time field
         using (new GUILayout.HorizontalScope())
         {
             EditorGUILayout.LabelField("Motion Time", GUILayout.Width(350f));
             bool sharedMotionTime = states.All(x => x.timeParameter == states[0].timeParameter);
-            string currentMotionTime = sharedMotionTime ? states[0].timeParameter : "--";
+            string currentMotionTime = states[0].timeParameter;
             bool sharedMotionTimeEnabled = states.All(x => x.timeParameterActive == states[0].timeParameterActive);
-            bool currentMotionTimeEnabled = sharedMotionTimeEnabled ? states[0].timeParameterActive : false;
+            bool currentMotionTimeEnabled = states[0].timeParameterActive;
             using (new EditorGUI.DisabledScope(!(sharedMotionTimeEnabled && currentMotionTimeEnabled)))
             {
                 int currentMotionTimeIndex = Array.FindIndex(paramNames, p => p == currentMotionTime);
-                int newMotionTimeIndex = EditorGUILayout.Popup(currentMotionTimeIndex, paramNames);
-                if (newMotionTimeIndex != currentMotionTimeIndex)
+                EditorGUI.BeginChangeCheck();
+                int newMotionTimeIndex = MixedField(!sharedMotionTime, () => EditorGUILayout.Popup(currentMotionTimeIndex, paramNames));
+                if (EditorGUI.EndChangeCheck())
                 {
                     states.ForEach(x =>
                     {
@@ -227,16 +222,17 @@ public class RATSMultiEditor : EditorWindow
                     });
                 }
             }
-            bool newMultiplierEnabled = EditorGUILayout.Toggle(states[0].timeParameterActive, GUILayout.Width(12f));
-            EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
-            if (newMultiplierEnabled != currentMotionTimeEnabled)
+            EditorGUI.BeginChangeCheck();
+            bool newMotionTimeEnabled = MixedToggle(!sharedMotionTimeEnabled, currentMotionTimeEnabled, GUILayout.Width(12f));
+            if (EditorGUI.EndChangeCheck())
             {
                 states.ForEach(x =>
                 {
                     Undo.RegisterCompleteObjectUndo(x, "Modify States");
-                    x.timeParameterActive = newMultiplierEnabled;
+                    x.timeParameterActive = newMotionTimeEnabled;
                 });
             }
+            EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
         }
 
         // Mirror field
@@ -244,15 +240,15 @@ public class RATSMultiEditor : EditorWindow
         {
             EditorGUILayout.LabelField("Mirror", GUILayout.Width(350f));
             bool sharedMirrorParameterEnabled = states.All(x => x.mirrorParameterActive == states[0].mirrorParameterActive);
-            bool currentMirrorParameterEnabled = sharedMirrorParameterEnabled ? states[0].mirrorParameterActive : false;
+            bool currentMirrorParameterEnabled = states[0].mirrorParameterActive;
             if (sharedMirrorParameterEnabled && currentMirrorParameterEnabled)
             {
                 bool sharedMirrorParameter = states.All(x => x.mirrorParameter == states[0].mirrorParameter);
-                string currentMirrorParameter = sharedMirrorParameter ? states[0].mirrorParameter : "--";
-                
+                string currentMirrorParameter = states[0].mirrorParameter;
                 int currentMirrorIndex = Array.FindIndex(paramNames, p => p == currentMirrorParameter);
-                int newMirrorIndex = EditorGUILayout.Popup(currentMirrorIndex, paramNames);
-                if (newMirrorIndex != currentMirrorIndex)
+                EditorGUI.BeginChangeCheck();
+                int newMirrorIndex = MixedField(!sharedMirrorParameter, () => EditorGUILayout.Popup(currentMirrorIndex, paramNames));
+                if (EditorGUI.EndChangeCheck())
                 {
                     states.ForEach(x =>
                     {
@@ -264,10 +260,10 @@ public class RATSMultiEditor : EditorWindow
             else
             {
                 bool sharedMirrorEnabled = states.All(x => x.mirror == states[0].mirror);
-                bool currentMirrorEnabled = sharedMirrorEnabled ? states[0].mirror : false;
-                
-                bool newMirror = EditorGUILayout.Toggle(currentMirrorEnabled);
-                if (newMirror != currentMirrorEnabled)
+                bool currentMirrorEnabled = states[0].mirror;
+                EditorGUI.BeginChangeCheck();
+                bool newMirror = MixedToggle(!sharedMirrorEnabled, currentMirrorEnabled);
+                if (EditorGUI.EndChangeCheck())
                 {
                     states.ForEach(x =>
                     {
@@ -276,9 +272,9 @@ public class RATSMultiEditor : EditorWindow
                     });
                 }
             }
-            bool newMirrorEnabled = EditorGUILayout.Toggle(states[0].mirrorParameterActive, GUILayout.Width(12f));
-            EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
-            if (newMirrorEnabled != currentMirrorParameterEnabled)
+            EditorGUI.BeginChangeCheck();
+            bool newMirrorEnabled = MixedToggle(!sharedMirrorParameterEnabled, currentMirrorParameterEnabled, GUILayout.Width(12f));
+            if (EditorGUI.EndChangeCheck())
             {
                 states.ForEach(x =>
                 {
@@ -286,22 +282,23 @@ public class RATSMultiEditor : EditorWindow
                     x.mirrorParameterActive = newMirrorEnabled;
                 });
             }
+            EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
         }
-      
+
         // Cycle Offset field
         using (new GUILayout.HorizontalScope())
         {
             EditorGUILayout.LabelField("Cycle Offset", GUILayout.Width(350f));
             bool sharedCycleOffsetParameterEnabled = states.All(x => x.cycleOffsetParameterActive == states[0].cycleOffsetParameterActive);
-            bool currentCycleOffsetParameterEnabled = sharedCycleOffsetParameterEnabled ? states[0].cycleOffsetParameterActive : false;
+            bool currentCycleOffsetParameterEnabled = states[0].cycleOffsetParameterActive;
             if (sharedCycleOffsetParameterEnabled && currentCycleOffsetParameterEnabled)
             {
                 bool sharedCycleOffsetParameter = states.All(x => x.cycleOffsetParameter == states[0].cycleOffsetParameter);
-                string currentCycleOffsetParameter = sharedCycleOffsetParameter ? states[0].cycleOffsetParameter : "--";
-                
+                string currentCycleOffsetParameter = states[0].cycleOffsetParameter;
                 int currentCycleOffsetIndex = Array.FindIndex(paramNames, p => p == currentCycleOffsetParameter);
-                int newCycleOffsetIndex = EditorGUILayout.Popup(currentCycleOffsetIndex, paramNames);
-                if (newCycleOffsetIndex != currentCycleOffsetIndex)
+                EditorGUI.BeginChangeCheck();
+                int newCycleOffsetIndex = MixedField(!sharedCycleOffsetParameter, () => EditorGUILayout.Popup(currentCycleOffsetIndex, paramNames));
+                if (EditorGUI.EndChangeCheck())
                 {
                     states.ForEach(x =>
                     {
@@ -313,36 +310,21 @@ public class RATSMultiEditor : EditorWindow
             else
             {
                 bool sharedCycleOffset = states.All(x => x.cycleOffset == states[0].cycleOffset);
-                float currentCycleOffset = sharedCycleOffset ? states[0].cycleOffset : 0;
-                
-                if (sharedCycleOffset)
+                float currentCycleOffset = states[0].cycleOffset;
+                EditorGUI.BeginChangeCheck();
+                float newCycleOffset = MixedField(!sharedCycleOffset, () => EditorGUILayout.FloatField(currentCycleOffset));
+                if (EditorGUI.EndChangeCheck())
                 {
-                    float newCycleOffset = EditorGUILayout.FloatField(currentCycleOffset);
-                    if (newCycleOffset != currentCycleOffset)
+                    states.ForEach(x =>
                     {
-                        states.ForEach(x =>
-                        {
-                            Undo.RegisterCompleteObjectUndo(x, "Modify States");
-                            x.cycleOffset = newCycleOffset;
-                        });
-                    }
-                }
-                else
-                {
-                    string newCycleOffsetString = EditorGUILayout.TextField("--");
-                    if (float.TryParse(newCycleOffsetString, out float newCycleOffset))
-                    {
-                        states.ForEach(x =>
-                        {
-                            Undo.RegisterCompleteObjectUndo(x, "Modify States");
-                            x.cycleOffset = newCycleOffset;
-                        });
-                    }
+                        Undo.RegisterCompleteObjectUndo(x, "Modify States");
+                        x.cycleOffset = newCycleOffset;
+                    });
                 }
             }
-            bool newCycleOffsetEnabled = EditorGUILayout.Toggle(states[0].cycleOffsetParameterActive, GUILayout.Width(12f));
-            EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
-            if (newCycleOffsetEnabled != currentCycleOffsetParameterEnabled)
+            EditorGUI.BeginChangeCheck();
+            bool newCycleOffsetEnabled = MixedToggle(!sharedCycleOffsetParameterEnabled, currentCycleOffsetParameterEnabled, GUILayout.Width(12f));
+            if (EditorGUI.EndChangeCheck())
             {
                 states.ForEach(x =>
                 {
@@ -350,6 +332,7 @@ public class RATSMultiEditor : EditorWindow
                     x.cycleOffsetParameterActive = newCycleOffsetEnabled;
                 });
             }
+            EditorGUILayout.LabelField("Parameter", GUILayout.Width(70));
         }
 
         // Write Defaults toggle
@@ -418,9 +401,10 @@ public class RATSMultiEditor : EditorWindow
         {
             EditorGUILayout.LabelField("Interruption Source", GUILayout.Width(350f));
             bool sharedValue = transitions.All(x => x.interruptionSource == transitions[0].interruptionSource);
-            TransitionInterruptionSource currentValue = sharedValue ? transitions[0].interruptionSource : TransitionInterruptionSource.None;
-            TransitionInterruptionSource newValue = (TransitionInterruptionSource) EditorGUILayout.EnumPopup(currentValue);
-            if (newValue != currentValue)
+            EditorGUI.BeginChangeCheck();
+            TransitionInterruptionSource newValue = MixedField(!sharedValue, () =>
+                (TransitionInterruptionSource)EditorGUILayout.EnumPopup(transitions[0].interruptionSource));
+            if (EditorGUI.EndChangeCheck())
             {
                 transitions.ForEach(x =>
                 {
@@ -542,8 +526,9 @@ public class RATSMultiEditor : EditorWindow
             int currentParamIndex = Array.FindIndex(parameters, p => p.name == condition.parameter);
 
             // Parameter dropdown
+            EditorGUI.BeginChangeCheck();
             int newParamIndex = EditorGUI.Popup(paramRect, currentParamIndex, paramNames);
-            if (newParamIndex != currentParamIndex && newParamIndex >= 0)
+            if (EditorGUI.EndChangeCheck() && newParamIndex >= 0)
             {
                 var type = parameters.First(x => x.name == paramNames[newParamIndex]).type;
                 sharedConditions[index].references.ForEach((x) =>
@@ -566,8 +551,9 @@ public class RATSMultiEditor : EditorWindow
                 case AnimatorControllerParameterType.Trigger:
                     string[] boolStrings = { "true", "false" };
                     int currentBoolIndex = condition.mode == AnimatorConditionMode.If ? 0 : 1;
+                    EditorGUI.BeginChangeCheck();
                     var newBoolIndex = EditorGUI.Popup(doubleRect, currentBoolIndex, boolStrings);
-                    if (currentBoolIndex != newBoolIndex)
+                    if (EditorGUI.EndChangeCheck())
                     {
                         sharedConditions[index].references.ForEach((x) =>
                         {
@@ -582,8 +568,9 @@ public class RATSMultiEditor : EditorWindow
                 case AnimatorControllerParameterType.Float:
                     string[] floatStrings = { "Greater", "Less" };
                     int currentFloatIndex = condition.mode == AnimatorConditionMode.Greater ? 0 : 1;
+                    EditorGUI.BeginChangeCheck();
                     var newFloatIndex = EditorGUI.Popup(modeRect, currentFloatIndex, floatStrings);
-                    if (currentFloatIndex != newFloatIndex)
+                    if (EditorGUI.EndChangeCheck())
                     {
                         sharedConditions[index].references.ForEach((x) =>
                         {
@@ -600,8 +587,9 @@ public class RATSMultiEditor : EditorWindow
                     int currentIntIndex = condition.mode == AnimatorConditionMode.Greater ? 0 : 
                             condition.mode == AnimatorConditionMode.Less ? 1 : 
                             condition.mode == AnimatorConditionMode.Equals ? 2 : 3;
+                    EditorGUI.BeginChangeCheck();
                     var newIntIndex = EditorGUI.Popup(modeRect, currentIntIndex, intStrings);
-                    if (currentIntIndex != newIntIndex)
+                    if (EditorGUI.EndChangeCheck())
                     {
                         sharedConditions[index].references.ForEach((x) =>
                         {
@@ -614,16 +602,16 @@ public class RATSMultiEditor : EditorWindow
                     }
                     break;
             }
-            
-            
+
             // Threshold field (only show for modes that need it)
             if ((parameters[newParamIndex].type == AnimatorControllerParameterType.Float ||
                 parameters[newParamIndex].type == AnimatorControllerParameterType.Int) &&
                 condition.mode != AnimatorConditionMode.If && 
                 condition.mode != AnimatorConditionMode.IfNot)
             {
+                EditorGUI.BeginChangeCheck();
                 var newThreshold = EditorGUI.FloatField(valueRect, condition.threshold);
-                if (newThreshold != condition.threshold)
+                if (EditorGUI.EndChangeCheck())
                 {
                     sharedConditions[index].references.ForEach((x) =>
                     { 
@@ -894,8 +882,9 @@ public class RATSMultiEditor : EditorWindow
             Rect thirdRect1 = new Rect(rect.x + rect.width * 0.74f, rect.y + 2, rect.width * 0.12f, EditorGUIUtility.singleLineHeight);
             Rect thirdRect2 = new Rect(rect.x + rect.width * 0.88f, rect.y + 2, rect.width * 0.12f, EditorGUIUtility.singleLineHeight);
 
+            EditorGUI.BeginChangeCheck();
             VRC_AvatarParameterDriver.ChangeType newType = (VRC_AvatarParameterDriver.ChangeType)EditorGUI.EnumPopup(typeRect, parameter.type);
-            if (newType != parameter.type)
+            if (EditorGUI.EndChangeCheck())
             {
                 sharedDrivers[index].references.ForEach((x) =>
                 {
@@ -924,8 +913,9 @@ public class RATSMultiEditor : EditorWindow
                 case VRC_AvatarParameterDriver.ChangeType.Add:
                 case VRC_AvatarParameterDriver.ChangeType.Set:
                     int currentParamIndex = Array.FindIndex(parameters, p => p.name == parameter.name);
+                    EditorGUI.BeginChangeCheck();
                     int newParamIndex = EditorGUI.Popup(secondRect, currentParamIndex, paramNames);
-                    if (newParamIndex != currentParamIndex && newParamIndex >= 0)
+                    if (EditorGUI.EndChangeCheck() && newParamIndex >= 0)
                     {
                         sharedDrivers[index].references.ForEach((x) =>
                         {
@@ -940,8 +930,10 @@ public class RATSMultiEditor : EditorWindow
                     if (newParamIndex < 0 || parameters[newParamIndex].type == AnimatorControllerParameterType.Bool ||
                         parameters[newParamIndex].type == AnimatorControllerParameterType.Trigger)
                     {
-                        bool newValue = EditorGUI.Toggle(thirdRect, parameter.value == 1.0);
-                        if (newValue != (parameter.value == 1.0))
+                        EditorGUI.BeginChangeCheck();
+                        bool newValue = MixedField(IsMixedFloat(sharedDrivers[index], p => p.value),
+                            () => EditorGUI.Toggle(thirdRect, parameter.value == 1.0));
+                        if (EditorGUI.EndChangeCheck())
                         {
                             sharedDrivers[index].references.ForEach((x) =>
                             {
@@ -955,8 +947,10 @@ public class RATSMultiEditor : EditorWindow
                     }
                     else
                     {
-                        float newValue = EditorGUI.FloatField(thirdRect, parameter.value);
-                        if (newValue != parameter.value)
+                        EditorGUI.BeginChangeCheck();
+                        float newValue = MixedField(IsMixedFloat(sharedDrivers[index], p => p.value),
+                            () => EditorGUI.FloatField(thirdRect, parameter.value));
+                        if (EditorGUI.EndChangeCheck())
                         {
                             sharedDrivers[index].references.ForEach((x) =>
                             {
@@ -973,8 +967,9 @@ public class RATSMultiEditor : EditorWindow
                 // Copy
                 case VRC_AvatarParameterDriver.ChangeType.Copy:
                     int currentSourceParamIndex = Array.FindIndex(parameters, p => p.name == parameter.source);
+                    EditorGUI.BeginChangeCheck();
                     int newSourceParamIndex = EditorGUI.Popup(secondRect, currentSourceParamIndex, paramNames);
-                    if (newSourceParamIndex != currentSourceParamIndex && newSourceParamIndex >= 0)
+                    if (EditorGUI.EndChangeCheck() && newSourceParamIndex >= 0)
                     {
                         sharedDrivers[index].references.ForEach((x) =>
                         {
@@ -987,8 +982,9 @@ public class RATSMultiEditor : EditorWindow
                     }
                     
                     int currentDestParamIndex = Array.FindIndex(parameters, p => p.name == parameter.name);
+                    EditorGUI.BeginChangeCheck();
                     int newDestParamIndex = EditorGUI.Popup(thirdRect, currentDestParamIndex, paramNames);
-                    if (newDestParamIndex != currentDestParamIndex && newDestParamIndex >= 0)
+                    if (EditorGUI.EndChangeCheck() && newDestParamIndex >= 0)
                     {
                         sharedDrivers[index].references.ForEach((x) =>
                         {
@@ -1004,8 +1000,9 @@ public class RATSMultiEditor : EditorWindow
                 // Random
                 case VRC_AvatarParameterDriver.ChangeType.Random:
                     int currentRandomParamIndex = Array.FindIndex(parameters, p => p.name == parameter.name);
+                    EditorGUI.BeginChangeCheck();
                     int newRandomParamIndex = EditorGUI.Popup(secondRect, currentRandomParamIndex, paramNames);
-                    if (newRandomParamIndex != currentRandomParamIndex && newRandomParamIndex >= 0)
+                    if (EditorGUI.EndChangeCheck() && newRandomParamIndex >= 0)
                     {
                         sharedDrivers[index].references.ForEach((x) =>
                         {
@@ -1021,8 +1018,10 @@ public class RATSMultiEditor : EditorWindow
                     if (newRandomParamIndex <= 0 || parameters[newRandomParamIndex].type == AnimatorControllerParameterType.Bool ||
                         parameters[newRandomParamIndex].type == AnimatorControllerParameterType.Trigger)
                     {
-                        float newRandomValue = EditorGUI.FloatField(thirdRect, parameter.chance);
-                        if (newRandomValue != parameter.chance)
+                        EditorGUI.BeginChangeCheck();
+                        float newRandomValue = MixedField(IsMixedFloat(sharedDrivers[index], p => p.chance),
+                            () => EditorGUI.FloatField(thirdRect, parameter.chance));
+                        if (EditorGUI.EndChangeCheck())
                         {
                             sharedDrivers[index].references.ForEach((x) =>
                             {
@@ -1036,8 +1035,10 @@ public class RATSMultiEditor : EditorWindow
                     }
                     else
                     {
-                        float newRandomMinValue = EditorGUI.FloatField(thirdRect1, parameter.valueMin);
-                        if (newRandomMinValue != parameter.valueMin)
+                        EditorGUI.BeginChangeCheck();
+                        float newRandomMinValue = MixedField(IsMixedFloat(sharedDrivers[index], p => p.valueMin),
+                            () => EditorGUI.FloatField(thirdRect1, parameter.valueMin));
+                        if (EditorGUI.EndChangeCheck())
                         {
                             sharedDrivers[index].references.ForEach((x) =>
                             {
@@ -1048,9 +1049,11 @@ public class RATSMultiEditor : EditorWindow
                                 driver.parameters = parameters;
                             });
                         }
-                        
-                        float newRandomMaxValue = EditorGUI.FloatField(thirdRect2, parameter.valueMax);
-                        if (newRandomMaxValue != parameter.valueMax)
+
+                        EditorGUI.BeginChangeCheck();
+                        float newRandomMaxValue = MixedField(IsMixedFloat(sharedDrivers[index], p => p.valueMax),
+                            () => EditorGUI.FloatField(thirdRect2, parameter.valueMax));
+                        if (EditorGUI.EndChangeCheck())
                         {
                             sharedDrivers[index].references.ForEach((x) =>
                             {
@@ -1104,7 +1107,29 @@ public class RATSMultiEditor : EditorWindow
         
         parameters.DoLayoutList();
     }
+    
+    private bool IsMixedFloat(TargetParameter target, Func<VRC_AvatarParameterDriver.Parameter, float> selector)
+    {
+        if (target.references == null || target.references.Count == 0) return false;
+        var (driver0, idx0) = target.references[0];
+        float first = selector(driver0.parameters[idx0]);
+        for (int i = 1; i < target.references.Count; i++)
+        {
+            var (driver, idx) = target.references[i];
+            if (selector(driver.parameters[idx]) != first) return true;
+        }
+        return false;
+    }
 #endif
+
+    T MixedField<T>(bool mixed, Func<T> draw)
+    {
+        bool prev = EditorGUI.showMixedValue;
+        EditorGUI.showMixedValue = mixed;
+        T value = draw();
+        EditorGUI.showMixedValue = prev;
+        return value;
+    }
     
     private void DrawFloatField<T>(List<T> objects, Func<T, float> getter, Action<T, float> setter, string name) where T: Object
     {
@@ -1112,9 +1137,10 @@ public class RATSMultiEditor : EditorWindow
         {
             EditorGUILayout.LabelField(name, GUILayout.Width(350f));
             bool sharedValue = objects.All(x => getter(x) == getter(objects[0]));
-            float currentValue = sharedValue ? getter(objects[0]) : 0.0f;
-            float newValue = EditorGUILayout.FloatField(currentValue);
-            if (newValue != currentValue)
+            float currentValue = getter(objects[0]);
+            EditorGUI.BeginChangeCheck();
+            float newValue = MixedField(!sharedValue, () => EditorGUILayout.FloatField(currentValue));
+            if (EditorGUI.EndChangeCheck())
             {
                 objects.ForEach(x =>
                 {
@@ -1131,9 +1157,10 @@ public class RATSMultiEditor : EditorWindow
         {
             EditorGUILayout.LabelField(name,  GUILayout.Width(350f));
             bool sharedValue = objects.All(x => getter(x) == getter(objects[0]));
-            bool currentValue = sharedValue ? getter(objects[0]) : false;
-            bool newValue = EditorGUILayout.Toggle(currentValue);
-            if (newValue != currentValue)
+            bool currentValue = getter(objects[0]);
+            EditorGUI.BeginChangeCheck();
+            bool newValue = MixedField(!sharedValue, () => EditorGUILayout.Toggle(!sharedValue || currentValue));
+            if (EditorGUI.EndChangeCheck())
             {
                 objects.ForEach(x =>
                 {
