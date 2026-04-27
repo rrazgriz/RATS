@@ -215,7 +215,21 @@ namespace Razgriz.RATS
             [HarmonyPrefix]
             static void Prefix(ref AnimatorControllerLayer layer)
             {
+                if (!IsCalledByAnimatorWindow())
+                    return;
                 layer.defaultWeight = RATS.Prefs.DefaultLayerWeight1 ? 1.0f : 0.0f;
+            }
+
+            private static bool IsCalledByAnimatorWindow()
+            {
+                var stackTrace = new System.Diagnostics.StackTrace();
+                var animatorWindowTypeName = AnimatorControllerViewType?.FullName;
+                var frames = stackTrace.GetFrames();
+                if (frames == null || string.IsNullOrEmpty(animatorWindowTypeName))
+                {
+                    return false;
+                }
+                return frames.Any(frame => frame.GetMethod()?.DeclaringType?.FullName == animatorWindowTypeName);
             }
         }
 
