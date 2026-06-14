@@ -376,6 +376,9 @@ namespace Razgriz.RATS
 
                 var layerStateMachine = controller.layers[index].stateMachine;
 
+                if (layerStateMachine == null)
+                    return;
+
                 // Adjust position to be off to the left
                 Rect layerLabelRect = rect;
                 layerLabelRect.width = 18;
